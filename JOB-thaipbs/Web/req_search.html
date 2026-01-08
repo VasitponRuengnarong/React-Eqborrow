@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-Payment password request-forms| Thai PBS</title>
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+
+    <link rel="stylesheet" href="dashboard.css" />
+    <link rel="stylesheet" href="req_search.css" />
+  </head>
+
+  <body>
+    <div class="dashboard-container">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <img src="images/logo.png" alt="Thai PBS Logo" />
+          <div class="logo-text">
+            <div class="brand">Thai PBS</div>
+            <div class="system">E-PAYMENT</div>
+          </div>
+        </div>
+        <ul class="nav-links">
+          <li>
+            <a href="dashboard.html"
+              ><i class="fa-solid fa-house"></i> หน้าหลัก</a
+            >
+          </li>
+          <li>
+            <a href="#"
+              ><i class="fa-solid fa-file-invoice-dollar"></i> รายการชำระเงิน</a
+            >
+          </li>
+          <li>
+            <a href="history.html"
+              ><i class="fa-solid fa-clock-rotate-left"></i>
+              ประวัติการทำรายการ</a
+            >
+          </li>
+          <li class="active">
+            <a href="req_search.html"
+              ><i class="fa-solid fa-magnifying-glass"></i> ค้นหาคำร้อง</a
+            >
+          </li>
+          <li>
+            <a href="profile.html"
+              ><i class="fa-solid fa-user"></i> ข้อมูลส่วนตัว</a
+            >
+          </li>
+          <li>
+            <a href="setting.html"><i class="fa-solid fa-gear"></i> ตั้งค่า</a>
+          </li>
+        </ul>
+        <div class="logout-section">
+          <a href="#" id="logoutBtn"
+            ><i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ</a
+          >
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <header>
+          <div class="menu-toggle" id="menuToggle">
+            <i class="fa-solid fa-bars"></i>
+          </div>
+          <div class="user-profile">
+            <img
+              src="https://ui-avatars.com/api/?name=User+Name&background=ff6b35&color=fff"
+              alt="User"
+            />
+            <span>ทดสอบ</span>
+          </div>
+        </header>
+
+        <div class="content-wrapper">
+          <h2>ค้นหาใบคำร้องขอใช้งานระบบ</h2>
+
+          <div class="search-card">
+            <form id="reqSearchForm">
+              <div class="input-group">
+                <label>Email ที่ลงทะเบียน </label>
+                <div class="input-icon">
+                  <i class="fa-solid fa-envelope left-icon"></i>
+                  <input
+                    type="email"
+                    id="email"
+                    placeholder="ระบุอีเมลของคุณ"
+                  />
+                </div>
+                <div class="error-message" id="emailError">
+                  รูปแบบอีเมลไม่ถูกต้อง
+                </div>
+              </div>
+              <div class="row">
+                <div class="col">
+                  <label>เลขที่บัตร <span class="req">*</span></label>
+                  <div class="input-icon">
+                    <i class="fa-solid fa-id-card"></i>
+                    <input
+                      id="idNumber"
+                      placeholder="ระบุเลขทะเบียนนิติบุคคล / เลขที่บัตรประชาชน"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" class="pass-btn">ค้นหา</button>
+            </form>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="dashboard.js"></script>
+    <script src="req_search.js"></script>
+  </body>
+</html>

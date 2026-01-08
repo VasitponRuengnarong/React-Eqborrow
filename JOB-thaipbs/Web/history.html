@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Transaction History | Thai PBS E-Payment</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link rel="stylesheet" href="dashboard.css" />
+    <link rel="stylesheet" href="history.css" />
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <img src="images/logo.png" alt="Thai PBS Logo" />
+          <div class="logo-text">
+            <div class="brand">Thai PBS</div>
+            <div class="system">E-PAYMENT</div>
+          </div>
+        </div>
+        <ul class="nav-links">
+          <li>
+            <a href="dashboard.html"
+              ><i class="fa-solid fa-house"></i> หน้าหลัก</a
+            >
+          </li>
+          <li>
+            <a href="#"
+              ><i class="fa-solid fa-file-invoice-dollar"></i> รายการชำระเงิน</a
+            >
+          </li>
+          <li class="active">
+            <a href="history.html"
+              ><i class="fa-solid fa-clock-rotate-left"></i>
+              ประวัติการทำรายการ</a
+            >
+          </li>
+          <li>
+            <a href="req_search.html"
+              ><i class="fa-solid fa-magnifying-glass"></i> ค้นหาคำร้อง</a
+            >
+          </li>
+          <li>
+            <a href="profile.html"
+              ><i class="fa-solid fa-user"></i> ข้อมูลส่วนตัว</a
+            >
+          </li>
+          <li>
+            <a href="setting.html"><i class="fa-solid fa-gear"></i> ตั้งค่า</a>
+          </li>
+        </ul>
+        <div class="logout-section">
+          <a href="#" id="logoutBtn"
+            ><i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ</a
+          >
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <header>
+          <div class="menu-toggle" id="menuToggle">
+            <i class="fa-solid fa-bars"></i>
+          </div>
+          <div class="user-profile">
+            <img
+              src="https://ui-avatars.com/api/?name=User+Name&background=ff6b35&color=fff"
+              alt="User"
+            />
+            <span>ทดสอบ</span>
+          </div>
+        </header>
+
+        <div class="content-wrapper">
+          <h2>ประวัติการทำรายการ (Transaction History)</h2>
+
+          <div class="history-card">
+            <!-- Filter Section -->
+            <form class="filter-section" id="historyFilterForm">
+              <div class="filter-group">
+                <label>ตั้งแต่วันที่</label>
+                <input type="date" />
+              </div>
+              <div class="filter-group">
+                <label>ถึงวันที่</label>
+                <input type="date" />
+              </div>
+              <div class="filter-group">
+                <label>สถานะ</label>
+                <select>
+                  <option value="">ทั้งหมด</option>
+                  <option value="paid">ชำระแล้ว</option>
+                  <option value="pending">รอชำระ</option>
+                  <option value="processing">กำลังตรวจสอบ</option>
+                </select>
+              </div>
+              <button type="submit" class="btn-search">
+                <i class="fa-solid fa-magnifying-glass"></i> ค้นหา
+              </button>
+            </form>
+
+            <!-- Table -->
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>เลขที่เอกสาร</th>
+                    <th>รายการ</th>
+                    <th>วันที่ทำรายการ</th>
+                    <th>ช่องทางชำระเงิน</th>
+                    <th>จำนวนเงิน</th>
+                    <th>สถานะ</th>
+                    <th>ใบเสร็จ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>INV-2023-001</td>
+                    <td>ค่าโฆษณา</td>
+                    <td>25 ต.ค. 2566</td>
+                    <td>Credit Card</td>
+                    <td>5,000.00</td>
+                    <td><span class="status paid">ชำระแล้ว</span></td>
+                    <td>
+                      <a href="#" style="color: #ff6b35"
+                        ><i class="fa-solid fa-file-pdf"></i> ดาวน์โหลด</a
+                      >
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>INV-2023-002</td>
+                    <td>ค่าเช่าเวลา</td>
+                    <td>28 ต.ค. 2566</td>
+                    <td>-</td>
+                    <td>12,500.00</td>
+                    <td><span class="status pending">รอชำระ</span></td>
+                    <td>-</td>
+                  </tr>
+                  <tr>
+                    <td>INV-2023-003</td>
+                    <td>ค่าบริการอื่นๆ</td>
+                    <td>01 พ.ย. 2566</td>
+                    <td>Bank Transfer</td>
+                    <td>2,000.00</td>
+                    <td><span class="status processing">กำลังตรวจสอบ</span></td>
+                    <td>-</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination">
+              <a href="#" class="page-btn"
+                ><i class="fa-solid fa-chevron-left"></i
+              ></a>
+              <a href="#" class="page-btn active">1</a>
+              <a href="#" class="page-btn">2</a>
+              <a href="#" class="page-btn">3</a>
+              <a href="#" class="page-btn"
+                ><i class="fa-solid fa-chevron-right"></i
+              ></a>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="dashboard.js"></script>
+    <script src="history.js"></script>
+  </body>
+</html>

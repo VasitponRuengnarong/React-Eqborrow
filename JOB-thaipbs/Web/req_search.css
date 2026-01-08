@@ -1,0 +1,97 @@
+.search-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  padding: 30px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.input-group {
+  margin-bottom: 20px;
+}
+
+.input-group label {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.input-icon {
+  position: relative;
+}
+
+.input-icon i {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+  font-size: 1rem;
+  left: 14px;
+}
+
+.input-icon input {
+  width: 100%;
+  padding: 12px 42px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 1rem;
+}
+
+.input-icon input:focus {
+  outline: none;
+  border-color: #ff6b35;
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15);
+}
+
+.input-icon input.error {
+  border-color: #ff3333;
+  background-color: #fffafa;
+}
+
+.error-message {
+  color: #ff3333;
+  font-size: 0.8rem;
+  margin-top: 5px;
+  display: none;
+}
+
+/* Row & Col for ID Card Section */
+.row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.col {
+  flex: 1;
+}
+
+.col label {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.req {
+  color: red;
+}
+
+.pass-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 8px;
+  border: none;
+  background: #ff6b35;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.pass-btn:hover {
+  background: #e55a2b;
+}

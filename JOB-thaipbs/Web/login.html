@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-Payment Login | Thai PBS</title>
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+
+    <link rel="stylesheet" href="login.css" />
+  </head>
+
+  <body>
+    <div class="login-container">
+      <div class="left-panel">
+        <div class="logo-lockup">
+          <img src="images/logo.png" alt="Thai PBS Logo" />
+          <div class="logo-text"></div>
+        </div>
+
+        <h1>E-Payment</h1>
+        <p>
+          ระบบการชำระเงินอิเล็กทรอนิกส์<br />
+          สำหรับองค์กร Thai PBS
+        </p>
+      </div>
+
+      <div class="right-panel">
+        <div class="header-text">เข้าสู่ระบบ</div>
+
+        <form id="loginForm">
+          <div class="input-group">
+            <label>ชื่อผู้ใช้งาน</label>
+            <div class="input-icon">
+              <i class="fa-solid fa-id-card left-icon"></i>
+              <input
+                type="text"
+                id="username"
+                placeholder="เลขบัตรประชาชน / เลขทะเบียนนิติบุคคล"
+                maxlength="13"
+                inputmode="numeric"
+              />
+            </div>
+            <div class="error-message" id="usernameError">
+              กรุณาระบุตัวเลขให้ถูกต้อง (10 หลัก สำหรับต่างชาติ หรือ 13 หลัก
+              สำหรับไทย/นิติบุคคล)
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label>รหัสผ่าน</label>
+            <div class="input-icon">
+              <i class="fa-solid fa-lock left-icon"></i>
+              <input type="password" id="password" placeholder="รหัสผ่าน" />
+              <i
+                class="fa-solid fa-eye toggle-password"
+                id="togglePassword"
+              ></i>
+            </div>
+          </div>
+
+          <div class="remember-me-container">
+            <input type="checkbox" id="remember-me" />
+            <label for="remember-me">จดจำฉันไว้</label>
+          </div>
+
+          <button type="submit" class="login-btn">เข้าสู่ระบบ</button>
+
+          <div class="footer-links">
+            <a href="password-forgot.html">ลืมรหัสผ่าน</a>
+          </div>
+
+          <div class="register-link">
+            ยังไม่มีบัญชี?
+            <a href="register.html">สมัครสมาชิก</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="login.js"></script>
+  </body>
+</html>
