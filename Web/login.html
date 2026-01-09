@@ -15,19 +15,22 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     />
 
-    <link rel="stylesheet" href="css/login.css" />
+    <link rel="stylesheet" href="login.css" />
   </head>
+
   <body>
     <div class="login-container">
       <div class="left-panel">
         <div class="logo-lockup">
-          <img src="images/logo.png" alt="Eqborrow Logo" />
-          <div class="logo-text">
-            <div class="brand">Eqborrow</div>
-            <div class="system">E-PAYMENT</div>
-          </div>
+          <img src="images/logo.png" alt="Thai PBS Logo" />
+          <div class="logo-text"></div>
         </div>
-        <h1>Eqborrow</h1>
+
+        <h1>E-Payment</h1>
+        <p>
+          ระบบการชำระเงินอิเล็กทรอนิกส์<br />
+          สำหรับองค์กร Thai PBS
+        </p>
       </div>
 
       <div class="right-panel">
@@ -38,7 +41,13 @@
             <label>ชื่อผู้ใช้งาน</label>
             <div class="input-icon">
               <i class="fa-solid fa-id-card left-icon"></i>
-              <input type="text" id="username" placeholder="Username" />
+              <input
+                type="text"
+                id="username"
+                placeholder="เลขบัตรประชาชน / เลขทะเบียนนิติบุคคล"
+                maxlength="13"
+                inputmode="numeric"
+              />
             </div>
             <div class="error-message" id="usernameError">
               กรุณาระบุชื่อผู้ใช้งานให้ถูกต้อง
@@ -67,15 +76,10 @@
           <div class="footer-links">
             <a href="password-forgot.html">ลืมรหัสผ่าน</a>
           </div>
-
-          <div class="register-link">
-            ยังไม่มีบัญชี?
-            <a href="register.html">สมัครสมาชิก</a>
-          </div>
         </form>
       </div>
     </div>
 
-    <script src="../js/login.js"></script>
+    <script src="login.js"></script>
   </body>
 </html>

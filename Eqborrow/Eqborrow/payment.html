@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Borrow-Return Management | Thai PBS E-Payment</title>
+    <title>Payment List | Thai PBS E-Payment</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap"
       rel="stylesheet"
@@ -13,14 +13,14 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     />
     <link rel="stylesheet" href="css/dashboard.css" />
-    <link rel="stylesheet" href="css/borrow_return.css" />
+    <link rel="stylesheet" href="css/payment.css" />
   </head>
   <body>
     <div class="dashboard-container">
       <!-- Sidebar -->
       <aside class="sidebar">
         <div class="sidebar-header">
-          <img src="../images/logob.png" alt="Eqborrow Logo" />
+          <img src="images/logob.png" alt="Eqborrow Logo" />
           <div class="logo-text">
             <div class="brand">Eqborrow</div>
             <div class="system">E-PAYMENT</div>
@@ -59,15 +59,15 @@
           </li>
           <li>
             <a href="member.html"
-              ><i class="fa-solid fa-address-card"></i> สมาชิก</a
-            >
+              ><i class="fa-solid fa-address-card"></i> สมาชิก
+            </a>
           </li>
           <li>
             <a href="profile.html"
               ><i class="fa-solid fa-user"></i> ผู้ใช้งาน</a
             >
           </li>
-          <li class="active">
+          <li>
             <a href="borrow_return.html"
               ><i class="fa-solid fa-right-left"></i> ยืม-คืน</a
             >
@@ -113,54 +113,43 @@
 
         <div class="content-wrapper">
           <div class="page-header">
-            <h2>จัดการการยืม-คืน (Borrow-Return)</h2>
-            <button class="btn btn-primary" id="btnAddBorrow">
-              <i class="fa-solid fa-plus"></i> สร้างรายการยืม
+            <h2>รายการชำระเงิน (Payment List)</h2>
+            <button class="btn btn-primary" id="btnAddPayment">
+              <i class="fa-solid fa-plus"></i> สร้างรายการ
             </button>
           </div>
 
           <div class="search-bar">
-            <input type="text" placeholder="ค้นหารายการยืม-คืน" />
+            <input type="text" placeholder="ค้นหารายการชำระเงิน" />
             <button class="btn btn-primary">
               <i class="fa-solid fa-search"></i> ค้นหา
             </button>
           </div>
 
-          <!-- Borrow Return Table -->
+          <!-- Payment Table -->
           <div class="recent-activity">
             <div class="table-responsive">
               <table>
                 <thead>
                   <tr>
-                    <th>เลขที่รายการ</th>
-                    <th>ผู้ยืม</th>
-                    <th>อุปกรณ์</th>
-                    <th>วันที่ยืม</th>
-                    <th>กำหนดคืน</th>
+                    <th>เลขที่เอกสาร</th>
+                    <th>ชื่อสมาชิก</th>
+                    <th>รายการ</th>
+                    <th>วันที่</th>
+                    <th>ช่องทางชำระเงิน</th>
+                    <th>จำนวนเงิน</th>
                     <th>สถานะ</th>
-                    <th>จัดการ</th>
                   </tr>
                 </thead>
-                <tbody id="borrowTableBody">
+                <tbody id="paymentTableBody">
                   <tr>
-                    <td>BR-2023-001</td>
+                    <td>INV-2023-001</td>
                     <td>สมชาย ใจดี</td>
-                    <td>กล้อง Sony A7S III</td>
+                    <td>ค่าปรับคืนของช้า</td>
                     <td>25 ต.ค. 2566</td>
-                    <td>27 ต.ค. 2566</td>
-                    <td><span class="status returned">คืนแล้ว</span></td>
-                    <td>-</td>
-                  </tr>
-                  <tr>
-                    <td>BR-2023-002</td>
-                    <td>สมศักดิ์ รักงาน</td>
-                    <td>ไมโครโฟน Rode</td>
-                    <td>28 ต.ค. 2566</td>
-                    <td>30 ต.ค. 2566</td>
-                    <td><span class="status borrowed">กำลังยืม</span></td>
-                    <td>
-                      <button class="btn-sm btn-return">แจ้งคืน</button>
-                    </td>
+                    <td>โอนเงิน</td>
+                    <td>500.00</td>
+                    <td><span class="status paid">ชำระแล้ว</span></td>
                   </tr>
                 </tbody>
               </table>
@@ -170,31 +159,39 @@
       </main>
     </div>
 
-    <!-- Add Borrow Modal -->
-    <div id="addBorrowModal" class="modal">
+    <!-- Add Payment Modal -->
+    <div id="addPaymentModal" class="modal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>สร้างรายการยืมใหม่</h3>
+          <h3>สร้างรายการชำระเงิน</h3>
           <span class="close-modal">&times;</span>
         </div>
-        <form id="addBorrowForm">
+        <form id="addPaymentForm">
           <div class="form-group">
-            <label>ชื่อผู้ยืม</label><input type="text" id="bMember" required />
+            <label>ชื่อสมาชิก</label
+            ><input type="text" id="payMember" required />
           </div>
           <div class="form-group">
-            <label>อุปกรณ์</label
-            ><input
-              type="text"
-              id="bItem"
-              required
-              placeholder="ระบุชื่ออุปกรณ์"
-            />
+            <label>รายการ</label><input type="text" id="payItem" required />
           </div>
           <div class="form-group">
-            <label>วันที่ยืม</label><input type="date" id="bDate" required />
+            <label>ช่องทางชำระเงิน</label
+            ><select id="payMethod">
+              <option value="โอนเงิน">โอนเงิน</option>
+              <option value="บัตรเครดิต">บัตรเครดิต</option>
+              <option value="เงินสด">เงินสด</option>
+            </select>
           </div>
           <div class="form-group">
-            <label>กำหนดคืน</label><input type="date" id="bDueDate" required />
+            <label>จำนวนเงิน</label
+            ><input type="number" id="payAmount" required />
+          </div>
+          <div class="form-group">
+            <label>สถานะ</label
+            ><select id="payStatus">
+              <option value="paid">ชำระแล้ว</option>
+              <option value="pending">รอชำระ</option>
+            </select>
           </div>
           <div class="modal-footer">
             <button type="submit" class="btn btn-primary">บันทึก</button>
@@ -202,8 +199,7 @@
         </form>
       </div>
     </div>
-
-    <script src="../js/dashboard.js"></script>
-    <script src="../js/borrow_return.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/payment.js"></script>
   </body>
 </html>

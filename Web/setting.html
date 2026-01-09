@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings | Thai PBS E-Payment</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link rel="stylesheet" href="dashboard.css" />
+    <link rel="stylesheet" href="setting.css" />
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <img src="images/logob.png" alt="Thai PBS Logo" />
+          <div class="logo-text">
+            <div class="brand">Thai PBS</div>
+            <div class="system">E-PAYMENT</div>
+          </div>
+        </div>
+        <ul class="nav-links">
+          <li>
+            <a href="dashboard.html"
+              ><i class="fa-solid fa-house"></i> หน้าหลัก</a
+            >
+          </li>
+          <li>
+            <a href="payment.html"
+              ><i class="fa-solid fa-file-invoice-dollar"></i> รายการชำระเงิน</a
+            >
+          </li>
+          <li>
+            <a href="history.html"
+              ><i class="fa-solid fa-clock-rotate-left"></i>
+              ประวัติการทำรายการ</a
+            >
+          </li>
+          <li>
+            <a href="req_search.html"
+              ><i class="fa-solid fa-magnifying-glass"></i> ค้นหาคำร้อง</a
+            >
+          </li>
+          <li>
+            <a href="profile.html"
+              ><i class="fa-solid fa-user"></i> ข้อมูลส่วนตัว</a
+            >
+          </li>
+          <li class="active">
+            <a href="setting.html"><i class="fa-solid fa-gear"></i> ตั้งค่า</a>
+          </li>
+        </ul>
+        <div class="logout-section">
+          <a href="#" id="logoutBtn"
+            ><i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ</a
+          >
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <header>
+          <div class="menu-toggle" id="menuToggle">
+            <i class="fa-solid fa-bars"></i>
+          </div>
+          <div class="user-profile">
+            <img
+              src="https://ui-avatars.com/api/?name=User+Name&background=ff6b35&color=fff"
+              alt="User"
+            />
+            <span>ทดสอบ </span>
+          </div>
+        </header>
+
+        <div class="content-wrapper">
+          <h2>ตั้งค่า (Settings)</h2>
+
+          <div class="settings-container">
+            <!-- Security Settings -->
+            <div class="settings-section">
+              <div class="settings-header">
+                <h3><i class="fa-solid fa-lock"></i> ความปลอดภัย</h3>
+              </div>
+              <form id="passwordForm">
+                <div class="form-group">
+                  <label>รหัสผ่านปัจจุบัน</label>
+                  <input
+                    type="password"
+                    placeholder="ระบุรหัสผ่านปัจจุบัน"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label>รหัสผ่านใหม่</label>
+                  <input
+                    type="password"
+                    id="newPassword"
+                    placeholder="ระบุรหัสผ่านใหม่"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label>ยืนยันรหัสผ่านใหม่</label>
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    placeholder="ยืนยันรหัสผ่านใหม่"
+                    required
+                  />
+                </div>
+                <button type="submit" class="btn-save">เปลี่ยนรหัสผ่าน</button>
+              </form>
+            </div>
+
+            <!-- Notification Settings -->
+            <div class="settings-section">
+              <div class="settings-header">
+                <h3><i class="fa-solid fa-bell"></i> การแจ้งเตือน</h3>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <h4>แจ้งเตือนทางอีเมล</h4>
+                  <p>รับข่าวสารและการแจ้งเตือนการชำระเงินผ่านอีเมล</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" checked />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <h4>แจ้งเตือนทาง SMS</h4>
+                  <p>รับรหัส OTP และการแจ้งเตือนสำคัญผ่าน SMS</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- General Settings -->
+            <div class="settings-section">
+              <div class="settings-header">
+                <h3><i class="fa-solid fa-globe"></i> ทั่วไป</h3>
+              </div>
+              <div class="form-group">
+                <label>ภาษา (Language)</label>
+                <select id="languageSelect">
+                  <option value="th">ไทย (Thai)</option>
+                  <option value="en">อังกฤษ (English)</option>
+                </select>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <h4>โหมดกลางคืน (Dark Mode)</h4>
+                  <p>เปลี่ยนธีมการแสดงผลเป็นสีเข้ม</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="darkModeToggle" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="dashboard.js"></script>
+    <script src="setting.js"></script>
+  </body>
+</html>

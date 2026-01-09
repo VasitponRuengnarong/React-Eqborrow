@@ -12,17 +12,17 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     />
-    <link rel="stylesheet" href="../css/dashboard.css" />
-    <link rel="stylesheet" href="../css/payment.css" />
+    <link rel="stylesheet" href="dashboard.css" />
+    <link rel="stylesheet" href="payment.css" />
   </head>
   <body>
     <div class="dashboard-container">
       <!-- Sidebar -->
       <aside class="sidebar">
         <div class="sidebar-header">
-          <img src="../images/logob.png" alt="Eqborrow Logo" />
+          <img src="images/logob.png" alt="Thai PBS Logo" />
           <div class="logo-text">
-            <div class="brand">Eqborrow</div>
+            <div class="brand">Thai PBS</div>
             <div class="system">E-PAYMENT</div>
           </div>
         </div>
@@ -32,60 +32,29 @@
               ><i class="fa-solid fa-house"></i> หน้าหลัก</a
             >
           </li>
-          <li>
+          <li class="active">
             <a href="payment.html"
               ><i class="fa-solid fa-file-invoice-dollar"></i> รายการชำระเงิน</a
             >
           </li>
           <li>
-            <a href="category.html"
-              ><i class="fa-solid fa-layer-group"></i> หมวดหมู่สินค้า</a
+            <a href="history.html"
+              ><i class="fa-solid fa-clock-rotate-left"></i>
+              ประวัติการทำรายการ</a
             >
           </li>
           <li>
-            <a href="product.html"
-              ><i class="fa-solid fa-boxes-stacked"></i> สินค้า</a
+            <a href="req_search.html"
+              ><i class="fa-solid fa-magnifying-glass"></i> ค้นหาคำร้อง</a
             >
-          </li>
-          <li>
-            <a href="department.html"
-              ><i class="fa-solid fa-building-user"></i> เเผนก</a
-            >
-          </li>
-          <li>
-            <a href="member_type.html"
-              ><i class="fa-solid fa-person"></i> ประเภทสมาชิก</a
-            >
-          </li>
-          <li>
-            <a href="member.html"
-              ><i class="fa-solid fa-address-card"></i> สมาชิก
-            </a>
           </li>
           <li>
             <a href="profile.html"
-              ><i class="fa-solid fa-user"></i> ผู้ใช้งาน</a
+              ><i class="fa-solid fa-user"></i> ข้อมูลส่วนตัว</a
             >
           </li>
           <li>
-            <a href="borrow_return.html"
-              ><i class="fa-solid fa-right-left"></i> ยืม-คืน</a
-            >
-          </li>
-          <li>
-            <a href="remaining.html"
-              ><i class="fa-regular fa-note-sticky"></i> รายการคงเหลือ</a
-            >
-          </li>
-          <li>
-            <a href="borrowed_list.html"
-              ><i class="fa-solid fa-flag"></i> รายการยืมคืน</a
-            >
-          </li>
-          <li>
-            <a href="admin_control.html"
-              ><i class="fa-solid fa-screwdriver-wrench"></i> จัดการระบบ</a
-            >
+            <a href="setting.html"><i class="fa-solid fa-gear"></i> ตั้งค่า</a>
           </li>
         </ul>
         <div class="logout-section">
@@ -101,7 +70,6 @@
           <div class="menu-toggle" id="menuToggle">
             <i class="fa-solid fa-bars"></i>
           </div>
-          <div class="header-time" id="headerTime"></div>
           <div class="user-profile">
             <img
               src="https://ui-avatars.com/api/?name=User+Name&background=ff6b35&color=fff"
@@ -142,15 +110,7 @@
                   </tr>
                 </thead>
                 <tbody id="paymentTableBody">
-                  <tr>
-                    <td>INV-2023-001</td>
-                    <td>สมชาย ใจดี</td>
-                    <td>ค่าปรับคืนของช้า</td>
-                    <td>25 ต.ค. 2566</td>
-                    <td>โอนเงิน</td>
-                    <td>500.00</td>
-                    <td><span class="status paid">ชำระแล้ว</span></td>
-                  </tr>
+                  <!-- Rows will be added dynamically -->
                 </tbody>
               </table>
             </div>
@@ -175,8 +135,8 @@
             <label>รายการ</label><input type="text" id="payItem" required />
           </div>
           <div class="form-group">
-            <label>ช่องทางชำระเงิน</label
-            ><select id="payMethod">
+            <label>ช่องทางชำระเงิน</label>
+            <select id="payMethod">
               <option value="โอนเงิน">โอนเงิน</option>
               <option value="บัตรเครดิต">บัตรเครดิต</option>
               <option value="เงินสด">เงินสด</option>
@@ -199,7 +159,8 @@
         </form>
       </div>
     </div>
-    <script src="../js/dashboard.js"></script>
-    <script src="../js/payment.js"></script>
+
+    <script src="dashboard.js"></script>
+    <script src="payment.js"></script>
   </body>
 </html>

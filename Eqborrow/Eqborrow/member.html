@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Borrow-Return Management | Thai PBS E-Payment</title>
+    <title>Member Management | Thai PBS E-Payment</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap"
       rel="stylesheet"
@@ -13,14 +13,14 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     />
     <link rel="stylesheet" href="css/dashboard.css" />
-    <link rel="stylesheet" href="css/borrow_return.css" />
+    <link rel="stylesheet" href="css/member.css" />
   </head>
   <body>
     <div class="dashboard-container">
       <!-- Sidebar -->
       <aside class="sidebar">
         <div class="sidebar-header">
-          <img src="../images/logob.png" alt="Eqborrow Logo" />
+          <img src="images/logob.png" alt="Eqborrow Logo" />
           <div class="logo-text">
             <div class="brand">Eqborrow</div>
             <div class="system">E-PAYMENT</div>
@@ -32,6 +32,7 @@
               ><i class="fa-solid fa-house"></i> หน้าหลัก</a
             >
           </li>
+
           <li>
             <a href="payment.html"
               ><i class="fa-solid fa-file-invoice-dollar"></i> รายการชำระเงิน</a
@@ -57,17 +58,17 @@
               ><i class="fa-solid fa-person"></i> ประเภทสมาชิก</a
             >
           </li>
-          <li>
+          <li class="active">
             <a href="member.html"
-              ><i class="fa-solid fa-address-card"></i> สมาชิก</a
-            >
+              ><i class="fa-solid fa-address-card"></i> สมาชิก
+            </a>
           </li>
           <li>
             <a href="profile.html"
               ><i class="fa-solid fa-user"></i> ผู้ใช้งาน</a
             >
           </li>
-          <li class="active">
+          <li>
             <a href="borrow_return.html"
               ><i class="fa-solid fa-right-left"></i> ยืม-คืน</a
             >
@@ -113,54 +114,39 @@
 
         <div class="content-wrapper">
           <div class="page-header">
-            <h2>จัดการการยืม-คืน (Borrow-Return)</h2>
-            <button class="btn btn-primary" id="btnAddBorrow">
-              <i class="fa-solid fa-plus"></i> สร้างรายการยืม
+            <h2>จัดการสมาชิก (Member Management)</h2>
+            <button class="btn btn-primary" id="btnAddMember">
+              <i class="fa-solid fa-plus"></i> เพิ่มสมาชิก
             </button>
           </div>
 
           <div class="search-bar">
-            <input type="text" placeholder="ค้นหารายการยืม-คืน" />
+            <input type="text" placeholder="ค้นหาสมาชิก" />
             <button class="btn btn-primary">
               <i class="fa-solid fa-search"></i> ค้นหา
             </button>
           </div>
 
-          <!-- Borrow Return Table -->
+          <!-- Member Table -->
           <div class="recent-activity">
             <div class="table-responsive">
               <table>
                 <thead>
                   <tr>
-                    <th>เลขที่รายการ</th>
-                    <th>ผู้ยืม</th>
-                    <th>อุปกรณ์</th>
-                    <th>วันที่ยืม</th>
-                    <th>กำหนดคืน</th>
+                    <th>รหัสสมาชิก</th>
+                    <th>ชื่อ-นามสกุล</th>
+                    <th>ประเภท</th>
+                    <th>เบอร์โทรศัพท์</th>
                     <th>สถานะ</th>
-                    <th>จัดการ</th>
                   </tr>
                 </thead>
-                <tbody id="borrowTableBody">
+                <tbody id="memberTableBody">
                   <tr>
-                    <td>BR-2023-001</td>
+                    <td>MEM-001</td>
                     <td>สมชาย ใจดี</td>
-                    <td>กล้อง Sony A7S III</td>
-                    <td>25 ต.ค. 2566</td>
-                    <td>27 ต.ค. 2566</td>
-                    <td><span class="status returned">คืนแล้ว</span></td>
-                    <td>-</td>
-                  </tr>
-                  <tr>
-                    <td>BR-2023-002</td>
-                    <td>สมศักดิ์ รักงาน</td>
-                    <td>ไมโครโฟน Rode</td>
-                    <td>28 ต.ค. 2566</td>
-                    <td>30 ต.ค. 2566</td>
-                    <td><span class="status borrowed">กำลังยืม</span></td>
-                    <td>
-                      <button class="btn-sm btn-return">แจ้งคืน</button>
-                    </td>
+                    <td>บุคคลธรรมดา</td>
+                    <td>081-234-5678</td>
+                    <td><span class="status paid">ปกติ</span></td>
                   </tr>
                 </tbody>
               </table>
@@ -170,31 +156,27 @@
       </main>
     </div>
 
-    <!-- Add Borrow Modal -->
-    <div id="addBorrowModal" class="modal">
+    <!-- Add Member Modal -->
+    <div id="addMemberModal" class="modal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>สร้างรายการยืมใหม่</h3>
+          <h3>เพิ่มสมาชิกใหม่</h3>
           <span class="close-modal">&times;</span>
         </div>
-        <form id="addBorrowForm">
+        <form id="addMemberForm">
           <div class="form-group">
-            <label>ชื่อผู้ยืม</label><input type="text" id="bMember" required />
+            <label>ชื่อ-นามสกุล</label><input type="text" id="mName" required />
           </div>
           <div class="form-group">
-            <label>อุปกรณ์</label
-            ><input
-              type="text"
-              id="bItem"
-              required
-              placeholder="ระบุชื่ออุปกรณ์"
-            />
+            <label>ประเภท</label
+            ><select id="mType">
+              <option>บุคคลธรรมดา</option>
+              <option>นิติบุคคล</option>
+            </select>
           </div>
           <div class="form-group">
-            <label>วันที่ยืม</label><input type="date" id="bDate" required />
-          </div>
-          <div class="form-group">
-            <label>กำหนดคืน</label><input type="date" id="bDueDate" required />
+            <label>เบอร์โทรศัพท์</label
+            ><input type="tel" id="mPhone" required />
           </div>
           <div class="modal-footer">
             <button type="submit" class="btn btn-primary">บันทึก</button>
@@ -203,7 +185,7 @@
       </div>
     </div>
 
-    <script src="../js/dashboard.js"></script>
-    <script src="../js/borrow_return.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/member.js"></script>
   </body>
 </html>
