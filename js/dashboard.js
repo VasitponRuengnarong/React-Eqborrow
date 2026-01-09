@@ -75,7 +75,7 @@ function renderLayout() {
 
   sidebar.innerHTML = `
     <div class="sidebar-header">
-      <img src="images/logob.png" alt="Eqborrow Logo" />
+      <img src="../images/logob.png" alt="Eqborrow Logo" />
       <div class="logo-text">
         <div class="brand">Eqborrow</div>
         <div class="system">E-PAYMENT</div>
@@ -143,7 +143,7 @@ function initDashboard() {
   if (savedTheme === "dark") {
     body.classList.add("dark-mode");
     const logoImg = document.querySelector(".sidebar-header img");
-    if (logoImg) logoImg.src = "images/logob.png";
+    if (logoImg) logoImg.src = "../images/logob.png";
   }
 
   // Initialize Clock
@@ -182,7 +182,7 @@ function toggleTheme() {
   if (logoImg) {
     logoImg.style.opacity = "0";
     setTimeout(() => {
-      logoImg.src = isDark ? "images/logob.png" : "images/logo.png";
+      logoImg.src = isDark ? "../images/logob.png" : "../images/logo.png";
       logoImg.style.opacity = "1";
     }, 300);
   }

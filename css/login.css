@@ -11,7 +11,7 @@ body {
   justify-content: center;
   align-items: center;
   background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)),
-    url("images/background.jpg") center/cover;
+    url("../images/background.jpg") center/cover;
 }
 
 .login-container {
@@ -32,7 +32,7 @@ body {
       rgba(6, 97, 233, 0.95),
       rgba(227, 222, 219, 0.95)
     ),
-    url("images/background.png") center/cover;
+    url("../images/background.png") center/cover;
   color: #fff;
   padding: 40px;
   position: relative;
