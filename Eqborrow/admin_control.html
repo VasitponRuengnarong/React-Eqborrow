@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Control | Thai PBS E-Payment</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link rel="stylesheet" href="css/dashboard.css" />
+    <link rel="stylesheet" href="css/department.css" />
+    <style>
+      /* Toggle Switch Styles */
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 40px;
+        height: 20px;
+      }
+      .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: 0.4s;
+        border-radius: 20px;
+      }
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 2px;
+        bottom: 2px;
+        background-color: white;
+        transition: 0.4s;
+        border-radius: 50%;
+      }
+      input:checked + .slider {
+        background-color: #2e7d32;
+      }
+      input:checked + .slider:before {
+        transform: translateX(20px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <!-- Main Content -->
+      <main class="main-content">
+        <div class="content-wrapper">
+          <div class="page-header">
+            <h2>จัดการระบบ (Admin Control)</h2>
+          </div>
+
+          <div class="recent-activity">
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ชื่อหน้า (Page Name)</th>
+                    <th>ไฟล์ (Filename)</th>
+                    <th>สถานะ (Status)</th>
+                    <th>เปิด/ปิด (Enable/Disable)</th>
+                  </tr>
+                </thead>
+                <tbody id="pageSettingsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+    <script src="js/dashboard.js"></script>
+    <script src="js/admin_control.js"></script>
+  </body>
+</html>
+```
+
+<!--
+[PROMPT_SUGGESTION]How can I make the toggle switches actually disable the links in the sidebar using JavaScript?[/PROMPT_SUGGESTION]
+[PROMPT_SUGGESTION]Can you add a search bar to filter the pages in the admin control table?[/PROMPT_SUGGESTION]
+-->
