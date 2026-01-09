@@ -30,8 +30,8 @@ body {
   width: 40%;
   background: linear-gradient(
       135deg,
-      rgba(255, 107, 53, 0.95),
-      rgba(255, 69, 0, 0.95)
+      rgba(255, 69, 0, 0.95),
+      rgba(221, 219, 218, 0.95)
     ),
     url("images/background.png") center/cover;
   color: #fff;

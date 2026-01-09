@@ -11,10 +11,10 @@ body {
   justify-content: center;
   align-items: center;
   background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)),
-    url("images/background.png") center/cover;
+    url("images/background.jpg") center/cover;
 }
 
-.password-reset-container {
+.login-container {
   width: 900px;
   height: 550px;
   background: #fff;
@@ -29,8 +29,8 @@ body {
   flex: 1;
   background: linear-gradient(
       135deg,
-      rgba(255, 69, 0, 0.95),
-      rgba(221, 219, 218, 0.95)
+      rgba(6, 97, 233, 0.95),
+      rgba(227, 222, 219, 0.95)
     ),
     url("images/background.png") center/cover;
   color: #fff;
@@ -45,14 +45,14 @@ body {
 .logo-lockup {
   position: absolute;
   top: 30px;
-  left: 30px;
+  left: 40px;
   display: flex;
   align-items: center;
   gap: 14px;
 }
 
 .logo-lockup img {
-  width: 60px;
+  width: 50px;
 }
 
 .logo-text .brand {
@@ -135,7 +135,7 @@ body {
 
 .input-icon input:focus {
   outline: none;
-  border-color: #ff6b35;
+  border-color: #056dff;
   box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15);
 }
 
@@ -190,8 +190,8 @@ body {
 }
 
 .remember-me-container input[type="checkbox"]:checked {
-  background-color: #ff6b35;
-  border-color: #ff6b35;
+  background-color: #056dff;
+  border-color: #056dff;
 }
 
 .remember-me-container input[type="checkbox"]:checked::before {
@@ -206,20 +206,20 @@ body {
   user-select: none;
 }
 
-.pass-btn {
+.login-btn {
   width: 100%;
   padding: 14px;
   border-radius: 8px;
   border: none;
-  background: #ff6b35;
+  background: #056dff;
   color: #fff;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
 }
 
-.pass-btn:hover {
-  background: #e55a2b;
+.login-btn:hover {
+  background: #056dff;
 }
 
 .footer-links {
@@ -233,7 +233,7 @@ body {
 }
 
 .footer-links a:hover {
-  color: #ff6b35;
+  color: #056dff;
 }
 
 .register-link {
@@ -245,7 +245,7 @@ body {
 
 .register-link a {
   margin-left: 6px;
-  color: #ff6b35;
+  color: #056dff;
   font-weight: 600;
   text-decoration: none;
 }
@@ -255,7 +255,7 @@ body {
 }
 
 @media (max-width: 768px) {
-  .password-reset-container {
+  .login-container {
     flex-direction: column;
     height: auto;
   }
