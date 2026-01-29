@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { User, Lock } from "lucide-react";
 import "./Login.css";
-
+import Aurora from "./Aurora";
+import Swal from "sweetalert2"; // Import SweetAlert2
 const LoginPage = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
@@ -12,6 +13,14 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [ripple, setRipple] = useState(null);
   const [errors, setErrors] = useState({});
+
+  // ตรวจสอบว่ามี Token อยู่แล้วหรือไม่ (ถ้ามีให้ไปหน้า Dashboard เลย)
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      navigate("/dashboard");
+    }
+  }, [navigate]);
 
   const triggerRipple = (e) => {
     const button = e.currentTarget;
@@ -70,29 +79,56 @@ const LoginPage = () => {
       }
 
       localStorage.setItem("user", JSON.stringify(data.user));
+      if (data.token || data.accessToken) {
+        localStorage.setItem("accessToken", data.token || data.accessToken);
+      }
       setLoading(false);
       navigate("/dashboard");
     } catch (error) {
       setLoading(false);
-      setErrors((prev) => ({ ...prev, submit: error.message }));
+      Swal.fire("เกิดข้อผิดพลาด!", error.message, "error");
     }
   };
 
   return (
-    <div className="login-page">
-      <div className="login-container">
+    <div
+      className="login-page"
+      style={{ position: "relative", overflow: "hidden" }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      >
+        <Aurora
+          colorStops={["#ff8000", "#ff8000", "#ff8000"]}
+          blend={0.5}
+          amplitude={1.0}
+          speed={1}
+        />
+      </div>
+      <div
+        className="login-container"
+        style={{ position: "relative", zIndex: 1 }}
+      >
         {/* Left Side - Brand */}
         <div className="login-brand">
           <div className="brand-content">
             <div className="thai-pbs-logo">
               <img
-                src="/logo.png"
-                alt="Thai PBS Logo"
-                style={{ height: "150px" }}
+                src="/logo.png" // Placeholder for logo
+                alt="Eqborrow Logo" // More specific alt text
+                style={{ height: "120px", width: "auto" }} // Consistent height, auto width
               />
             </div>
             <h1 className="brand-title">Eqborrow</h1>
-            <p className="brand-subtitle">E-PAYMENT SYSTEM </p>
+            <p className="brand-subtitle">Equipment Borrowing System</p>{" "}
+            {/* Changed subtitle */}
           </div>
         </div>
 
@@ -106,9 +142,6 @@ const LoginPage = () => {
 
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="login-form" noValidate>
-            {errors.submit && (
-              <div className="error-banner">{errors.submit}</div>
-            )}
             {/* Username Field */}
             <div className={`form-group ${errors.username ? "has-error" : ""}`}>
               <User className="input-icon" size={20} />

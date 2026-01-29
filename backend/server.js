@@ -1,21 +1,31 @@
 const express = require("express");
 const mysql = require("mysql2/promise"); // Use the promise-based library
 const nodemailer = require("nodemailer");
+const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
+let ExcelJS;
+try {
+  ExcelJS = require("exceljs"); // Import exceljs
+} catch (e) {
+  console.warn(
+    "Warning: 'exceljs' module not found. Export functionality will be disabled.",
+  );
+}
 const app = express();
 const PORT = 8080;
 
 // Database Connection Pool (more robust for web servers)
 const db = mysql.createPool({
-  host: process.env.DB_HOST || "host.docker.internal",
+  host: process.env.DB_HOST || "localhost",
   user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "",
+  password: process.env.DB_PASSWORD || "root",
   database: process.env.DB_NAME || "ebrs_system",
   port: process.env.DB_PORT || 3306,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+  charset: "utf8mb4",
 });
 
 db.getConnection()
@@ -36,6 +46,39 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "Backend is running and accessible" });
 });
 
+// Middleware to verify JWT and attach user to request
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1]; // Format: "Bearer TOKEN"
+
+  if (token == null) {
+    return res.status(401).json({ message: "No token provided" });
+  }
+
+  // It's highly recommended to use environment variables for your secret
+  jwt.verify(
+    token,
+    process.env.JWT_SECRET || "your_default_secret",
+    (err, user) => {
+      if (err) {
+        return res.status(403).json({ message: "Token is not valid" });
+      }
+      req.user = user; // The user payload from the token { id, role }
+      next();
+    },
+  );
+};
+
+// Middleware to authorize only 'Admin' role
+const checkAdmin = (req, res, next) => {
+  if (req.user.role !== "Admin") {
+    return res
+      .status(403)
+      .json({ message: "Access denied. Admin role required." });
+  }
+  next();
+};
+
 // Helper function for creating master data routes
 const createMasterDataRoute = (app, path, tableName) => {
   app.get(`/api/${path}`, async (req, res) => {
@@ -54,11 +97,13 @@ createMasterDataRoute(app, "institutions", "TB_M_Institution");
 createMasterDataRoute(app, "departments", "TB_M_Department");
 createMasterDataRoute(app, "roles", "TB_M_Role");
 createMasterDataRoute(app, "emp-statuses", "TB_M_StatusEMP");
+createMasterDataRoute(app, "categories", "TB_M_Category"); // เพิ่ม Route สำหรับดึงข้อมูลหมวดหมู่สินค้า
+createMasterDataRoute(app, "device-statuses", "TB_M_StatusDevice"); // เพิ่ม Route สำหรับดึงข้อมูลสถานะอุปกรณ์
 
 // CRUD Endpoints for Institution Management
 
 // Create a new institution
-app.post("/api/institutions", async (req, res) => {
+app.post("/api/institutions", verifyToken, checkAdmin, async (req, res) => {
   const { InstitutionName } = req.body;
   if (!InstitutionName) {
     return res.status(400).json({ message: "กรุณากรอกชื่อสำนัก" });
@@ -74,9 +119,8 @@ app.post("/api/institutions", async (req, res) => {
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการสร้างข้อมูล" });
   }
 });
-
 // Update an institution
-app.put("/api/institutions/:id", async (req, res) => {
+app.put("/api/institutions/:id", verifyToken, checkAdmin, async (req, res) => {
   const { id } = req.params;
   const { InstitutionName } = req.body;
   if (!InstitutionName) {
@@ -98,26 +142,215 @@ app.put("/api/institutions/:id", async (req, res) => {
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการแก้ไขข้อมูล" });
   }
 });
-
 // Delete an institution
-app.delete("/api/institutions/:id", async (req, res) => {
+app.delete(
+  "/api/institutions/:id",
+  verifyToken,
+  checkAdmin,
+  async (req, res) => {
+    const { id } = req.params;
+    try {
+      await db.execute("DELETE FROM TB_M_Institution WHERE InstitutionID = ?", [
+        id,
+      ]);
+      res.status(204).send(); // No Content
+    } catch (error) {
+      console.error("Error deleting institution:", error);
+      // Handle foreign key constraint error
+      if (error.code === "ER_ROW_IS_REFERENCED_2") {
+        return res.status(400).json({
+          message: "ไม่สามารถลบข้อมูลนี้ได้ เนื่องจากมีพนักงานใช้งานอยู่",
+        });
+      }
+      res.status(500).json({ message: "เกิดข้อผิดพลาดในการลบข้อมูล" });
+    }
+  },
+);
+// CRUD Endpoints for Department Management
+
+// Create a new department
+app.post("/api/departments", verifyToken, checkAdmin, async (req, res) => {
+  const { DepartmentName } = req.body;
+  if (!DepartmentName) {
+    return res.status(400).json({ message: "กรุณากรอกชื่อฝ่าย" });
+  }
+  try {
+    const [result] = await db.execute(
+      "INSERT INTO TB_M_Department (DepartmentName) VALUES (?)",
+      [DepartmentName],
+    );
+    res.status(201).json({ DepartmentID: result.insertId, DepartmentName });
+  } catch (error) {
+    console.error("Error creating department:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการสร้างข้อมูล" });
+  }
+});
+// Update a department
+app.put("/api/departments/:id", verifyToken, checkAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { DepartmentName } = req.body;
+  if (!DepartmentName) {
+    return res.status(400).json({ message: "กรุณากรอกชื่อฝ่าย" });
+  }
+  try {
+    const [result] = await db.execute(
+      "UPDATE TB_M_Department SET DepartmentName = ? WHERE DepartmentID = ?",
+      [DepartmentName, id],
+    );
+    if (result.affectedRows === 0) {
+      return res
+        .status(404)
+        .json({ message: "ไม่พบข้อมูลฝ่ายที่ต้องการแก้ไข" });
+    }
+    res.json({ message: "แก้ไขข้อมูลสำเร็จ" });
+  } catch (error) {
+    console.error("Error updating department:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการแก้ไขข้อมูล" });
+  }
+});
+// Delete a department
+app.delete(
+  "/api/departments/:id",
+  verifyToken,
+  checkAdmin,
+  async (req, res) => {
+    const { id } = req.params;
+    try {
+      await db.execute("DELETE FROM TB_M_Department WHERE DepartmentID = ?", [
+        id,
+      ]);
+      res.status(204).send(); // No Content
+    } catch (error) {
+      console.error("Error deleting department:", error);
+      // Handle foreign key constraint error
+      if (error.code === "ER_ROW_IS_REFERENCED_2") {
+        return res.status(400).json({
+          message: "ไม่สามารถลบข้อมูลนี้ได้ เนื่องจากมีพนักงานใช้งานอยู่",
+        });
+      }
+      res.status(500).json({ message: "เกิดข้อผิดพลาดในการลบข้อมูล" });
+    }
+  },
+);
+// CRUD Endpoints for Category Management
+
+// Create a new category
+app.post("/api/categories", verifyToken, checkAdmin, async (req, res) => {
+  const { CategoryName } = req.body;
+  if (!CategoryName) {
+    return res.status(400).json({ message: "กรุณากรอกชื่อหมวดหมู่" });
+  }
+  try {
+    const [result] = await db.execute(
+      "INSERT INTO TB_M_Category (CategoryName) VALUES (?)",
+      [CategoryName],
+    );
+    res.status(201).json({ CategoryID: result.insertId, CategoryName });
+  } catch (error) {
+    console.error("Error creating category:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการสร้างข้อมูล" });
+  }
+});
+// Update a category
+app.put("/api/categories/:id", verifyToken, checkAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { CategoryName } = req.body;
+  if (!CategoryName) {
+    return res.status(400).json({ message: "กรุณากรอกชื่อหมวดหมู่" });
+  }
+  try {
+    const [result] = await db.execute(
+      "UPDATE TB_M_Category SET CategoryName = ? WHERE CategoryID = ?",
+      [CategoryName, id],
+    );
+    if (result.affectedRows === 0) {
+      return res
+        .status(404)
+        .json({ message: "ไม่พบข้อมูลหมวดหมู่ที่ต้องการแก้ไข" });
+    }
+    res.json({ message: "แก้ไขข้อมูลสำเร็จ" });
+  } catch (error) {
+    console.error("Error updating category:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการแก้ไขข้อมูล" });
+  }
+});
+// Delete a category
+app.delete("/api/categories/:id", verifyToken, checkAdmin, async (req, res) => {
   const { id } = req.params;
   try {
-    await db.execute("DELETE FROM TB_M_Institution WHERE InstitutionID = ?", [
-      id,
-    ]);
+    await db.execute("DELETE FROM TB_M_Category WHERE CategoryID = ?", [id]);
     res.status(204).send(); // No Content
   } catch (error) {
-    console.error("Error deleting institution:", error);
-    // Handle foreign key constraint error
-    if (error.code === "ER_ROW_IS_REFERENCED_2") {
-      return res.status(400).json({
-        message: "ไม่สามารถลบข้อมูลนี้ได้ เนื่องจากมีพนักงานใช้งานอยู่",
-      });
-    }
+    console.error("Error deleting category:", error);
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการลบข้อมูล" });
   }
 });
+
+// CRUD Endpoints for Device Status Management (TB_M_StatusDevice)
+
+// Create a new device status
+app.post("/api/device-statuses", verifyToken, checkAdmin, async (req, res) => {
+  const { StatusNameDV } = req.body;
+  if (!StatusNameDV) {
+    return res.status(400).json({ message: "กรุณากรอกชื่อสถานะ" });
+  }
+  try {
+    const [result] = await db.execute(
+      "INSERT INTO TB_M_StatusDevice (StatusNameDV) VALUES (?)",
+      [StatusNameDV],
+    );
+    res.status(201).json({ DVStatusID: result.insertId, StatusNameDV });
+  } catch (error) {
+    console.error("Error creating device status:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการสร้างข้อมูล" });
+  }
+});
+
+// Update a device status
+app.put(
+  "/api/device-statuses/:id",
+  verifyToken,
+  checkAdmin,
+  async (req, res) => {
+    const { id } = req.params;
+    const { StatusNameDV } = req.body;
+    if (!StatusNameDV) {
+      return res.status(400).json({ message: "กรุณากรอกชื่อสถานะ" });
+    }
+    try {
+      const [result] = await db.execute(
+        "UPDATE TB_M_StatusDevice SET StatusNameDV = ? WHERE DVStatusID = ?",
+        [StatusNameDV, id],
+      );
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "ไม่พบข้อมูลที่ต้องการแก้ไข" });
+      }
+      res.json({ message: "แก้ไขข้อมูลสำเร็จ" });
+    } catch (error) {
+      console.error("Error updating device status:", error);
+      res.status(500).json({ message: "เกิดข้อผิดพลาดในการแก้ไขข้อมูล" });
+    }
+  },
+);
+
+// Delete a device status
+app.delete(
+  "/api/device-statuses/:id",
+  verifyToken,
+  checkAdmin,
+  async (req, res) => {
+    const { id } = req.params;
+    try {
+      await db.execute("DELETE FROM TB_M_StatusDevice WHERE DVStatusID = ?", [
+        id,
+      ]);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting device status:", error);
+      res.status(500).json({ message: "เกิดข้อผิดพลาดในการลบข้อมูล" });
+    }
+  },
+);
 
 // Nodemailer Configuration
 // IMPORTANT: Move these credentials to environment variables (.env file) for security
@@ -212,7 +445,6 @@ app.post("/api/register", async (req, res) => {
     username,
     email,
     phone,
-    roleId, // FK to TB_M_Role
     institutionId, // FK to TB_M_Institution
     departmentId, // FK to TB_M_Department
     empStatusId, // FK to TB_M_StatusEMP
@@ -228,7 +460,6 @@ app.post("/api/register", async (req, res) => {
     !firstName ||
     !lastName ||
     !employeeId ||
-    !roleId || // Assuming RoleID is required for registration
     !institutionId || // Assuming InstitutionID is required
     !departmentId // Assuming DepartmentID is required
   ) {
@@ -265,6 +496,16 @@ app.post("/api/register", async (req, res) => {
     // Default EMPStatusID if not provided (e.g., 1 for 'Active')
     const finalEmpStatusId = empStatusId || 1;
 
+    // Auto-assign role based on employee ID pattern
+    let finalRoleId = 3; // Default to User (3)
+
+    // Example pattern: If ID starts with 'ADM', assign Admin (1). If 'STF', assign Staff (2).
+    if (employeeId.toUpperCase().startsWith("ADM")) {
+      finalRoleId = 1;
+    } else if (employeeId.toUpperCase().startsWith("STF")) {
+      finalRoleId = 2;
+    }
+
     // Insert new employee into TB_T_Employee
     const insertQuery =
       "INSERT INTO TB_T_Employee (fname, lname, EMP_NUM, username, email, phone, RoleID, InstitutionID, DepartmentID, EMPStatusID, image, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -275,7 +516,7 @@ app.post("/api/register", async (req, res) => {
       username,
       email,
       phone,
-      roleId,
+      finalRoleId,
       institutionId,
       departmentId,
       finalEmpStatusId,
@@ -293,8 +534,20 @@ app.post("/api/register", async (req, res) => {
     );
     const newUser = newUsers[0];
 
+    // Create JWT
+    const userPayload = {
+      id: newUser.EMPID,
+      role: newUser.RoleName,
+    };
+    const accessToken = jwt.sign(
+      userPayload,
+      process.env.JWT_SECRET || "your_default_secret",
+      { expiresIn: "1d" }, // Token expires in 1 day
+    );
+
     console.log("Registered user:", { username, email });
     res.status(201).json({
+      // Send token to the client
       message: "สมัครสมาชิกสำเร็จ",
       user: {
         id: newUser.EMPID,
@@ -311,6 +564,7 @@ app.post("/api/register", async (req, res) => {
         empStatusId: newUser.EMPStatusID,
         profileImage: newUser.image,
       },
+      accessToken,
     });
   } catch (error) {
     console.error("Register error:", error);
@@ -358,8 +612,19 @@ app.post("/api/login", async (req, res) => {
       ...employeeWithoutSensitiveData
     } = employee;
 
+    // Create and sign a JWT
+    const userPayload = {
+      id: employee.EMPID,
+      role: employee.RoleName,
+    };
+    const accessToken = jwt.sign(
+      userPayload,
+      process.env.JWT_SECRET || "your_default_secret",
+      { expiresIn: "1d" }, // Token expires in 1 day
+    );
+
     res.json({
-      message: "เข้าสู่ระบบสำเร็จ",
+      message: "เข้าสู่ระบบสำเร็จ", // Send token to the client
       user: {
         // Renamed to 'user' for frontend compatibility, but it's an employee
         id: employee.EMPID,
@@ -376,6 +641,7 @@ app.post("/api/login", async (req, res) => {
         empStatusId: employee.EMPStatusID,
         profileImage: employee.image,
       },
+      accessToken,
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -384,7 +650,7 @@ app.post("/api/login", async (req, res) => {
 });
 
 // Dashboard Stats Endpoint
-app.get("/api/dashboard/stats", async (req, res) => {
+app.get("/api/dashboard/stats", verifyToken, checkAdmin, async (req, res) => {
   try {
     const [users] = await db.execute(
       "SELECT COUNT(*) as count FROM TB_T_Employee",
@@ -415,6 +681,14 @@ app.get("/api/dashboard/stats", async (req, res) => {
       GROUP BY Status
     `);
 
+    // Category stats for pie chart
+    const [categoryData] = await db.execute(`
+      SELECT c.CategoryName as name, COUNT(d.DVID) as value 
+      FROM TB_T_Device d
+      LEFT JOIN TB_M_Category c ON d.CategoryID = c.CategoryID
+      GROUP BY c.CategoryName
+    `);
+
     res.json({
       totalUsers: users[0].count,
       totalBorrows: borrows[0].count,
@@ -422,6 +696,7 @@ app.get("/api/dashboard/stats", async (req, res) => {
       returnedItems: returned[0].count,
       monthlyStats: monthly,
       statusStats: statusData,
+      categoryStats: categoryData,
     });
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);
@@ -430,7 +705,7 @@ app.get("/api/dashboard/stats", async (req, res) => {
 });
 
 // API สำหรับบันทึกการยืมครุภัณฑ์
-app.post("/api/borrow", async (req, res) => {
+app.post("/api/borrow", verifyToken, async (req, res) => {
   const { userId, borrowDate, returnDate, purpose, items } = req.body;
 
   if (!userId || !borrowDate || !returnDate || !items || items.length === 0) {
@@ -455,6 +730,25 @@ app.post("/api/borrow", async (req, res) => {
         "INSERT INTO TB_T_BorrowDetail (BorrowID, ItemName, Quantity, Remark) VALUES (?, ?, ?, ?)",
         [borrowId, item.name, item.quantity, item.remark || ""],
       );
+
+      // ตัดสต็อกสินค้าใน TB_M_Product (ถ้ามี)
+      const [products] = await connection.execute(
+        "SELECT ProductID, Quantity FROM TB_M_Product WHERE ProductName = ? OR ProductID = ?",
+        [item.name, item.id || 0],
+      );
+
+      if (products.length > 0) {
+        const product = products[0];
+        if (product.Quantity < item.quantity) {
+          throw new Error(
+            `สินค้า "${item.name}" มีจำนวนไม่เพียงพอ (เหลือ ${product.Quantity})`,
+          );
+        }
+        await connection.execute(
+          "UPDATE TB_M_Product SET Quantity = Quantity - ? WHERE ProductID = ?",
+          [item.quantity, product.ProductID],
+        );
+      }
     }
 
     await connection.commit(); // ยืนยันการบันทึก
@@ -462,7 +756,9 @@ app.post("/api/borrow", async (req, res) => {
   } catch (error) {
     await connection.rollback(); // ยกเลิกถ้ามี error
     console.error("Error saving borrow record:", error);
-    res.status(500).json({ message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" });
+    res
+      .status(500)
+      .json({ message: error.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล" });
   } finally {
     connection.release(); // คืน Connection กลับสู่ Pool
   }
@@ -471,7 +767,7 @@ app.post("/api/borrow", async (req, res) => {
 // --- Borrow Approval Endpoints ---
 
 // Get pending borrows
-app.get("/api/borrows/pending", async (req, res) => {
+app.get("/api/borrows/pending", verifyToken, checkAdmin, async (req, res) => {
   try {
     const [borrows] = await db.execute(`
       SELECT b.*, e.fname, e.lname, e.EMP_NUM, d.DepartmentName, i.InstitutionName
@@ -500,28 +796,97 @@ app.get("/api/borrows/pending", async (req, res) => {
 });
 
 // Update borrow status (Approve/Reject)
-app.put("/api/borrows/:id/status", async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body; // 'Approved' or 'Rejected'
+app.put(
+  "/api/borrows/:id/status",
+  verifyToken,
+  checkAdmin,
+  async (req, res) => {
+    const { id } = req.params;
+    const { status, items: returnedItems } = req.body; // 'Approved', 'Rejected', 'Returned' and optional items array
+    const adminId = req.user.id; // ดึง ID ของ Admin ผู้ทำรายการ
 
-  if (!["Approved", "Rejected", "Returned"].includes(status)) {
-    return res.status(400).json({ message: "สถานะไม่ถูกต้อง" });
-  }
+    if (!["Approved", "Rejected", "Returned"].includes(status)) {
+      return res.status(400).json({ message: "สถานะไม่ถูกต้อง" });
+    }
 
-  try {
-    await db.execute("UPDATE TB_T_Borrow SET Status = ? WHERE BorrowID = ?", [
-      status,
-      id,
-    ]);
-    res.json({ message: `อัปเดตสถานะเป็น ${status} เรียบร้อยแล้ว` });
-  } catch (error) {
-    console.error("Error updating borrow status:", error);
-    res.status(500).json({ message: "เกิดข้อผิดพลาดในการอัปเดตสถานะ" });
-  }
-});
+    const connection = await db.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // ตรวจสอบสถานะเดิมก่อน
+      const [currentBorrow] = await connection.execute(
+        "SELECT Status FROM TB_T_Borrow WHERE BorrowID = ?",
+        [id],
+      );
+
+      if (currentBorrow.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({ message: "ไม่พบข้อมูลการยืม" });
+      }
+
+      const oldStatus = currentBorrow[0].Status;
+
+      // อัปเดตสถานะ
+      await connection.execute(
+        "UPDATE TB_T_Borrow SET Status = ? WHERE BorrowID = ?",
+        [status, id],
+      );
+
+      // --- บันทึก Log การทำงาน (อนุมัติ/ปฏิเสธ/คืนของ) ---
+      await connection.execute(
+        "INSERT INTO TB_L_ActivityLog (ActionType, BorrowID, ActorID, Details) VALUES (?, ?, ?, ?)",
+        [status, id, adminId, `Admin updated status to ${status}`],
+      );
+
+      // คืนสต็อกสินค้าเมื่อสถานะเปลี่ยนเป็น Returned (และป้องกันการคืนซ้ำ)
+      // This logic now supports partial returns.
+      if (status === "Returned" && oldStatus !== "Returned") {
+        // If frontend sends specific quantities for return (for partial returns)
+        if (returnedItems && Array.isArray(returnedItems)) {
+          for (const item of returnedItems) {
+            if (item.returnedQuantity > 0) {
+              // We need the product name from borrowDetailId
+              const [detail] = await connection.execute(
+                "SELECT ItemName FROM TB_T_BorrowDetail WHERE BorrowDetailID = ?",
+                [item.borrowDetailId],
+              );
+              if (detail.length > 0) {
+                await connection.execute(
+                  "UPDATE TB_M_Product SET Quantity = Quantity + ? WHERE ProductName = ?",
+                  [item.returnedQuantity, detail[0].ItemName],
+                );
+              }
+            }
+          }
+        } else {
+          // Fallback to original behavior: return full quantity for all items
+          const [details] = await connection.execute(
+            "SELECT ItemName, Quantity FROM TB_T_BorrowDetail WHERE BorrowID = ?",
+            [id],
+          );
+          for (const item of details) {
+            await connection.execute(
+              "UPDATE TB_M_Product SET Quantity = Quantity + ? WHERE ProductName = ?",
+              [item.Quantity, item.ItemName],
+            );
+          }
+        }
+      }
+
+      await connection.commit();
+      res.json({ message: `อัปเดตสถานะเป็น ${status} เรียบร้อยแล้ว` });
+    } catch (error) {
+      await connection.rollback();
+      console.error("Error updating borrow status:", error);
+      res.status(500).json({ message: "เกิดข้อผิดพลาดในการอัปเดตสถานะ" });
+    } finally {
+      connection.release();
+    }
+  },
+);
 
 // Get borrow history for a specific user
-app.get("/api/borrows/user/:userId", async (req, res) => {
+app.get("/api/borrows/user/:userId", verifyToken, async (req, res) => {
   const { userId } = req.params;
   try {
     const [borrows] = await db.execute(
@@ -548,10 +913,199 @@ app.get("/api/borrows/user/:userId", async (req, res) => {
   }
 });
 
+// API ดึงรายการยืม-คืนทั้งหมด (Admin เห็นทั้งหมด, User เห็นแค่ของตัวเอง)
+app.get("/api/borrows", verifyToken, async (req, res) => {
+  try {
+    let query = `
+      SELECT b.*, e.fname, e.lname, e.EMP_NUM, d.DepartmentName, i.InstitutionName
+      FROM TB_T_Borrow b
+      JOIN TB_T_Employee e ON b.EMPID = e.EMPID
+      LEFT JOIN TB_M_Department d ON e.DepartmentID = d.DepartmentID
+      LEFT JOIN TB_M_Institution i ON e.InstitutionID = i.InstitutionID
+    `;
+    const params = [];
+
+    // ถ้าไม่ใช่ Admin ให้ดึงเฉพาะของตัวเอง
+    if (req.user.role !== "Admin") {
+      query += ` WHERE b.EMPID = ?`;
+      params.push(req.user.id);
+    }
+
+    query += ` ORDER BY b.CreatedDate DESC`;
+
+    const [borrows] = await db.execute(query, params);
+
+    // ดึงรายละเอียดอุปกรณ์ของแต่ละรายการ
+    for (let borrow of borrows) {
+      const [details] = await db.execute(
+        `
+        SELECT bd.*, d.stickerid as ProductCode, d.sticker as Image
+        FROM TB_T_BorrowDetail bd
+        LEFT JOIN TB_T_Device d ON bd.ItemName = d.devicename COLLATE utf8mb4_unicode_ci
+        WHERE bd.BorrowID = ?
+        `,
+        [borrow.BorrowID],
+      );
+      borrow.items = details;
+    }
+
+    res.json(borrows);
+  } catch (error) {
+    console.error("Error fetching borrows:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการดึงข้อมูล" });
+  }
+});
+
+// API Export ประวัติการยืมเป็น Excel (เฉพาะ Admin)
+app.get("/api/borrows/export", verifyToken, checkAdmin, async (req, res) => {
+  if (!ExcelJS) {
+    return res.status(500).json({
+      message: "ระบบยังไม่ได้ติดตั้ง Library สำหรับสร้างไฟล์ Excel (exceljs)",
+    });
+  }
+
+  try {
+    // ดึงข้อมูลเหมือนกับ API /api/borrows แต่ดึงทั้งหมด
+    const [borrows] = await db.execute(`
+      SELECT b.*, e.fname, e.lname, e.EMP_NUM, d.DepartmentName, i.InstitutionName
+      FROM TB_T_Borrow b
+      JOIN TB_T_Employee e ON b.EMPID = e.EMPID
+      LEFT JOIN TB_M_Department d ON e.DepartmentID = d.DepartmentID
+      LEFT JOIN TB_M_Institution i ON e.InstitutionID = i.InstitutionID
+      ORDER BY b.CreatedDate DESC
+    `);
+
+    // ดึงรายละเอียดอุปกรณ์
+    for (let borrow of borrows) {
+      const [details] = await db.execute(
+        "SELECT * FROM TB_T_BorrowDetail WHERE BorrowID = ?",
+        [borrow.BorrowID],
+      );
+      borrow.items = details;
+    }
+
+    // สร้าง Workbook และ Worksheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Borrow History");
+
+    // กำหนดหัวคอลัมน์
+    worksheet.columns = [
+      { header: "ID", key: "BorrowID", width: 10 },
+      { header: "วันที่ทำรายการ", key: "CreatedDate", width: 20 },
+      { header: "ผู้ยืม", key: "Borrower", width: 30 },
+      { header: "รหัสพนักงาน", key: "EMP_NUM", width: 15 },
+      { header: "แผนก/สำนัก", key: "Department", width: 30 },
+      { header: "วันที่ยืม", key: "BorrowDate", width: 15 },
+      { header: "วันที่คืน", key: "ReturnDate", width: 15 },
+      { header: "วัตถุประสงค์", key: "Purpose", width: 30 },
+      { header: "สถานะ", key: "Status", width: 15 },
+      { header: "รายการอุปกรณ์", key: "Items", width: 50 },
+    ];
+
+    // เพิ่มข้อมูลลงในแถว
+    borrows.forEach((b) => {
+      const itemsString = b.items
+        .map((i) => `${i.ItemName} (x${i.Quantity})`)
+        .join(", ");
+      worksheet.addRow({
+        BorrowID: b.BorrowID,
+        CreatedDate: new Date(b.CreatedDate).toLocaleDateString("th-TH"),
+        Borrower: `${b.fname} ${b.lname}`,
+        EMP_NUM: b.EMP_NUM,
+        Department: `${b.DepartmentName || "-"} / ${b.InstitutionName || "-"}`,
+        BorrowDate: new Date(b.BorrowDate).toLocaleDateString("th-TH"),
+        ReturnDate: new Date(b.ReturnDate).toLocaleDateString("th-TH"),
+        Purpose: b.Purpose,
+        Status: b.Status,
+        Items: itemsString,
+      });
+    });
+
+    // ตั้งค่า Header สำหรับการดาวน์โหลดไฟล์
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=borrow_history.xlsx",
+    );
+
+    // เขียนไฟล์ส่งกลับไป
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error("Export error:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการ Export ข้อมูล" });
+  }
+});
+
+// API ยกเลิกคำขอ (ทำได้เฉพาะเจ้าของ หรือ Admin และต้องสถานะ Pending เท่านั้น)
+app.put("/api/borrows/:id/cancel", verifyToken, async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+  const userRole = req.user.role;
+
+  try {
+    const [borrow] = await db.execute(
+      "SELECT * FROM TB_T_Borrow WHERE BorrowID = ?",
+      [id],
+    );
+    if (borrow.length === 0)
+      return res.status(404).json({ message: "ไม่พบรายการยืม" });
+
+    const record = borrow[0];
+    if (userRole !== "Admin" && record.EMPID !== userId)
+      return res.status(403).json({ message: "คุณไม่มีสิทธิ์ยกเลิกรายการนี้" });
+    if (record.Status !== "Pending")
+      return res
+        .status(400)
+        .json({ message: "ไม่สามารถยกเลิกรายการที่ดำเนินการไปแล้วได้" });
+
+    await db.execute(
+      "UPDATE TB_T_Borrow SET Status = 'Cancelled' WHERE BorrowID = ?",
+      [id],
+    );
+
+    // --- บันทึก Log การยกเลิกโดย User ---
+    await db.execute(
+      "INSERT INTO TB_L_ActivityLog (ActionType, BorrowID, ActorID, Details) VALUES (?, ?, ?, ?)",
+      ["Cancelled", id, userId, "User cancelled the request"],
+    );
+    res.json({ message: "ยกเลิกรายการสำเร็จ" });
+  } catch (error) {
+    console.error("Error cancelling borrow:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการยกเลิกรายการ" });
+  }
+});
+
+// --- Activity Log Endpoint ---
+
+// Get all activity logs (Admin only)
+app.get("/api/logs", verifyToken, checkAdmin, async (req, res) => {
+  try {
+    const [logs] = await db.execute(`
+      SELECT 
+        l.LogID, l.ActionType, l.BorrowID, l.Details, l.CreatedDate,
+        e.fname as ActorFirstName, e.lname as ActorLastName
+      FROM TB_L_ActivityLog l
+      JOIN TB_T_Employee e ON l.ActorID = e.EMPID
+      ORDER BY l.CreatedDate DESC
+      LIMIT 500; -- Add a limit to prevent fetching too much data
+    `);
+    res.json(logs);
+  } catch (error) {
+    console.error("Error fetching activity logs:", error);
+    res
+      .status(500)
+      .json({ message: "เกิดข้อผิดพลาดในการดึงข้อมูลประวัติการทำงาน" });
+  }
+});
+
 // --- User Management Endpoints ---
 
 // Get all users
-app.get("/api/users", async (req, res) => {
+app.get("/api/users", verifyToken, checkAdmin, async (req, res) => {
   try {
     const [users] = await db.execute(`
       SELECT e.EMPID, e.fname, e.lname, e.username, e.email, e.phone, e.EMP_NUM,
@@ -572,7 +1126,7 @@ app.get("/api/users", async (req, res) => {
 });
 
 // Update user role/status
-app.put("/api/users/:id", async (req, res) => {
+app.put("/api/users/:id", verifyToken, checkAdmin, async (req, res) => {
   const { id } = req.params;
   const { roleId, statusId } = req.body;
   try {
@@ -588,7 +1142,7 @@ app.put("/api/users/:id", async (req, res) => {
 });
 
 // Delete user
-app.delete("/api/users/:id", async (req, res) => {
+app.delete("/api/users/:id", verifyToken, checkAdmin, async (req, res) => {
   const { id } = req.params;
   try {
     await db.execute("DELETE FROM TB_T_Employee WHERE EMPID = ?", [id]);
@@ -602,7 +1156,7 @@ app.delete("/api/users/:id", async (req, res) => {
 // --- Profile Management Endpoints ---
 
 // Update user profile
-app.put("/api/profile/:id", async (req, res) => {
+app.put("/api/profile/:id", verifyToken, async (req, res) => {
   const { id } = req.params;
   const { firstName, lastName, email, phone, profileImage } = req.body;
 
@@ -663,7 +1217,7 @@ app.put("/api/profile/:id", async (req, res) => {
 });
 
 // Change password
-app.put("/api/profile/:id/password", async (req, res) => {
+app.put("/api/profile/:id/password", verifyToken, async (req, res) => {
   const { id } = req.params;
   const { currentPassword, newPassword } = req.body;
 
@@ -704,7 +1258,13 @@ app.put("/api/profile/:id/password", async (req, res) => {
 app.get("/api/products", async (req, res) => {
   try {
     const [products] = await db.execute(
-      "SELECT * FROM TB_M_Product ORDER BY CreatedDate DESC",
+      `SELECT d.DVID as ProductID, d.devicename as ProductName, d.stickerid as ProductCode, 
+              d.sticker as Image, d.CategoryID, c.CategoryName, 
+              d.DVStatusID as StatusID, s.StatusNameDV
+       FROM TB_T_Device d 
+       LEFT JOIN TB_M_Category c ON d.CategoryID = c.CategoryID 
+       LEFT JOIN TB_M_StatusDevice s ON d.DVStatusID = s.DVStatusID
+       ORDER BY d.DVID DESC`,
     );
     res.json(products);
   } catch (error) {
@@ -714,23 +1274,17 @@ app.get("/api/products", async (req, res) => {
 });
 
 // Create product
-app.post("/api/products", async (req, res) => {
-  const { ProductName, ProductCode, Price, Quantity, Description, Image } =
-    req.body;
-  if (!ProductName || !ProductCode) {
-    return res.status(400).json({ message: "กรุณากรอกชื่อและรหัสสินค้า" });
+app.post("/api/products", verifyToken, checkAdmin, async (req, res) => {
+  const { ProductName, ProductCode, CategoryID, StatusID, Image } = req.body;
+
+  if (!ProductName || !ProductCode || !CategoryID || !StatusID) {
+    return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
   }
+
   try {
     const [result] = await db.execute(
-      "INSERT INTO TB_M_Product (ProductName, ProductCode, Price, Quantity, Description, Image) VALUES (?, ?, ?, ?, ?, ?)",
-      [
-        ProductName,
-        ProductCode,
-        Price || 0,
-        Quantity || 0,
-        Description || "",
-        Image || "",
-      ],
+      "INSERT INTO TB_T_Device (devicename, stickerid, CategoryID, DVStatusID, sticker) VALUES (?, ?, ?, ?, ?)",
+      [ProductName, ProductCode, CategoryID, StatusID, Image || null],
     );
     res
       .status(201)
@@ -742,16 +1296,24 @@ app.post("/api/products", async (req, res) => {
 });
 
 // Update product
-app.put("/api/products/:id", async (req, res) => {
+app.put("/api/products/:id", verifyToken, checkAdmin, async (req, res) => {
   const { id } = req.params;
-  const { ProductName, ProductCode, Price, Quantity, Description, Image } =
-    req.body;
+  const { ProductName, ProductCode, CategoryID, StatusID, Image } = req.body;
 
   try {
-    await db.execute(
-      "UPDATE TB_M_Product SET ProductName=?, ProductCode=?, Price=?, Quantity=?, Description=?, Image=? WHERE ProductID=?",
-      [ProductName, ProductCode, Price, Quantity, Description, Image, id],
-    );
+    let query =
+      "UPDATE TB_T_Device SET devicename=?, stickerid=?, CategoryID=?, DVStatusID=?";
+    let params = [ProductName, ProductCode, CategoryID, StatusID];
+
+    if (Image !== undefined) {
+      query += ", sticker=?";
+      params.push(Image);
+    }
+
+    query += " WHERE DVID=?";
+    params.push(id);
+
+    await db.execute(query, params);
     res.json({ message: "แก้ไขข้อมูลสินค้าสำเร็จ" });
   } catch (error) {
     console.error("Error updating product:", error);
@@ -760,14 +1322,88 @@ app.put("/api/products/:id", async (req, res) => {
 });
 
 // Delete product
-app.delete("/api/products/:id", async (req, res) => {
+app.delete("/api/products/:id", verifyToken, checkAdmin, async (req, res) => {
   const { id } = req.params;
   try {
-    await db.execute("DELETE FROM TB_M_Product WHERE ProductID = ?", [id]);
+    await db.execute("DELETE FROM TB_T_Device WHERE DVID = ?", [id]);
     res.json({ message: "ลบสินค้าสำเร็จ" });
   } catch (error) {
     console.error("Error deleting product:", error);
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการลบสินค้า" });
+  }
+});
+
+// --- Master Product Management Endpoints (TB_M_Product) ---
+// Optional: For managing the master product list if needed separately from devices
+
+// Get all master products
+app.get("/api/master-products", async (req, res) => {
+  try {
+    const [products] = await db.execute(
+      "SELECT * FROM TB_M_Product ORDER BY CreatedDate DESC",
+    );
+    res.json(products);
+  } catch (error) {
+    console.error("Error fetching master products:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการดึงข้อมูลสินค้าหลัก" });
+  }
+});
+
+// Create master product
+app.post("/api/master-products", verifyToken, checkAdmin, async (req, res) => {
+  const { ProductName, ProductCode, Price, Quantity, Description, Image } =
+    req.body;
+
+  if (!ProductName) {
+    return res.status(400).json({ message: "กรุณากรอกชื่อสินค้า" });
+  }
+
+  try {
+    const [result] = await db.execute(
+      "INSERT INTO TB_M_Product (ProductName, ProductCode, Price, Quantity, Description, Image) VALUES (?, ?, ?, ?, ?, ?)",
+      [ProductName, ProductCode, Price, Quantity, Description, Image],
+    );
+    res
+      .status(201)
+      .json({ message: "เพิ่มสินค้าหลักสำเร็จ", productId: result.insertId });
+  } catch (error) {
+    console.error("Error creating master product:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการเพิ่มสินค้าหลัก" });
+  }
+});
+
+// Delete master product
+app.delete(
+  "/api/master-products/:id",
+  verifyToken,
+  checkAdmin,
+  async (req, res) => {
+    const { id } = req.params;
+    try {
+      await db.execute("DELETE FROM TB_M_Product WHERE ProductID = ?", [id]);
+      res.json({ message: "ลบสินค้าหลักสำเร็จ" });
+    } catch (error) {
+      console.error("Error deleting master product:", error);
+      res.status(500).json({ message: "เกิดข้อผิดพลาดในการลบสินค้าหลัก" });
+    }
+  },
+);
+
+// Get stock movement logs (Requires TB_L_StockMovement table and Trigger)
+app.get("/api/stock-movements", verifyToken, checkAdmin, async (req, res) => {
+  try {
+    const [logs] = await db.execute(`
+      SELECT l.*, p.ProductName, p.ProductCode 
+      FROM TB_L_StockMovement l
+      JOIN TB_M_Product p ON l.ProductID = p.ProductID
+      ORDER BY l.CreatedDate DESC
+    `);
+    res.json(logs);
+  } catch (error) {
+    console.error("Error fetching stock movements:", error);
+    res
+      .status(500)
+      .json({ message: "เกิดข้อผิดพลาดในการดึงข้อมูลประวัติสต็อก" });
   }
 });
 

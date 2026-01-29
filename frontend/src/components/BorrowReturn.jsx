@@ -241,9 +241,6 @@ const BorrowReturn = () => {
               </h3>
               <div className="form-row">
                 <div className="form-group">
-                  <label>
-                    <Calendar size={16} /> วันที่ยืม
-                  </label>
                   <input
                     type="date"
                     name="borrowDate"
@@ -253,9 +250,6 @@ const BorrowReturn = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>
-                    <Clock size={16} /> กำหนดคืน (โดยประมาณ)
-                  </label>
                   <input
                     type="date"
                     name="returnDate"
@@ -266,7 +260,6 @@ const BorrowReturn = () => {
                 </div>
               </div>
               <div className="form-group">
-                <label>วัตถุประสงค์การใช้งาน</label>
                 <textarea
                   name="purpose"
                   rows="3"

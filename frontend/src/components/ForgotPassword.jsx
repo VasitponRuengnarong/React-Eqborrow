@@ -1,79 +1,154 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Mail, ArrowLeft } from "lucide-react";
-import "./ForgotPassword.css";
+import Swal from "sweetalert2";
+import "./Login.css"; // ใช้ CSS เดียวกับหน้า Login เพื่อความคุมธีม
+import Aurora from "./Aurora";
+import { apiFetch } from "./api";
 
 const ForgotPassword = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!email) {
+      newErrors.email = "กรุณากรอกอีเมล";
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = "รูปแบบอีเมลไม่ถูกต้อง";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setMessage("");
-    setError("");
+    if (!validateForm()) return;
 
+    setLoading(true);
     try {
-      const response = await fetch("/api/forgot-password", {
+      // เรียก API สำหรับส่งอีเมลรีเซ็ตรหัสผ่าน
+      const response = await apiFetch("/api/forgot-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage(data.message);
+      let data;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
       } else {
-        setError(data.message || "เกิดข้อผิดพลาด");
+        data = {
+          message: "เกิดข้อผิดพลาดที่เซิร์ฟเวอร์ (500 Internal Server Error)",
+        };
       }
-    } catch (err) {
-      setError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+
+      if (!response.ok) {
+        throw new Error(data.message || "ไม่พบอีเมลนี้ในระบบ");
+      }
+
+      Swal.fire({
+        icon: "success",
+        title: "ส่งลิงก์เรียบร้อย",
+        text: "กรุณาตรวจสอบอีเมลของคุณเพื่อรีเซ็ตรหัสผ่าน",
+        confirmButtonColor: "#ff8000",
+      }).then(() => {
+        navigate("/login");
+      });
+    } catch (error) {
+      Swal.fire("เกิดข้อผิดพลาด", error.message, "error");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="forgot-password-page">
-      <div className="fp-container">
-        <div className="fp-header">
-          <h2>ลืมรหัสผ่าน?</h2>
-          <p>กรอกอีเมลของคุณเพื่อรับลิงก์รีเซ็ตรหัสผ่าน</p>
+    <div
+      className="login-page"
+      style={{ position: "relative", overflow: "hidden" }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      >
+        <Aurora
+          colorStops={["#ff8000", "#ff8000", "#ff8000"]}
+          blend={0.5}
+          amplitude={1.0}
+          speed={1}
+        />
+      </div>
+      <div
+        className="login-container"
+        style={{ position: "relative", zIndex: 1 }}
+      >
+        {/* Left Side - Brand */}
+        <div className="login-brand">
+          <div className="brand-content">
+            <div className="thai-pbs-logo">
+              <img
+                src="/logo.png"
+                alt="Eqborrow Logo"
+                style={{ height: "120px", width: "auto" }}
+              />
+            </div>
+            <h1 className="brand-title">Eqborrow</h1>
+            <p className="brand-subtitle">Password Recovery</p>
+          </div>
         </div>
 
-        {message ? (
-          <div className="success-message">
-            <p>{message}</p>
-            <Link to="/login" className="back-link">
-              กลับสู่หน้าเข้าสู่ระบบ
-            </Link>
+        {/* Right Side - Form */}
+        <div className="login-form-section">
+          <div className="login-header">
+            <h2>ลืมรหัสผ่าน?</h2>
+            <p>กรอกอีเมลที่ใช้สมัครสมาชิกเพื่อรับลิงก์รีเซ็ตรหัสผ่าน</p>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="fp-form">
-            {error && <div className="error-banner">{error}</div>}
-            <div className="form-group">
+
+          <form onSubmit={handleSubmit} className="login-form" noValidate>
+            <div className={`form-group ${errors.email ? "has-error" : ""}`}>
               <Mail className="input-icon" size={20} />
               <input
                 type="email"
-                placeholder="อีเมลของคุณ"
+                id="email"
+                placeholder=" "
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
               />
+              <label htmlFor="email">อีเมล</label>
+              {errors.email && (
+                <span className="error-message">{errors.email}</span>
+              )}
             </div>
-            <button type="submit" className="fp-btn" disabled={loading}>
-              {loading ? "กำลังส่ง..." : "ส่งลิงก์รีเซ็ต"}
+
+            <button type="submit" className="login-btn" disabled={loading}>
+              {loading ? <div className="spinner"></div> : "ส่งลิงก์รีเซ็ต"}
             </button>
-            <div className="fp-footer">
-              <Link to="/login" className="back-link">
-                <ArrowLeft size={16} /> กลับสู่หน้าเข้าสู่ระบบ
-              </Link>
-            </div>
           </form>
-        )}
+
+          <div className="login-footer">
+            <p>
+              <Link
+                to="/login"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  textDecoration: "none",
+                }}
+              >
+                <ArrowLeft size={16} /> กลับไปหน้าเข้าสู่ระบบ
+              </Link>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

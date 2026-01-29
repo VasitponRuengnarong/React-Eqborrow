@@ -91,45 +91,20 @@
 }
 .form-group input {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
   font-size: 0.95rem;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 .form-group input:focus {
   border-color: #ff8000;
   outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 128, 0, 0.1);
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
-}
-.btn-save {
-  background-color: #ff8000;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 500;
-  transition: background 0.2s;
-}
-.btn-save:hover {
-  background-color: #e67300;
-}
-.btn-save:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-.btn-save.outline {
-  background-color: transparent;
-  border: 1px solid #ff8000;
-  color: #ff8000;
-}
-.btn-save.outline:hover {
-  background-color: #fff5e6;
 }

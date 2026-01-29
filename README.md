@@ -20,7 +20,7 @@ docker compose down --remove-orphans; docker compose up -d --build
 
 To run in development mode with Docker (Hot Reloading):
 
-`docker compose -f docker-compose.dev.yml up --build`
+'docker compose -f docker-compose.dev.yml up --build'
 
 Runs the app in the development mode.\
 Open http://localhost:3000 to view it in your browser.

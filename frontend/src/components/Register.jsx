@@ -10,8 +10,14 @@ import {
   Building,
   Users,
   Image as ImageIcon,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+import Swal from "sweetalert2";
 import "./Register.css";
+import Aurora from "./Aurora";
+
+const defaultLogo = "https://via.placeholder.com/120"; // Placeholder for logo
 
 const Register = () => {
   const navigate = useNavigate();
@@ -24,7 +30,6 @@ const Register = () => {
     phone: "",
     institutionId: "",
     departmentId: "",
-    roleId: "",
     empStatusId: "",
     profileImage: "", // Base64 string
     password: "",
@@ -34,7 +39,6 @@ const Register = () => {
   const [masterData, setMasterData] = useState({
     institutions: [],
     departments: [],
-    roles: [],
     empStatuses: [],
   });
 
@@ -47,24 +51,22 @@ const Register = () => {
     const fetchMasterData = async () => {
       setDataLoading(true);
       try {
-        const [instRes, deptRes, roleRes, statusRes] = await Promise.all([
+        const [instRes, deptRes, statusRes] = await Promise.all([
           fetch("/api/institutions"),
           fetch("/api/departments"),
-          fetch("/api/roles"),
           fetch("/api/emp-statuses"),
         ]);
 
         // Check all responses
-        if (!instRes.ok || !deptRes.ok || !roleRes.ok || !statusRes.ok) {
+        if (!instRes.ok || !deptRes.ok || !statusRes.ok) {
           throw new Error("Failed to fetch master data");
         }
 
         const institutions = await instRes.json();
         const departments = await deptRes.json();
-        const roles = await roleRes.json();
         const empStatuses = await statusRes.json();
 
-        setMasterData({ institutions, departments, roles, empStatuses });
+        setMasterData({ institutions, departments, empStatuses });
       } catch (error) {
         console.error("Error fetching master data:", error);
         setErrors((prev) => ({
@@ -107,7 +109,6 @@ const Register = () => {
     if (!formData.username.trim()) newErrors.username = "กรุณากรอกชื่อผู้ใช้";
     if (!formData.institutionId) newErrors.institutionId = "กรุณาเลือกสำนัก";
     if (!formData.departmentId) newErrors.departmentId = "กรุณาเลือกฝ่าย";
-    if (!formData.roleId) newErrors.roleId = "กรุณาเลือกตำแหน่ง";
     // empStatusId can be optional if backend defaults it, but let's require it for completeness
     if (!formData.empStatusId) newErrors.empStatusId = "กรุณาเลือกสถานะ";
 
@@ -149,7 +150,6 @@ const Register = () => {
           // Ensure IDs are sent as numbers
           institutionId: Number(formData.institutionId),
           departmentId: Number(formData.departmentId),
-          roleId: Number(formData.roleId),
           empStatusId: Number(formData.empStatusId),
         }),
       });
@@ -165,24 +165,48 @@ const Register = () => {
         throw new Error(data.message || "Registration failed");
       }
 
+      Swal.fire("สำเร็จ!", "สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ", "success");
       navigate("/login");
     } catch (error) {
-      setErrors((prev) => ({ ...prev, submit: error.message }));
+      Swal.fire("เกิดข้อผิดพลาด!", error.message, "error"); // Consistent error handling
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="register-page">
-      <div className="register-container">
+    <div
+      className="register-page"
+      style={{ position: "relative" }} // ลบ overflow: hidden เพื่อให้ Scroll ได้
+    >
+      <div
+        style={{
+          position: "fixed", // เปลี่ยนเป็น fixed เพื่อให้พื้นหลังอยู่กับที่ตอน Scroll
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      >
+        <Aurora
+          colorStops={["#ff8000", "#ff8000", "#ff8000"]}
+          blend={0.5}
+          amplitude={1.0}
+          speed={1}
+        />
+      </div>
+      <div
+        className="register-container"
+        style={{ position: "relative", zIndex: 1 }}
+      >
         <div className="register-brand">
           <div className="brand-content">
             <div className="thai-pbs-logo">
               <img
-                src="/logo.png"
-                alt="Thai PBS Logo"
-                style={{ height: "120px" }}
+                src="/logo.png" // Use absolute path for assets in public folder
+                alt="Eqborrow Logo" // More specific alt text
+                style={{ height: "120px", width: "auto" }} // Consistent height, auto width
               />
             </div>
             <h1 className="brand-title">Eqborrow</h1>
@@ -197,10 +221,6 @@ const Register = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="register-form" noValidate>
-            {errors.submit && (
-              <div className="error-banner">{errors.submit}</div>
-            )}
-
             {/* Row 1: Name & Surname */}
             <div className="form-row">
               <div
@@ -214,7 +234,7 @@ const Register = () => {
                   value={formData.firstName}
                   onChange={handleChange}
                 />
-                <label htmlFor="firstName">ชื่อ</label>
+                <label htmlFor="firstName">ชื่อจริง</label>
                 {errors.firstName && (
                   <span className="error-message">{errors.firstName}</span>
                 )}
@@ -330,31 +350,6 @@ const Register = () => {
             {/* Row 4: Role & Employee Status */}
             <div className="form-row">
               <div
-                className={`form-group form-column ${errors.roleId ? "has-error" : ""}`}
-              >
-                <Briefcase className="input-icon" size={20} />
-                <select
-                  id="roleId"
-                  value={formData.roleId}
-                  onChange={handleChange}
-                  className="form-select"
-                  disabled={dataLoading}
-                >
-                  <option value="">-- เลือกตำแหน่ง --</option>
-                  {masterData.roles.map((role) => (
-                    <option key={role.RoleID} value={role.RoleID}>
-                      {role.RoleName}
-                    </option>
-                  ))}
-                </select>
-                <label htmlFor="roleId" className="select-label">
-                  ตำแหน่ง (Role)
-                </label>
-                {errors.roleId && (
-                  <span className="error-message">{errors.roleId}</span>
-                )}
-              </div>
-              <div
                 className={`form-group form-column ${errors.empStatusId ? "has-error" : ""}`}
               >
                 <Briefcase className="input-icon" size={20} />
@@ -368,7 +363,7 @@ const Register = () => {
                   <option value="">-- เลือกสถานะ --</option>
                   {masterData.empStatuses.map((status) => (
                     <option key={status.EMPStatusID} value={status.EMPStatusID}>
-                      {status.StatusName}
+                      {status.StatusNameEMP}
                     </option>
                   ))}
                 </select>
@@ -458,7 +453,7 @@ const Register = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   tabIndex="-1"
                 >
-                  {showPassword ? "👁️" : "👁️‍🗨️"}
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
               {errors.password && (

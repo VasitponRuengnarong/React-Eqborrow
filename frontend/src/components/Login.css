@@ -143,7 +143,7 @@
   border-bottom: 1px solid #e0e0e0;
   background-color: transparent;
   border-radius: 0;
-  font-size: 14px;
+  font-size: 15px;
   color: #333;
   font-family: "Poppins", sans-serif;
   transition: all 0.2s ease;
@@ -161,7 +161,7 @@
   outline: none;
   background-color: transparent;
   border-bottom-color: #ff8000;
-  box-shadow: none;
+  box-shadow: 0 1px 0 0 #ff8000;
 }
 
 /* Floating Label Logic */
@@ -264,16 +264,40 @@
 }
 
 .forgot-password-link {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
   color: #ff8000;
-  text-decoration: none;
   font-size: 13px;
-  font-weight: 500;
-  transition: color 0.2s;
+  font-weight: 600;
+  font-family: "Poppins", sans-serif;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+/* Animated Underline Effect */
+.forgot-password-link::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 1.5px;
+  bottom: -2px;
+  left: 0;
+  background-color: #ff8000;
+  transform: scaleX(0);
+  transform-origin: bottom right;
+  transition: transform 0.3s ease-out;
 }
 
 .forgot-password-link:hover {
   color: #e65100;
-  text-decoration: underline;
+}
+
+.forgot-password-link:hover::after {
+  transform: scaleX(1);
+  transform-origin: bottom left;
+  background-color: #e65100;
 }
 
 .remember-me input[type="checkbox"] {

@@ -1,30 +1,26 @@
 import React, { useState, useEffect } from "react";
-import Sidebar from "./Sidebar";
-import StatsCard from "./StatsCard";
-import ProductManagement from "./ProductManagement";
-import PendingRequests from "./PendingRequests";
-import MemberManagement from "./MemberManagement";
-import BorrowReturn from "./BorrowReturn";
-import BorrowHistory from "./BorrowHistory";
-import UserProfile from "./UserProfile";
-import { Users, Package, Clock, CheckCircle } from "lucide-react";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
+  Users,
+  ShoppingBag,
+  Clock,
+  CheckCircle,
+  TrendingUp,
+  Activity,
   PieChart,
-  Pie,
-  Cell,
-} from "recharts";
+} from "lucide-react";
 import "./AdminDashboard.css";
+import { apiFetch } from "./api";
+
+const COLORS = [
+  "#0088FE",
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042",
+  "#8884d8",
+  "#82ca9d",
+];
 
 const AdminDashboard = () => {
-  const [activeMenu, setActiveMenu] = useState("home");
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalBorrows: 0,
@@ -32,144 +28,235 @@ const AdminDashboard = () => {
     returnedItems: 0,
     monthlyStats: [],
     statusStats: [],
+    categoryStats: [],
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (activeMenu === "home") {
-      fetchDashboardStats();
-    }
-  }, [activeMenu]);
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem("accessToken");
+        if (!token) {
+          window.location.href = "/login";
+          return;
+        }
 
-  const fetchDashboardStats = async () => {
-    try {
-      const response = await fetch("/api/dashboard/stats");
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data);
+        const response = await apiFetch("/api/dashboard/stats");
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data);
+        }
+      } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching stats:", error);
-    }
-  };
+    };
 
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
+    fetchStats();
+  }, []);
 
-  const renderContent = () => {
-    switch (activeMenu) {
-      case "home":
-        return (
-          <div className="dashboard-home">
-            <div className="stats-grid">
-              <StatsCard
-                icon={Users}
-                color="#3498db"
-                title="ผู้ใช้งานทั้งหมด"
-                value={stats.totalUsers}
-              />
-              <StatsCard
-                icon={Package}
-                color="#e67e22"
-                title="รายการยืมทั้งหมด"
-                value={stats.totalBorrows}
-              />
-              <StatsCard
-                icon={Clock}
-                color="#f1c40f"
-                title="รออนุมัติ"
-                value={stats.pendingRequest}
-              />
-              <StatsCard
-                icon={CheckCircle}
-                color="#2ecc71"
-                title="คืนแล้ว"
-                value={stats.returnedItems}
-              />
-            </div>
+  if (loading) {
+    return (
+      <div className="dashboard-loading">
+        <div className="spinner"></div>
+        <p>กำลังโหลดข้อมูล...</p>
+      </div>
+    );
+  }
 
-            <div className="charts-container">
-              <div className="chart-card">
-                <h3>สถิติการยืมรายเดือน</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={stats.monthlyStats}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="count" name="จำนวนการยืม" fill="#8884d8" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="chart-card">
-                <h3>สถานะการยืม</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={stats.statusStats}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) =>
-                        `${name} ${(percent * 100).toFixed(0)}%`
-                      }
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {stats.statusStats.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-        );
-      case "units":
-        return (
-          <div className="dashboard-card">
-            <h2>หมวดหมู่สินค้า</h2>
-            <p>จัดการหมวดหมู่สินค้าที่นี่</p>
-          </div>
-        );
-      case "products":
-        return <ProductManagement />;
-      case "approvals":
-        return <PendingRequests />;
-      case "members":
-        return <MemberManagement />;
-      case "settings":
-        return <BorrowReturn />;
-      case "items":
-        return <BorrowHistory />;
-      case "managers":
-        return <UserProfile />;
-      default:
-        return (
-          <div className="dashboard-card">
-            <h2>{activeMenu}</h2>
-            <p>ส่วนนี้กำลังอยู่ระหว่างการพัฒนา</p>
-          </div>
-        );
-    }
+  // Helper function to render Pie Chart using SVG
+  const renderPieChart = (data) => {
+    const total = data.reduce((acc, item) => acc + item.value, 0);
+    let cumulativePercent = 0;
+
+    if (total === 0) return <p className="no-data">ไม่มีข้อมูลสินค้า</p>;
+
+    return (
+      <svg
+        viewBox="-1 -1 2 2"
+        style={{ transform: "rotate(-90deg)", height: "100%", width: "100%" }}
+        role="img"
+        aria-label="กราฟวงกลมแสดงสัดส่วนสินค้าตามหมวดหมู่"
+      >
+        {data.map((slice, index) => {
+          const startPercent = cumulativePercent;
+          const slicePercent = slice.value / total;
+          cumulativePercent += slicePercent;
+          const endPercent = cumulativePercent;
+
+          const x1 = Math.cos(2 * Math.PI * startPercent);
+          const y1 = Math.sin(2 * Math.PI * startPercent);
+          const x2 = Math.cos(2 * Math.PI * endPercent);
+          const y2 = Math.sin(2 * Math.PI * endPercent);
+
+          const largeArcFlag = slicePercent > 0.5 ? 1 : 0;
+
+          const pathData = `M 0 0 L ${x1} ${y1} A 1 1 0 ${largeArcFlag} 1 ${x2} ${y2} L 0 0`;
+
+          return (
+            <path
+              key={index}
+              d={pathData}
+              fill={COLORS[index % COLORS.length]}
+              className="pie-slice"
+            >
+              <title>{`${slice.name || "ไม่ระบุ"}: ${slice.value} รายการ`}</title>
+            </path>
+          );
+        })}
+      </svg>
+    );
   };
 
   return (
     <div className="admin-dashboard">
-      <Sidebar activeMenu={activeMenu} setActiveMenu={setActiveMenu} />
-      <div className="dashboard-content">
-        <header className="dashboard-header">
-          <h1>Admin Dashboard</h1>
-          <div className="header-actions">
-            {/* Add header actions like notifications here */}
+      <div className="dashboard-header">
+        <div>
+          <h1>Dashboard</h1>
+          <p>ภาพรวมระบบและการจัดการ</p>
+        </div>
+        <div className="date-display">
+          {new Date().toLocaleDateString("th-TH", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon users" aria-hidden="true">
+            <Users size={24} />
           </div>
-        </header>
-        <main className="dashboard-main">{renderContent()}</main>
+          <div className="stat-info">
+            <h3>สมาชิกทั้งหมด</h3>
+            <p className="stat-value">{stats.totalUsers}</p>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon borrows" aria-hidden="true">
+            <ShoppingBag size={24} />
+          </div>
+          <div className="stat-info">
+            <h3>การยืมทั้งหมด</h3>
+            <p className="stat-value">{stats.totalBorrows}</p>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon pending" aria-hidden="true">
+            <Clock size={24} />
+          </div>
+          <div className="stat-info">
+            <h3>รออนุมัติ</h3>
+            <p className="stat-value">{stats.pendingRequest}</p>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon returned" aria-hidden="true">
+            <CheckCircle size={24} />
+          </div>
+          <div className="stat-info">
+            <h3>คืนแล้ว</h3>
+            <p className="stat-value">{stats.returnedItems}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Section */}
+      <div className="dashboard-charts">
+        <div className="chart-card">
+          <div className="chart-header">
+            <TrendingUp size={20} />
+            <h2>สถิติการยืมรายเดือน (6 เดือนล่าสุด)</h2>
+          </div>
+          <div className="bar-chart">
+            {stats.monthlyStats.length > 0 ? (
+              stats.monthlyStats.map((item, index) => {
+                const max = Math.max(
+                  ...stats.monthlyStats.map((i) => i.count),
+                  1,
+                );
+                const height = (item.count / max) * 100;
+                return (
+                  <div key={index} className="bar-item">
+                    <div className="bar-fill-wrapper">
+                      <div
+                        className="bar-fill"
+                        style={{ height: `${height}%` }}
+                        role="img"
+                        aria-label={`เดือน ${item.name} มีการยืม ${item.count} รายการ`}
+                      ></div>
+                      <div className="bar-tooltip">{item.count} รายการ</div>
+                    </div>
+                    <span className="bar-label">{item.name}</span>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="no-data">ไม่มีข้อมูล</p>
+            )}
+          </div>
+        </div>
+
+        <div className="chart-card">
+          <div className="chart-header">
+            <Activity size={20} />
+            <h2>สถานะการยืมทั้งหมด</h2>
+          </div>
+          <div className="status-list">
+            {stats.statusStats.map((item, index) => (
+              <div key={index} className="status-item">
+                <div className="status-info">
+                  <span className="status-name">{item.name}</span>
+                  <span className="status-count">{item.value} รายการ</span>
+                </div>
+                <div className="status-bar-bg">
+                  <div
+                    className={`status-bar-fill ${item.name.toLowerCase()}`}
+                    style={{
+                      width: `${(item.value / stats.totalBorrows) * 100}%`,
+                    }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* New Pie Chart Card */}
+        <div className="chart-card">
+          <div className="chart-header">
+            <PieChart size={20} />
+            <h2>สัดส่วนสินค้าตามหมวดหมู่</h2>
+          </div>
+          <div className="pie-chart-container">
+            <div className="pie-chart-wrapper">
+              {renderPieChart(stats.categoryStats)}
+            </div>
+            <div className="chart-legend">
+              {stats.categoryStats.map((item, index) => (
+                <div key={index} className="legend-item">
+                  <span
+                    className="legend-color"
+                    style={{
+                      backgroundColor: COLORS[index % COLORS.length],
+                    }}
+                  ></span>
+                  <span className="legend-text">
+                    {item.name || "ไม่ระบุ"}: <strong>{item.value}</strong>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

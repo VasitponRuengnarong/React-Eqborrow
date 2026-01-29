@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { User, Mail, Phone, Lock, Save, Camera } from "lucide-react";
 import "./UserProfile.css";
+import Swal from "sweetalert2";
+import "./Management.css"; // Import Management.css for consistent button styles
+import { apiFetch } from "./api";
+import ImageDisplay from "./ImageDisplay";
+
+const defaultProfileImage = "https://via.placeholder.com/100"; // Placeholder for profile image
 
 const UserProfile = () => {
   const [user, setUser] = useState(null);
@@ -58,23 +64,31 @@ const UserProfile = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch(`/api/profile/${user.id}`, {
+      const response = await apiFetch(`/api/profile/${user.EMPID}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
       const data = await response.json();
       if (response.ok) {
-        alert("อัปเดตข้อมูลส่วนตัวสำเร็จ");
+        Swal.fire("สำเร็จ!", "อัปเดตข้อมูลส่วนตัวสำเร็จ", "success");
         localStorage.setItem("user", JSON.stringify(data.user));
         setUser(data.user);
-        window.location.reload(); // รีโหลดเพื่อให้ Sidebar อัปเดตรูปภาพ
+        // Notify other components (like Sidebar/Header) to update the user info without a full reload
+        window.dispatchEvent(new Event("user-updated"));
       } else {
-        alert(data.message || "เกิดข้อผิดพลาด");
+        Swal.fire(
+          "เกิดข้อผิดพลาด!",
+          data.message || "เกิดข้อผิดพลาดในการอัปเดตข้อมูล",
+          "error",
+        );
       }
     } catch (error) {
       console.error("Error updating profile:", error);
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      Swal.fire(
+        "เกิดข้อผิดพลาด!",
+        "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้",
+        "error",
+      );
     } finally {
       setLoading(false);
     }
@@ -83,19 +97,22 @@ const UserProfile = () => {
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert("รหัสผ่านใหม่ไม่ตรงกัน");
+      Swal.fire("ข้อผิดพลาด!", "รหัสผ่านใหม่ไม่ตรงกัน", "warning");
       return;
     }
     if (passwordData.newPassword.length < 6) {
-      alert("รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร");
+      Swal.fire(
+        "ข้อผิดพลาด!",
+        "รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร",
+        "warning",
+      );
       return;
     }
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/profile/${user.id}/password`, {
+      const response = await apiFetch(`/api/profile/${user.EMPID}/password`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           currentPassword: passwordData.currentPassword,
           newPassword: passwordData.newPassword,
@@ -103,18 +120,26 @@ const UserProfile = () => {
       });
       const data = await response.json();
       if (response.ok) {
-        alert("เปลี่ยนรหัสผ่านสำเร็จ");
+        Swal.fire("สำเร็จ!", "เปลี่ยนรหัสผ่านสำเร็จ", "success");
         setPasswordData({
           currentPassword: "",
           newPassword: "",
           confirmPassword: "",
         });
       } else {
-        alert(data.message || "เกิดข้อผิดพลาด");
+        Swal.fire(
+          "เกิดข้อผิดพลาด!",
+          data.message || "เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน",
+          "error",
+        );
       }
     } catch (error) {
       console.error("Error changing password:", error);
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      Swal.fire(
+        "เกิดข้อผิดพลาด!",
+        "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้",
+        "error",
+      );
     } finally {
       setLoading(false);
     }
@@ -138,13 +163,15 @@ const UserProfile = () => {
           <form onSubmit={handleProfileSubmit}>
             <div className="profile-image-section">
               <div className="profile-avatar">
-                <img
-                  src={
-                    formData.profileImage || "https://via.placeholder.com/100"
-                  }
+                <ImageDisplay
+                  data={formData.profileImage || defaultProfileImage}
                   alt="Profile"
                 />
-                <label htmlFor="profile-upload" className="camera-icon">
+                <label
+                  htmlFor="profile-upload"
+                  className="camera-icon"
+                  aria-label="เปลี่ยนรูปโปรไฟล์"
+                >
                   <Camera size={16} />
                 </label>
                 <input
@@ -158,8 +185,9 @@ const UserProfile = () => {
             </div>
             <div className="form-grid">
               <div className="form-group">
-                <label>ชื่อ</label>
+                <label htmlFor="firstName">ชื่อจริง</label>
                 <input
+                  id="firstName"
                   type="text"
                   name="firstName"
                   value={formData.firstName}
@@ -168,8 +196,9 @@ const UserProfile = () => {
                 />
               </div>
               <div className="form-group">
-                <label>นามสกุล</label>
+                <label htmlFor="lastName">นามสกุล</label>
                 <input
+                  id="lastName"
                   type="text"
                   name="lastName"
                   value={formData.lastName}
@@ -178,10 +207,11 @@ const UserProfile = () => {
                 />
               </div>
               <div className="form-group">
-                <label>
+                <label htmlFor="email">
                   <Mail size={16} /> อีเมล
                 </label>
                 <input
+                  id="email"
                   type="email"
                   name="email"
                   value={formData.email}
@@ -190,10 +220,11 @@ const UserProfile = () => {
                 />
               </div>
               <div className="form-group">
-                <label>
+                <label htmlFor="phone">
                   <Phone size={16} /> เบอร์โทรศัพท์
                 </label>
                 <input
+                  id="phone"
                   type="tel"
                   name="phone"
                   value={formData.phone}
@@ -202,7 +233,11 @@ const UserProfile = () => {
               </div>
             </div>
             <div className="form-actions">
-              <button type="submit" className="btn-save" disabled={loading}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={loading}
+              >
                 <Save size={18} /> บันทึกการเปลี่ยนแปลง
               </button>
             </div>
@@ -216,8 +251,9 @@ const UserProfile = () => {
           </h3>
           <form onSubmit={handlePasswordSubmit}>
             <div className="form-group">
-              <label>รหัสผ่านปัจจุบัน</label>
+              <label htmlFor="currentPassword">รหัสผ่านปัจจุบัน</label>
               <input
+                id="currentPassword"
                 type="password"
                 name="currentPassword"
                 value={passwordData.currentPassword}
@@ -226,8 +262,9 @@ const UserProfile = () => {
               />
             </div>
             <div className="form-group">
-              <label>รหัสผ่านใหม่</label>
+              <label htmlFor="newPassword">รหัสผ่านใหม่</label>
               <input
+                id="newPassword"
                 type="password"
                 name="newPassword"
                 value={passwordData.newPassword}
@@ -236,8 +273,9 @@ const UserProfile = () => {
               />
             </div>
             <div className="form-group">
-              <label>ยืนยันรหัสผ่านใหม่</label>
+              <label htmlFor="confirmPassword">ยืนยันรหัสผ่านใหม่</label>
               <input
+                id="confirmPassword"
                 type="password"
                 name="confirmPassword"
                 value={passwordData.confirmPassword}
@@ -248,7 +286,7 @@ const UserProfile = () => {
             <div className="form-actions">
               <button
                 type="submit"
-                className="btn-save outline"
+                className="btn btn-secondary"
                 disabled={loading}
               >
                 เปลี่ยนรหัสผ่าน

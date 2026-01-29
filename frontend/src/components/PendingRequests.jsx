@@ -9,6 +9,7 @@ import {
   Search,
   Filter,
 } from "lucide-react";
+import Swal from "sweetalert2"; // Import SweetAlert2
 import "./PendingRequests.css";
 
 const PendingRequests = () => {
@@ -36,29 +37,54 @@ const PendingRequests = () => {
   };
 
   const handleStatusUpdate = async (id, status) => {
-    if (
-      !window.confirm(
-        `คุณต้องการ ${status === "Approved" ? "อนุมัติ" : "ไม่อนุมัติ"} รายการนี้ใช่หรือไม่?`,
-      )
-    )
-      return;
+    Swal.fire({
+      title: `คุณต้องการ ${status === "Approved" ? "อนุมัติ" : "ไม่อนุมัติ"} รายการนี้ใช่หรือไม่?`,
+      text: "การกระทำนี้จะเปลี่ยนสถานะคำขอทันที",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: status === "Approved" ? "#28a745" : "#dc3545",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText:
+        status === "Approved" ? "ใช่, อนุมัติ!" : "ใช่, ไม่อนุมัติ!",
+      cancelButtonText: "ยกเลิก",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        const token = localStorage.getItem("accessToken");
+        try {
+          const response = await fetch(`/api/borrows/${id}/status`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ status }),
+          });
 
-    try {
-      const response = await fetch(`/api/borrows/${id}/status`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-
-      if (response.ok) {
-        alert("บันทึกสถานะเรียบร้อยแล้ว");
-        fetchPendingRequests(); // Refresh list
-      } else {
-        alert("เกิดข้อผิดพลาดในการบันทึก");
+          if (response.ok) {
+            Swal.fire(
+              "สำเร็จ!",
+              `บันทึกสถานะเป็น ${status} เรียบร้อยแล้ว`,
+              "success",
+            );
+            fetchPendingRequests(); // Refresh list
+          } else {
+            const data = await response.json();
+            Swal.fire(
+              "เกิดข้อผิดพลาด!",
+              data.message || "เกิดข้อผิดพลาดในการบันทึกสถานะ",
+              "error",
+            );
+          }
+        } catch (error) {
+          console.error("Error updating status:", error);
+          Swal.fire(
+            "เกิดข้อผิดพลาด!",
+            "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้",
+            "error",
+          );
+        }
       }
-    } catch (error) {
-      console.error("Error updating status:", error);
-    }
+    });
   };
 
   const formatDate = (dateString) => {

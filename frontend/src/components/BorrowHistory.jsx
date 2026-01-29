@@ -1,24 +1,29 @@
 import React, { useState, useEffect } from "react";
-import { Clock, CheckCircle, XCircle, Package, Calendar } from "lucide-react";
-import "./BorrowHistory.css";
+import { apiFetch } from "./api";
+import Swal from "sweetalert2";
+import { Download } from "lucide-react"; // Import ไอคอน Download
+import "./Management.css"; // ใช้ CSS เดิมเพื่อให้หน้าตาสอดคล้องกัน
 
 const BorrowHistory = () => {
-  const [history, setHistory] = useState([]);
+  const [borrows, setBorrows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const user = JSON.parse(localStorage.getItem("user"));
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    if (user && user.id) {
-      fetchHistory();
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
     }
+    fetchBorrows();
   }, []);
 
-  const fetchHistory = async () => {
+  const fetchBorrows = async () => {
     try {
-      const response = await fetch(`/api/borrows/user/${user.id}`);
+      // เรียก API ใหม่ที่รองรับทั้ง Admin (เห็นทั้งหมด) และ User (เห็นของตัวเอง)
+      const response = await apiFetch("/api/borrows");
       if (response.ok) {
         const data = await response.json();
-        setHistory(data);
+        setBorrows(data);
       }
     } catch (error) {
       console.error("Error fetching history:", error);
@@ -27,141 +32,202 @@ const BorrowHistory = () => {
     }
   };
 
-  const handleReturn = async (borrowId) => {
-    if (!window.confirm("คุณต้องการแจ้งคืนอุปกรณ์รายการนี้ใช่หรือไม่?")) return;
-
+  const handleExport = async () => {
     try {
-      const response = await fetch(`/api/borrows/${borrowId}/status`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "Returned" }),
-      });
-
+      const response = await apiFetch("/api/borrows/export");
       if (response.ok) {
-        alert("บันทึกการคืนอุปกรณ์เรียบร้อยแล้ว");
-        fetchHistory(); // รีโหลดข้อมูลใหม่
+        // แปลง Response เป็น Blob เพื่อดาวน์โหลด
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `borrow_history_${new Date().toISOString().split("T")[0]}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
       } else {
-        const data = await response.json();
-        alert(data.message || "เกิดข้อผิดพลาด");
+        Swal.fire("เกิดข้อผิดพลาด", "ไม่สามารถดาวน์โหลดไฟล์ได้", "error");
       }
     } catch (error) {
-      console.error("Error returning item:", error);
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      console.error("Export error:", error);
+      Swal.fire("เกิดข้อผิดพลาด", "การเชื่อมต่อขัดข้อง", "error");
     }
   };
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "Approved":
-        return (
-          <span className="status-badge approved">
-            <CheckCircle size={14} /> อนุมัติแล้ว
-          </span>
-        );
-      case "Rejected":
-        return (
-          <span className="status-badge rejected">
-            <XCircle size={14} /> ไม่อนุมัติ
-          </span>
-        );
-      case "Returned":
-        return (
-          <span className="status-badge returned">
-            <Package size={14} /> คืนแล้ว
-          </span>
-        );
-      default:
-        return (
-          <span className="status-badge pending">
-            <Clock size={14} /> รออนุมัติ
-          </span>
-        );
-    }
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("th-TH", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
+  const handleCancel = async (borrowId) => {
+    Swal.fire({
+      title: "ยืนยันการยกเลิก?",
+      text: "คุณต้องการยกเลิกคำขอนี้ใช่หรือไม่?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "ใช่, ยกเลิกเลย",
+      cancelButtonText: "ไม่, เก็บไว้",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const response = await apiFetch(`/api/borrows/${borrowId}/cancel`, {
+            method: "PUT",
+          });
+          if (response.ok) {
+            Swal.fire("สำเร็จ!", "ยกเลิกคำขอเรียบร้อยแล้ว", "success");
+            fetchBorrows(); // โหลดข้อมูลใหม่
+          } else {
+            const data = await response.json();
+            Swal.fire(
+              "เกิดข้อผิดพลาด!",
+              data.message || "ไม่สามารถยกเลิกได้",
+              "error",
+            );
+          }
+        } catch (error) {
+          Swal.fire(
+            "เกิดข้อผิดพลาด!",
+            "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้",
+            "error",
+          );
+        }
+      }
     });
   };
 
-  if (loading) return <div className="loading-text">กำลังโหลดข้อมูล...</div>;
+  const getStatusBadge = (status) => {
+    let color = "#6b7280";
+    let bg = "#f3f4f6";
+
+    switch (status) {
+      case "Approved":
+        color = "#059669";
+        bg = "#d1fae5";
+        break;
+      case "Pending":
+        color = "#d97706";
+        bg = "#fef3c7";
+        break;
+      case "Rejected":
+        color = "#dc2626";
+        bg = "#fee2e2";
+        break;
+      case "Returned":
+        color = "#2563eb";
+        bg = "#dbeafe";
+        break;
+      case "Cancelled":
+        color = "#9ca3af";
+        bg = "#f3f4f6";
+        break;
+    }
+
+    return (
+      <span
+        style={{
+          color,
+          backgroundColor: bg,
+          padding: "4px 8px",
+          borderRadius: "12px",
+          fontSize: "0.85em",
+          fontWeight: "500",
+        }}
+      >
+        {status}
+      </span>
+    );
+  };
+
+  if (loading) return <div className="p-4">กำลังโหลดข้อมูล...</div>;
 
   return (
-    <div className="borrow-history-container">
+    <div className="management-page">
       <div className="page-header">
-        <h2>ประวัติการยืม-คืน</h2>
-        <p>รายการคำขอเบิก-ยืมอุปกรณ์ทั้งหมดของคุณ</p>
+        <div>
+          <h2>ประวัติการยืม-คืน</h2>
+          <p>รายการคำขอและการยืมคืนทั้งหมด</p>
+        </div>
+        {user?.role === "Admin" && (
+          <button className="btn btn-primary" onClick={handleExport}>
+            <Download size={18} /> Export Excel
+          </button>
+        )}
       </div>
 
-      {history.length === 0 ? (
-        <div className="empty-state">
-          <Package size={48} color="#ccc" />
-          <p>คุณยังไม่มีประวัติการยืมอุปกรณ์</p>
-        </div>
-      ) : (
-        <div className="history-list">
-          {history.map((item) => (
-            <div key={item.BorrowID} className="history-card">
-              <div className="history-header">
-                <div className="header-left">
-                  <span className="borrow-id">#{item.BorrowID}</span>
-                  <span className="borrow-date">
-                    {formatDate(item.CreatedDate)}
-                  </span>
-                </div>
-                <div className="header-right">
-                  {getStatusBadge(item.Status)}
-                  {item.Status === "Approved" && (
-                    <button
-                      className="btn-return"
-                      onClick={() => handleReturn(item.BorrowID)}
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>วันที่ทำรายการ</th>
+              <th>ผู้ยืม</th>
+              <th>วันที่ยืม - คืน</th>
+              <th>วัตถุประสงค์</th>
+              <th>สถานะ</th>
+              <th>รายการอุปกรณ์</th>
+              <th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {borrows.length === 0 ? (
+              <tr>
+                <td
+                  colSpan="7"
+                  style={{ textAlign: "center", padding: "2rem" }}
+                >
+                  ไม่พบรายการประวัติ
+                </td>
+              </tr>
+            ) : (
+              borrows.map((borrow) => (
+                <tr key={borrow.BorrowID}>
+                  <td>
+                    {new Date(borrow.CreatedDate).toLocaleDateString("th-TH")}
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 500 }}>
+                      {borrow.fname} {borrow.lname}
+                    </div>
+                    <div style={{ fontSize: "0.8em", color: "#666" }}>
+                      {borrow.DepartmentName}
+                    </div>
+                  </td>
+                  <td>
+                    {new Date(borrow.BorrowDate).toLocaleDateString("th-TH")} -{" "}
+                    {new Date(borrow.ReturnDate).toLocaleDateString("th-TH")}
+                  </td>
+                  <td>{borrow.Purpose}</td>
+                  <td>{getStatusBadge(borrow.Status)}</td>
+                  <td>
+                    <ul
+                      style={{
+                        paddingLeft: "20px",
+                        margin: 0,
+                        fontSize: "0.9em",
+                      }}
                     >
-                      คืนอุปกรณ์
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="history-body">
-                <div className="history-info">
-                  <p>
-                    <strong>วัตถุประสงค์:</strong> {item.Purpose}
-                  </p>
-                  <p>
-                    <Calendar size={14} />
-                    ยืม: {formatDate(item.BorrowDate)} — คืน:{" "}
-                    {formatDate(item.ReturnDate)}
-                  </p>
-                </div>
-
-                <div className="history-items">
-                  <table className="mini-table">
-                    <thead>
-                      <tr>
-                        <th>รายการ</th>
-                        <th>จำนวน</th>
-                        <th>หมายเหตุ</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {item.items.map((detail) => (
-                        <tr key={detail.BorrowDetailID}>
-                          <td>{detail.ItemName}</td>
-                          <td>{detail.Quantity}</td>
-                          <td>{detail.Remark || "-"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+                      {borrow.items &&
+                        borrow.items.map((item, idx) => (
+                          <li key={idx}>
+                            {item.ItemName} (x{item.Quantity})
+                          </li>
+                        ))}
+                    </ul>
+                  </td>
+                  <td>
+                    {/* User can only cancel their own pending requests */}
+                    {user?.role !== "Admin" && borrow.Status === "Pending" && (
+                      <button
+                        className="btn btn-delete"
+                        style={{ fontSize: "0.8em", padding: "4px 8px" }}
+                        onClick={() => handleCancel(borrow.BorrowID)}
+                      >
+                        ยกเลิกคำขอ
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

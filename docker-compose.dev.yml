@@ -5,14 +5,15 @@ services:
     restart: always
     environment:
       MYSQL_DATABASE: ebrs_system
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_ROOT_PASSWORD: root
     ports:
       - "3307:3306"
     volumes:
       - db_data_dev:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root"]
+      test:
+        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -40,7 +41,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - "8081:8080"
     volumes:
       - ./backend:/app
     command: npm run dev
@@ -48,6 +49,7 @@ services:
       DB_HOST: db
       DB_USER: root
       DB_NAME: ebrs_system
+      DB_PASSWORD: root
       DB_PORT: 3306
       PORT: 8080
     depends_on:

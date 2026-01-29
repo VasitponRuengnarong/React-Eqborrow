@@ -1,7 +1,8 @@
 import React from "react";
-import { Menu, Moon, Sun } from "lucide-react";
+import { Menu } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
 
-const Dashboard = ({ toggleSidebar, toggleDarkMode, isDarkMode }) => {
+const Dashboard = ({ toggleSidebar }) => {
   return (
     <div className="dashboard">
       <div className="menu-toggle" onClick={toggleSidebar}>
@@ -9,17 +10,7 @@ const Dashboard = ({ toggleSidebar, toggleDarkMode, isDarkMode }) => {
       </div>
       <h1>Dashboard</h1>
       <div className="dark-mode-toggle">
-        <button
-          onClick={toggleDarkMode}
-          className="btn btn-sm"
-          style={{
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
-          {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
+        <ThemeToggle />
       </div>
     </div>
   );

@@ -1,7 +1,23 @@
-.App {
-  text-align: center;
+/* Global styles for full-height layout */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevent body scrollbar, let app-container manage */
 }
 
+.app-container {
+  display: flex;
+  flex-direction: row;
+  height: 100%; /* Make app-container take full height of #root */
+  width: 100%;
+  overflow: hidden; /* Hide main scrollbar, content inside will scroll */
+  background-color: #f5f7fa; /* Default background for the entire app */
+}
+
+/* Existing styles below */
 .App-logo {
   height: 40vmin;
   pointer-events: none;

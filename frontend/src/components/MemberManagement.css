@@ -1,27 +1,4 @@
-.member-management {
-  padding: 20px;
-  background-color: #f5f7fa;
-  min-height: 100%;
-}
-
-.member-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.member-table th,
-.member-table td {
-  padding: 12px 15px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-}
-
-.member-table th {
-  background-color: #f8f9fa;
-  color: #7f8c8d;
-  font-weight: 600;
-}
-
+/* Specific styles for Member Management */
 .user-cell {
   display: flex;
   align-items: center;
@@ -42,11 +19,11 @@
 
 .user-name {
   font-weight: 500;
-  color: #2c3e50;
+  color: #000000;
 }
 .user-email {
   font-size: 0.8rem;
-  color: #95a5a6;
+  color: #000000;
 }
 
 .role-badge {
@@ -66,102 +43,4 @@
 .role-badge.staff {
   background-color: #d5f5e3;
   color: #27ae60;
-}
-
-.status-dot {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-.status-dot::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-}
-.status-dot.active::before {
-  background-color: #2ecc71;
-}
-.status-dot.inactive::before {
-  background-color: #95a5a6;
-}
-.status-dot.suspended::before {
-  background-color: #e74c3c;
-}
-
-.btn-icon.save {
-  color: #2ecc71;
-  background-color: #eafaf1;
-}
-.btn-icon.cancel {
-  color: #7f8c8d;
-  background-color: #f2f3f4;
-}
-
-/* Tabs Styling */
-.tabs-container {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-  border-bottom: 2px solid #eee;
-  padding-bottom: 10px;
-}
-
-.tab-btn {
-  background: none;
-  border: none;
-  padding: 10px 20px;
-  font-size: 1rem;
-  font-weight: 500;
-  color: #7f8c8d;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.2s;
-}
-
-.tab-btn:hover {
-  background-color: #f0f0f0;
-  color: #2c3e50;
-}
-
-.tab-btn.active {
-  background-color: #fff;
-  color: #ff8000;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  font-weight: 600;
-}
-
-.add-row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
-  align-items: center;
-}
-
-.add-row input {
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  flex: 1;
-  max-width: 300px;
-}
-
-.btn-add-mini {
-  background-color: #2ecc71;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.edit-input {
-  padding: 6px;
-  border: 1px solid #ff8000;
-  border-radius: 4px;
-  width: 100%;
 }
