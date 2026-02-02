@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from "react";
 import {
-  Calendar,
-  Clock,
   Plus,
   Trash2,
   Save,
   FileText,
   User,
   Briefcase,
-  Building,
   Repeat,
   CheckCircle,
 } from "lucide-react";

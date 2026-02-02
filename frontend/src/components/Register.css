@@ -25,7 +25,8 @@
   animation: fadeIn 0.8s ease-out forwards;
 }
 
-.register-brand {
+.register-brand,
+.login-brand {
   flex: 1;
   background: #ff8000;
   display: flex;
@@ -70,7 +71,8 @@
   text-transform: uppercase;
 }
 
-.register-form-section {
+.register-form-section,
+.login-form-section {
   flex: 1;
   padding: 50px;
   display: flex;
@@ -79,25 +81,29 @@
   background: #ffffff;
 }
 
-.register-header {
+.register-header,
+.login-header {
   margin-bottom: 30px;
   text-align: center;
 }
 
-.register-header h2 {
+.register-header h2,
+.login-header h2 {
   font-size: 28px;
   font-weight: 700;
   color: #333;
   margin: 0 0 8px 0;
 }
 
-.register-header p {
+.register-header p,
+.login-header p {
   font-size: 14px;
   color: #888;
   margin: 0;
 }
 
-.register-form {
+.register-form,
+.login-form {
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -259,7 +265,8 @@
   color: #777;
 }
 
-.register-btn {
+.register-btn,
+.login-btn {
   padding: 14px;
   background: #ff8000;
   color: white;
@@ -275,37 +282,43 @@
   width: 100%;
 }
 
-.register-btn:hover:not(:disabled) {
+.register-btn:hover:not(:disabled),
+.login-btn:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 6px 15px rgba(255, 128, 0, 0.3);
 }
 
-.register-btn:disabled {
+.register-btn:disabled,
+.login-btn:disabled {
   opacity: 0.8;
   cursor: not-allowed;
 }
 
-.register-footer {
+.register-footer,
+.login-footer {
   text-align: center;
   font-size: 13px;
   color: #888;
   margin-top: 20px;
 }
 
-.register-footer a {
+.register-footer a,
+.login-footer a {
   color: #ff8000;
   text-decoration: none;
   font-weight: 600;
   transition: color 0.3s ease;
 }
 
-.register-footer a:hover {
+.register-footer a:hover,
+.login-footer a:hover {
   color: #e65100;
   text-decoration: underline;
 }
 
 @media (max-width: 768px) {
-  .register-container {
+  .register-container,
+  .login-container {
     flex-direction: column;
     height: auto;
     max-width: 100%;
@@ -314,11 +327,13 @@
     flex-direction: column;
     gap: 0;
   }
-  .register-brand {
+  .register-brand,
+  .login-brand {
     padding: 40px 20px;
     min-height: 200px;
   }
-  .register-form-section {
+  .register-form-section,
+  .login-form-section {
     padding: 30px 20px;
   }
 }

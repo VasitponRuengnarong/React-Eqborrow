@@ -3,7 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { User, Lock } from "lucide-react";
 import "./Login.css";
 import Aurora from "./Aurora";
-import Swal from "sweetalert2"; // Import SweetAlert2
+import Swal from "sweetalert2";
+import { Eye, EyeOff } from "lucide-react";
 const LoginPage = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
@@ -123,7 +124,7 @@ const LoginPage = () => {
               <img
                 src="/logo.png" // Placeholder for logo
                 alt="Eqborrow Logo" // More specific alt text
-                style={{ height: "120px", width: "auto" }} // Consistent height, auto width
+                style={{ height: "200px", width: "auto" }} // Consistent height, auto width
               />
             </div>
             <h1 className="brand-title">Eqborrow</h1>
@@ -176,7 +177,7 @@ const LoginPage = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   tabIndex="-1"
                 >
-                  {showPassword ? "👁️" : "👁️‍🗨️"}
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
               {errors.password && (

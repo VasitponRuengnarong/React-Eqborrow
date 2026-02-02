@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Edit, Trash, PlusCircle } from "lucide-react";
+import { Edit, Trash } from "lucide-react";
 import Swal from "sweetalert2";
 import "./Management.css"; // ใช้ CSS กลาง
 import { apiFetch } from "./api";

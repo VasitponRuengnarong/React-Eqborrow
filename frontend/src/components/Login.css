@@ -26,7 +26,9 @@
 /* Left Side - Brand */
 .login-brand {
   flex: 1;
-  background: #ff8000;
+  background: linear-gradient(135deg, #ff8000, #ff6a00, #ff9e40);
+  background-size: 200% 200%;
+  animation: gradientBG 10s ease infinite;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -38,13 +40,25 @@
 
 /* Decorative circle for brand background */
 .login-brand::before {
-  display: none;
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 60%
+  );
+  animation: rotate 30s linear infinite;
+  display: block;
 }
 
 .brand-content {
   text-align: center;
   z-index: 1;
-  animation: float 6s ease-in-out infinite;
+  /* Removed float from container to animate children individually */
 }
 
 .thai-pbs-logo {
@@ -58,7 +72,10 @@
   justify-content: center;
   margin: 0 auto 30px;
   box-shadow: none;
-  animation: pulse 3s infinite ease-in-out;
+  opacity: 0;
+  animation:
+    float 6s ease-in-out infinite,
+    fadeInUp 0.8s ease-out forwards;
 }
 
 .thai-pbs-logo .logo-text {
@@ -73,15 +90,18 @@
   margin: 0 0 10px 0;
   line-height: 1.2;
   text-shadow: none;
+  opacity: 0;
+  animation: fadeInUp 0.8s ease-out 0.2s forwards;
 }
 
 .brand-subtitle {
   font-size: 14px;
-  opacity: 0.9;
+  opacity: 0; /* Start hidden for animation */
   margin: 0;
   letter-spacing: 2px;
   font-weight: 500;
   text-transform: uppercase;
+  animation: fadeInUp 0.8s ease-out 0.4s forwards;
 }
 
 /* Right Side - Login Form */
@@ -460,6 +480,28 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Fade In Up Animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Rotate Animation */
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 

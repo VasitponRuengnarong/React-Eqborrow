@@ -35,6 +35,29 @@
   border: 1px solid #eee;
 }
 
+.notification-bell {
+  position: relative;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: #dc2626;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #f5f7fa;
+}
+
 /* Stats Grid */
 .stats-grid {
   display: grid;
@@ -117,9 +140,11 @@
 
 .chart-card {
   background: white;
-  padding: 24px;
+  padding: 20px;
   border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  height: auto;
+  min-height: 300px;
 }
 
 .chart-header {
@@ -141,7 +166,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-around;
-  height: 250px;
+  height: 200px;
   padding-top: 20px;
   border-bottom: 1px solid #eee;
 }
@@ -271,5 +296,115 @@
   }
   100% {
     transform: rotate(360deg);
+  }
+}
+
+/* Pie Chart Styles */
+.pie-chart-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  height: 220px;
+  padding: 10px 0;
+}
+
+.pie-chart-wrapper {
+  width: 200px;
+  height: 200px;
+  flex-shrink: 0;
+}
+
+.chart-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.legend-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* Alert Card Styles */
+.alert-card-container {
+  border-left: 4px solid #dc2626;
+  min-height: auto !important;
+}
+
+.alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.alert-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+}
+
+.alert-item:last-child {
+  border-bottom: none;
+}
+
+.alert-count {
+  color: #dc2626;
+  font-weight: 600;
+  background-color: #fee2e2;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.alert-more {
+  text-align: center;
+  font-size: 12px;
+  color: #888;
+  margin-top: 5px;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .admin-dashboard {
+    padding: 15px;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .date-display {
+    width: 100%;
+    text-align: center;
+    margin-top: 5px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .chart-card {
+    padding: 15px;
+  }
+
+  .bar-chart {
+    height: 200px;
   }
 }

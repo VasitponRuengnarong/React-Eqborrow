@@ -1,0 +1,602 @@
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Search,
+  Bell,
+  X,
+  Calendar,
+  Info,
+  Heart,
+  Clock,
+  Package,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import { apiFetch } from "./api";
+import "./UserDashboard.css";
+import Swal from "sweetalert2";
+
+const UserDashboard = () => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [myBorrows, setMyBorrows] = useState([]);
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")));
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [favorites, setFavorites] = useState([]); // Array of ProductIDs
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
+  const navigate = useNavigate();
+  const loansRef = useRef(null); // Ref สำหรับเลื่อนไปที่รายการยืม
+
+  // Dashboard Stats State
+  const [userStats, setUserStats] = useState({
+    itemsOnHand: 0,
+    dueSoon: 0,
+    pendingRequests: 0,
+    currentLoans: [],
+    history: [],
+  });
+  const [filterDueSoon, setFilterDueSoon] = useState(false); // State สำหรับกรองรายการใกล้คืน
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  // Borrow Modal State
+  const [isBorrowModalOpen, setIsBorrowModalOpen] = useState(false);
+  const [borrowItem, setBorrowItem] = useState(null);
+
+  // Borrow Form State
+  const [borrowFormData, setBorrowFormData] = useState({
+    borrowDate: new Date().toISOString().split("T")[0],
+    returnDate: "",
+    purpose: "",
+  });
+
+  useEffect(() => {
+    fetchProducts();
+    fetchFavorites();
+    if (user) fetchUserStats();
+  }, [user]);
+
+  const fetchProducts = async () => {
+    try {
+      const response = await apiFetch("/api/products");
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data);
+      }
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchFavorites = async () => {
+    try {
+      const response = await apiFetch("/api/favorites");
+      if (response.ok) {
+        const data = await response.json();
+        setFavorites(data);
+      }
+    } catch (error) {
+      console.error("Error fetching favorites:", error);
+    }
+  };
+
+  const fetchUserStats = async () => {
+    try {
+      const response = await apiFetch("/api/dashboard/user-stats");
+      if (response.ok) {
+        const data = await response.json();
+        setUserStats(data);
+      }
+    } catch (error) {
+      console.error("Error fetching user stats:", error);
+    }
+  };
+
+  const handleBorrowClick = (e, product) => {
+    e.stopPropagation();
+    setBorrowItem(product);
+    setIsBorrowModalOpen(true);
+    // Reset form data
+    setBorrowFormData({
+      borrowDate: new Date().toISOString().split("T")[0],
+      returnDate: "",
+      purpose: "",
+    });
+  };
+
+  const handleBorrowSubmit = async (e) => {
+    e.preventDefault();
+    if (!borrowItem) return;
+
+    try {
+      const items = [
+        {
+          name: borrowItem.ProductName, // Backend expects 'name' (ItemName)
+          quantity: 1, // Default 1 for individual assets
+          remark: "",
+        },
+      ];
+
+      const body = {
+        userId: user.id,
+        borrowDate: borrowFormData.borrowDate,
+        returnDate: borrowFormData.returnDate,
+        purpose: borrowFormData.purpose,
+        items: items,
+      };
+
+      const response = await apiFetch("/api/borrow", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+
+      if (response.ok) {
+        Swal.fire("สำเร็จ", "ส่งคำขอยืมเรียบร้อยแล้ว", "success");
+        setIsBorrowModalOpen(false);
+        setBorrowItem(null);
+        if (selectedProduct) setSelectedProduct(null); // Close detail modal if open
+        fetchUserStats();
+      } else {
+        const err = await response.json();
+        Swal.fire("ผิดพลาด", err.message, "error");
+      }
+    } catch (error) {
+      Swal.fire("Error", "Connection error", "error");
+    }
+  };
+
+  const toggleFavorite = async (e, product) => {
+    e.stopPropagation();
+    const isFav = favorites.includes(product.ProductID);
+
+    // Optimistic update
+    if (isFav) {
+      setFavorites((prev) => prev.filter((id) => id !== product.ProductID));
+      try {
+        await apiFetch(`/api/favorites/${product.ProductID}`, {
+          method: "DELETE",
+        });
+      } catch (error) {
+        setFavorites((prev) => [...prev, product.ProductID]); // Revert on error
+      }
+    } else {
+      setFavorites((prev) => [...prev, product.ProductID]);
+      try {
+        await apiFetch("/api/favorites", {
+          method: "POST",
+          body: JSON.stringify({ productId: product.ProductID }),
+        });
+      } catch (error) {
+        setFavorites((prev) => prev.filter((id) => id !== product.ProductID)); // Revert on error
+      }
+    }
+  };
+
+  // Filter products
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch =
+      p.ProductName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.ProductCode.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFav = showFavoritesOnly
+      ? favorites.includes(p.ProductID)
+      : true;
+    return matchesSearch && matchesFav;
+  });
+
+  // Calculate countdown days
+  const getDaysRemaining = (returnDate) => {
+    const today = new Date();
+    const due = new Date(returnDate);
+    const diffTime = due - today;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  // Filtered Loans based on selection
+  const displayedLoans = filterDueSoon
+    ? userStats.currentLoans.filter(
+        (loan) => getDaysRemaining(loan.ReturnDate) <= 1,
+      )
+    : userStats.currentLoans;
+
+  const handleProductClick = (product) => {
+    setSelectedProduct(product);
+  };
+
+  const closeProductModal = () => {
+    setSelectedProduct(null);
+  };
+
+  return (
+    <div className="user-dashboard">
+      {/* 1. Welcome Section */}
+      <div className="welcome-section">
+        <h1>Hello, {user?.firstName || "User"} 👋</h1>
+        <p>Here is your current borrowing status.</p>
+      </div>
+
+      {/* 2. My Active Status (Top Row) */}
+      <div className="stats-grid-user">
+        <div
+          className="stat-card-user"
+          onClick={() => {
+            setFilterDueSoon(false);
+            loansRef.current?.scrollIntoView({ behavior: "smooth" });
+          }}
+        >
+          <div className="icon-wrapper blue">
+            <Package size={24} />
+          </div>
+          <div>
+            <h3>Items on Hand</h3>
+            <p className="stat-value">{userStats.itemsOnHand}</p>
+          </div>
+        </div>
+        <div
+          className="stat-card-user"
+          onClick={() => {
+            setFilterDueSoon(true);
+            loansRef.current?.scrollIntoView({ behavior: "smooth" });
+          }}
+        >
+          <div className="icon-wrapper red">
+            <AlertCircle size={24} />
+          </div>
+          <div>
+            <h3>Due Soon</h3>
+            <p className="stat-value">{userStats.dueSoon}</p>
+          </div>
+        </div>
+        <div className="stat-card-user" onClick={() => navigate("/history")}>
+          <div className="icon-wrapper orange">
+            <Clock size={24} />
+          </div>
+          <div>
+            <h3>Pending Requests</h3>
+            <p className="stat-value">{userStats.pendingRequests}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Current Loans List (Main Section) */}
+      <div className="section-container" ref={loansRef}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            marginBottom: "15px",
+          }}
+        >
+          <h2 style={{ margin: 0 }}>Current Loans</h2>
+          {filterDueSoon && (
+            <span
+              style={{
+                fontSize: "0.8rem",
+                background: "#ffebee",
+                color: "#c62828",
+                padding: "2px 8px",
+                borderRadius: "10px",
+                cursor: "pointer",
+              }}
+              onClick={() => setFilterDueSoon(false)}
+            >
+              Showing Due Soon{" "}
+              <X size={12} style={{ verticalAlign: "middle" }} />
+            </span>
+          )}
+        </div>
+
+        {displayedLoans.length === 0 ? (
+          <div className="empty-state-card">You have no active loans.</div>
+        ) : (
+          <div className="loans-list">
+            {displayedLoans.map((loan) => {
+              const daysLeft = getDaysRemaining(loan.ReturnDate);
+              return (
+                <div key={loan.BorrowID + loan.ItemName} className="loan-card">
+                  <img
+                    src={loan.Image || "/images/logo.png"}
+                    alt={loan.ItemName}
+                    className="loan-img"
+                  />
+                  <div className="loan-details">
+                    <h4>{loan.ItemName}</h4>
+                    <p className="asset-code">#{loan.AssetCode || "N/A"}</p>
+                    <div className="loan-meta">
+                      <span
+                        className={`due-badge ${daysLeft < 0 ? "overdue" : daysLeft <= 1 ? "urgent" : "normal"}`}
+                      >
+                        {daysLeft < 0
+                          ? `Overdue ${Math.abs(daysLeft)} days`
+                          : daysLeft === 0
+                            ? "Due Today"
+                            : `${daysLeft} days left`}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="loan-status">
+                    <span className="status-indicator return-pending">
+                      To Return
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 4. Borrowing History (Collapsible) */}
+      <div className="section-container">
+        <div
+          className="section-header-clickable"
+          onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+        >
+          <h2>Borrowing History</h2>
+          {isHistoryOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        </div>
+        {isHistoryOpen && (
+          <div className="history-list">
+            {userStats.history.length === 0 ? (
+              <p className="empty-text">No history available.</p>
+            ) : (
+              <table className="history-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Returned Date</th>
+                    <th>Qty</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {userStats.history.map((h, idx) => (
+                    <tr key={idx}>
+                      <td>{h.ItemName}</td>
+                      <td>
+                        {new Date(h.ReturnDate).toLocaleDateString("th-TH")}
+                      </td>
+                      <td>{h.Quantity}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Search Section */}
+      <div className="search-hero">
+        <h2>Browse Items to Borrow</h2>
+        <div className="search-large-wrapper">
+          <Search className="search-large-icon" size={24} />
+          <input
+            type="text"
+            placeholder="ค้นหาด้วยชื่ออุปกรณ์, รหัสสินค้า..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <button
+            className={`btn-filter-fav ${showFavoritesOnly ? "active" : ""}`}
+            onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+            title="แสดงเฉพาะรายการโปรด"
+          >
+            <Heart size={20} fill={showFavoritesOnly ? "#ff4081" : "none"} />
+          </button>
+        </div>
+      </div>
+
+      {/* Product Grid */}
+      <div className="product-grid-container">
+        {loading ? (
+          <p>Loading...</p>
+        ) : (
+          filteredProducts.map((product) => (
+            <div
+              key={product.ProductID}
+              className="product-card-user"
+              onClick={() => handleProductClick(product)}
+            >
+              <div className="product-img-wrapper">
+                <button
+                  className={`btn-favorite-card ${favorites.includes(product.ProductID) ? "active" : ""}`}
+                  onClick={(e) => toggleFavorite(e, product)}
+                >
+                  <Heart
+                    size={18}
+                    fill={
+                      favorites.includes(product.ProductID) ? "#ff4081" : "none"
+                    }
+                  />
+                </button>
+
+                <img
+                  src={product.Image || "/images/logo.png"}
+                  alt={product.ProductName}
+                />
+                <span
+                  className={`status-badge ${product.StatusNameDV === "ว่าง" ? "available" : "unavailable"}`}
+                >
+                  {product.StatusNameDV}
+                </span>
+              </div>
+              <div className="product-info">
+                <h3>{product.ProductName}</h3>
+                <p className="product-code">#{product.ProductCode}</p>
+                <button
+                  className="btn-borrow"
+                  disabled={product.StatusNameDV !== "ว่าง"}
+                  onClick={(e) => {
+                    handleBorrowClick(e, product);
+                  }}
+                >
+                  {product.StatusNameDV === "ว่าง" ? "ยืมเลย" : "ไม่ว่าง"}
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Borrow Form Modal */}
+      {isBorrowModalOpen && borrowItem && (
+        <div
+          className="product-modal-overlay"
+          onClick={() => setIsBorrowModalOpen(false)}
+        >
+          <div
+            className="borrow-modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="cart-header">
+              <h2>ยืนยันการยืม</h2>
+              <button
+                onClick={() => setIsBorrowModalOpen(false)}
+                className="close-btn-simple"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="borrow-item-summary">
+              <img
+                src={borrowItem.Image || "/images/logo.png"}
+                alt={borrowItem.ProductName}
+              />
+              <div>
+                <h4>{borrowItem.ProductName}</h4>
+                <p>#{borrowItem.ProductCode}</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleBorrowSubmit} className="cart-form">
+              <div className="form-group">
+                <label>
+                  <Calendar size={16} /> วันที่ยืม
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={borrowFormData.borrowDate}
+                  onChange={(e) =>
+                    setBorrowFormData({
+                      ...borrowFormData,
+                      borrowDate: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="form-group">
+                <label>
+                  <Calendar size={16} /> วันที่คืน
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={borrowFormData.returnDate}
+                  onChange={(e) =>
+                    setBorrowFormData({
+                      ...borrowFormData,
+                      returnDate: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="form-group">
+                <label>
+                  <Info size={16} /> วัตถุประสงค์
+                </label>
+                <textarea
+                  required
+                  value={borrowFormData.purpose}
+                  onChange={(e) =>
+                    setBorrowFormData({
+                      ...borrowFormData,
+                      purpose: e.target.value,
+                    })
+                  }
+                  placeholder="ระบุเหตุผล..."
+                ></textarea>
+              </div>
+              <button type="submit" className="btn-confirm-borrow">
+                ยืนยันการยืม
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Product Detail Modal */}
+      {selectedProduct && (
+        <div className="product-modal-overlay" onClick={closeProductModal}>
+          <div
+            className="product-modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button className="modal-close-btn" onClick={closeProductModal}>
+              <X size={24} />
+            </button>
+            <div className="product-modal-body">
+              <div className="product-modal-image-wrapper">
+                <img
+                  src={selectedProduct.Image || "/images/sennheiserEW100G4.png"}
+                  alt={selectedProduct.ProductName}
+                />
+              </div>
+              <div className="product-modal-info">
+                <h2>{selectedProduct.ProductName}</h2>
+                <p className="modal-code">
+                  รหัสครุภัณฑ์: {selectedProduct.ProductCode}
+                </p>
+                <div className="modal-badges">
+                  <span
+                    className={`status-badge static ${selectedProduct.StatusNameDV === "ว่าง" ? "available" : "unavailable"}`}
+                  >
+                    {selectedProduct.StatusNameDV}
+                  </span>
+                </div>
+                <div className="modal-product-details">
+                  <div className="detail-row">
+                    <span className="detail-label">หมวดหมู่ (Category):</span>
+                    <span className="detail-value">
+                      {selectedProduct.CategoryName || "-"}
+                    </span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">ยี่ห้อ (Brand):</span>
+                    <span className="detail-value">
+                      {selectedProduct.Brand || "-"}
+                    </span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">รุ่น/ชนิด (Type):</span>
+                    <span className="detail-value">
+                      {selectedProduct.DeviceType || "-"}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  className="btn-borrow modal-cart-btn"
+                  disabled={selectedProduct.StatusNameDV !== "ว่าง"}
+                  onClick={() => {
+                    handleBorrowClick(null, selectedProduct); // Pass null for event if calling directly
+                  }}
+                >
+                  {selectedProduct.StatusNameDV === "ว่าง"
+                    ? "ยืมเลย"
+                    : "ไม่ว่าง"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default UserDashboard;

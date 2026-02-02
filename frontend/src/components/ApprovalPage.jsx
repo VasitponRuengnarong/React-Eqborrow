@@ -95,10 +95,6 @@ const ApprovalPage = () => {
     });
   };
 
-  const getStatusBadge = (status) => {
-    // ... (โค้ด getStatusBadge เหมือนเดิม)
-  };
-
   const handleQuantityChange = (borrowDetailId, value, maxQuantity) => {
     const numValue = Number(value);
     // Allow values between 0 and the max borrowed quantity

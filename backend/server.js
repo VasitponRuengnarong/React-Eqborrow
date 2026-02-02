@@ -4,6 +4,18 @@ const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
+let multer;
+let upload;
+try {
+  multer = require("multer"); // Require multer for file uploads
+  upload = multer({ storage: multer.memoryStorage() }); // Configure storage
+} catch (e) {
+  console.warn(
+    "Warning: 'multer' module not found. File upload functionality will be disabled.",
+  );
+  // Mock upload middleware to prevent crash
+  upload = { single: () => (req, res, next) => next() };
+}
 let ExcelJS;
 try {
   ExcelJS = require("exceljs"); // Import exceljs
@@ -29,8 +41,45 @@ const db = mysql.createPool({
 });
 
 db.getConnection()
-  .then((connection) => {
+  .then(async (connection) => {
     console.log("Connected to database: ebrs_system");
+
+    // Auto-create TB_L_StockMovement table to prevent "Table doesn't exist" error
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS TB_L_StockMovement (
+        LogID INT AUTO_INCREMENT PRIMARY KEY,
+        ProductID INT,
+        MovementType ENUM('IN', 'OUT'),
+        ChangeAmount INT,
+        OldQuantity INT,
+        NewQuantity INT,
+        CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Auto-create TB_T_Favorite table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS TB_T_Favorite (
+        FavoriteID INT AUTO_INCREMENT PRIMARY KEY,
+        EMPID INT NOT NULL,
+        DVID INT NOT NULL,
+        CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_fav (EMPID, DVID)
+      )
+    `);
+
+    // Auto-add columns if they don't exist (Simple check)
+    try {
+      await connection.execute("SELECT Brand FROM TB_T_Device LIMIT 1");
+    } catch (e) {
+      if (e.code === "ER_BAD_FIELD_ERROR") {
+        console.log("Adding Brand and DeviceType columns to TB_T_Device...");
+        await connection.execute(
+          "ALTER TABLE TB_T_Device ADD COLUMN Brand VARCHAR(100) DEFAULT NULL, ADD COLUMN DeviceType VARCHAR(100) DEFAULT NULL",
+        );
+      }
+    }
+
     connection.release();
   })
   .catch((err) => {
@@ -497,14 +546,8 @@ app.post("/api/register", async (req, res) => {
     const finalEmpStatusId = empStatusId || 1;
 
     // Auto-assign role based on employee ID pattern
-    let finalRoleId = 3; // Default to User (3)
-
-    // Example pattern: If ID starts with 'ADM', assign Admin (1). If 'STF', assign Staff (2).
-    if (employeeId.toUpperCase().startsWith("ADM")) {
-      finalRoleId = 1;
-    } else if (employeeId.toUpperCase().startsWith("STF")) {
-      finalRoleId = 2;
-    }
+    // Force assign 'User' role (3) for all public registrations
+    const finalRoleId = 3;
 
     // Insert new employee into TB_T_Employee
     const insertQuery =
@@ -704,6 +747,176 @@ app.get("/api/dashboard/stats", verifyToken, checkAdmin, async (req, res) => {
   }
 });
 
+// --- NEW: Refactored Admin Dashboard Stats ---
+app.get(
+  "/api/dashboard/admin-stats",
+  verifyToken,
+  checkAdmin,
+  async (req, res) => {
+    try {
+      // 1. Total Assets
+      const [assets] = await db.execute(
+        "SELECT COUNT(*) as count FROM TB_T_Device",
+      );
+
+      // 2. Currently Borrowed (Status 'ถูกยืม')
+      const [borrowed] = await db.execute(`
+      SELECT COUNT(*) as count 
+      FROM TB_T_Device d 
+      JOIN TB_M_StatusDevice s ON d.DVStatusID = s.DVStatusID 
+      WHERE s.StatusNameDV = 'ถูกยืม'
+    `);
+
+      // 3. Pending Approval
+      const [pending] = await db.execute(
+        "SELECT COUNT(*) as count FROM TB_T_Borrow WHERE Status = 'Pending'",
+      );
+
+      // 4. Overdue (Status Approved AND ReturnDate < Today)
+      const [overdue] = await db.execute(
+        "SELECT COUNT(*) as count FROM TB_T_Borrow WHERE Status = 'Approved' AND ReturnDate < CURDATE()",
+      );
+
+      // 5. Recent Activity (Limit 10)
+      const [recent] = await db.execute(`
+      SELECT b.BorrowID, b.Status, b.CreatedDate, 
+             e.fname, e.lname, 
+             GROUP_CONCAT(bd.ItemName SEPARATOR ', ') as EquipmentName
+      FROM TB_T_Borrow b
+      JOIN TB_T_Employee e ON b.EMPID = e.EMPID
+      JOIN TB_T_BorrowDetail bd ON b.BorrowID = bd.BorrowID
+      GROUP BY b.BorrowID
+      ORDER BY b.CreatedDate DESC
+      LIMIT 10
+    `);
+
+      // 6. Pie Chart Data (Available vs Borrowed)
+      const [pieData] = await db.execute(`
+      SELECT s.StatusNameDV as name, COUNT(*) as value
+      FROM TB_T_Device d
+      JOIN TB_M_StatusDevice s ON d.DVStatusID = s.DVStatusID
+      WHERE s.StatusNameDV IN ('ว่าง', 'ถูกยืม')
+      GROUP BY s.StatusNameDV
+    `);
+
+      res.json({
+        totalAssets: assets[0].count,
+        currentlyBorrowed: borrowed[0].count,
+        pendingApproval: pending[0].count,
+        overdue: overdue[0].count,
+        recentActivity: recent,
+        pieChartData: pieData,
+      });
+    } catch (error) {
+      console.error("Error fetching admin stats:", error);
+      res.status(500).json({ message: "Error fetching admin dashboard data" });
+    }
+  },
+);
+
+// --- NEW: Refactored User Dashboard Stats ---
+app.get("/api/dashboard/user-stats", verifyToken, async (req, res) => {
+  const userId = req.user.id;
+  try {
+    // 1. Items on Hand (Sum of quantities in Approved borrows)
+    const [onHand] = await db.execute(
+      `
+      SELECT SUM(bd.Quantity) as count 
+      FROM TB_T_Borrow b 
+      JOIN TB_T_BorrowDetail bd ON b.BorrowID = bd.BorrowID 
+      WHERE b.EMPID = ? AND b.Status = 'Approved'
+    `,
+      [userId],
+    );
+
+    // 2. Due Soon (Approved AND ReturnDate within 24 hours from now AND ReturnDate >= now)
+    const [dueSoon] = await db.execute(
+      `
+      SELECT COUNT(*) as count 
+      FROM TB_T_Borrow 
+      WHERE EMPID = ? AND Status = 'Approved' 
+      AND ReturnDate BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 1 DAY)
+    `,
+      [userId],
+    );
+
+    // 3. Pending Requests
+    const [pending] = await db.execute(
+      "SELECT COUNT(*) as count FROM TB_T_Borrow WHERE EMPID = ? AND Status = 'Pending'",
+      [userId],
+    );
+
+    // 4. Current Loans List
+    const [currentLoans] = await db.execute(
+      `
+      SELECT b.BorrowID, b.BorrowDate, b.ReturnDate, b.Status,
+             bd.ItemName, bd.Quantity,
+             d.stickerid as AssetCode, d.sticker as Image
+      FROM TB_T_Borrow b
+      JOIN TB_T_BorrowDetail bd ON b.BorrowID = bd.BorrowID
+      LEFT JOIN TB_T_Device d ON bd.ItemName = d.devicename COLLATE utf8mb4_unicode_ci
+      WHERE b.EMPID = ? AND b.Status = 'Approved'
+      ORDER BY b.ReturnDate ASC
+    `,
+      [userId],
+    );
+
+    // 5. History (Returned)
+    const [history] = await db.execute(
+      `
+      SELECT b.BorrowID, b.ReturnDate, bd.ItemName, bd.Quantity
+      FROM TB_T_Borrow b
+      JOIN TB_T_BorrowDetail bd ON b.BorrowID = bd.BorrowID
+      WHERE b.EMPID = ? AND b.Status = 'Returned'
+      ORDER BY b.ReturnDate DESC
+      LIMIT 10
+    `,
+      [userId],
+    );
+
+    res.json({
+      itemsOnHand: onHand[0].count || 0,
+      dueSoon: dueSoon[0].count,
+      pendingRequests: pending[0].count,
+      currentLoans,
+      history,
+    });
+  } catch (error) {
+    console.error("Error fetching user stats:", error);
+    res.status(500).json({ message: "Error fetching user dashboard data" });
+  }
+});
+
+// --- Notifications Endpoints ---
+
+// Get low stock notifications (Admin only)
+app.get(
+  "/api/notifications/low-stock",
+  verifyToken,
+  checkAdmin,
+  async (req, res) => {
+    try {
+      const threshold = 5; // Alert if available items are less than 5
+      const [rows] = await db.execute(
+        `
+      SELECT d.devicename as ProductName, 
+             SUM(CASE WHEN s.StatusNameDV = 'ว่าง' THEN 1 ELSE 0 END) as AvailableCount
+      FROM TB_T_Device d
+      JOIN TB_M_StatusDevice s ON d.DVStatusID = s.DVStatusID
+      GROUP BY d.devicename
+      HAVING AvailableCount < ?
+      ORDER BY AvailableCount ASC
+    `,
+        [threshold],
+      );
+      res.json(rows);
+    } catch (error) {
+      console.error("Error fetching low stock:", error);
+      res.status(500).json({ message: "Error fetching notifications" });
+    }
+  },
+);
+
 // API สำหรับบันทึกการยืมครุภัณฑ์
 app.post("/api/borrow", verifyToken, async (req, res) => {
   const { userId, borrowDate, returnDate, purpose, items } = req.body;
@@ -730,25 +943,6 @@ app.post("/api/borrow", verifyToken, async (req, res) => {
         "INSERT INTO TB_T_BorrowDetail (BorrowID, ItemName, Quantity, Remark) VALUES (?, ?, ?, ?)",
         [borrowId, item.name, item.quantity, item.remark || ""],
       );
-
-      // ตัดสต็อกสินค้าใน TB_M_Product (ถ้ามี)
-      const [products] = await connection.execute(
-        "SELECT ProductID, Quantity FROM TB_M_Product WHERE ProductName = ? OR ProductID = ?",
-        [item.name, item.id || 0],
-      );
-
-      if (products.length > 0) {
-        const product = products[0];
-        if (product.Quantity < item.quantity) {
-          throw new Error(
-            `สินค้า "${item.name}" มีจำนวนไม่เพียงพอ (เหลือ ${product.Quantity})`,
-          );
-        }
-        await connection.execute(
-          "UPDATE TB_M_Product SET Quantity = Quantity - ? WHERE ProductID = ?",
-          [item.quantity, product.ProductID],
-        );
-      }
     }
 
     await connection.commit(); // ยืนยันการบันทึก
@@ -841,36 +1035,6 @@ app.put(
       // คืนสต็อกสินค้าเมื่อสถานะเปลี่ยนเป็น Returned (และป้องกันการคืนซ้ำ)
       // This logic now supports partial returns.
       if (status === "Returned" && oldStatus !== "Returned") {
-        // If frontend sends specific quantities for return (for partial returns)
-        if (returnedItems && Array.isArray(returnedItems)) {
-          for (const item of returnedItems) {
-            if (item.returnedQuantity > 0) {
-              // We need the product name from borrowDetailId
-              const [detail] = await connection.execute(
-                "SELECT ItemName FROM TB_T_BorrowDetail WHERE BorrowDetailID = ?",
-                [item.borrowDetailId],
-              );
-              if (detail.length > 0) {
-                await connection.execute(
-                  "UPDATE TB_M_Product SET Quantity = Quantity + ? WHERE ProductName = ?",
-                  [item.returnedQuantity, detail[0].ItemName],
-                );
-              }
-            }
-          }
-        } else {
-          // Fallback to original behavior: return full quantity for all items
-          const [details] = await connection.execute(
-            "SELECT ItemName, Quantity FROM TB_T_BorrowDetail WHERE BorrowID = ?",
-            [id],
-          );
-          for (const item of details) {
-            await connection.execute(
-              "UPDATE TB_M_Product SET Quantity = Quantity + ? WHERE ProductName = ?",
-              [item.Quantity, item.ItemName],
-            );
-          }
-        }
       }
 
       await connection.commit();
@@ -1081,18 +1245,37 @@ app.put("/api/borrows/:id/cancel", verifyToken, async (req, res) => {
 
 // --- Activity Log Endpoint ---
 
+// Log access denied attempt
+app.post("/api/logs/access-denied", verifyToken, async (req, res) => {
+  const userId = req.user.id;
+  const { path } = req.body;
+  try {
+    await db.execute(
+      "INSERT INTO TB_L_ActivityLog (ActionType, BorrowID, ActorID, Details) VALUES (?, NULL, ?, ?)",
+      ["AccessDenied", userId, `Access denied for path: ${path || "Unknown"}`],
+    );
+    res.json({ message: "Access denied logged" });
+  } catch (error) {
+    console.error("Error logging access denied:", error);
+    res.status(500).json({ message: "Error logging access denied" });
+  }
+});
+
 // Get all activity logs (Admin only)
 app.get("/api/logs", verifyToken, checkAdmin, async (req, res) => {
   try {
-    const [logs] = await db.execute(`
+    const limit = parseInt(req.query.limit) || 500;
+    const [logs] = await db.query(
+      `
       SELECT 
         l.LogID, l.ActionType, l.BorrowID, l.Details, l.CreatedDate,
         e.fname as ActorFirstName, e.lname as ActorLastName
       FROM TB_L_ActivityLog l
       JOIN TB_T_Employee e ON l.ActorID = e.EMPID
       ORDER BY l.CreatedDate DESC
-      LIMIT 500; -- Add a limit to prevent fetching too much data
-    `);
+      LIMIT ?`,
+      [limit],
+    );
     res.json(logs);
   } catch (error) {
     console.error("Error fetching activity logs:", error);
@@ -1109,7 +1292,7 @@ app.get("/api/users", verifyToken, checkAdmin, async (req, res) => {
   try {
     const [users] = await db.execute(`
       SELECT e.EMPID, e.fname, e.lname, e.username, e.email, e.phone, e.EMP_NUM,
-             r.RoleName, s.StatusName, d.DepartmentName, i.InstitutionName,
+             r.RoleName, s.StatusName, d.DepartmentName, i.InstitutionName, e.DepartmentID,
              e.RoleID, e.EMPStatusID
       FROM TB_T_Employee e
       LEFT JOIN TB_M_Role r ON e.RoleID = r.RoleID
@@ -1259,7 +1442,8 @@ app.get("/api/products", async (req, res) => {
   try {
     const [products] = await db.execute(
       `SELECT d.DVID as ProductID, d.devicename as ProductName, d.stickerid as ProductCode, 
-              d.sticker as Image, d.CategoryID, c.CategoryName, 
+              d.sticker as Image, d.Brand, d.DeviceType,
+              d.CategoryID, c.CategoryName, 
               d.DVStatusID as StatusID, s.StatusNameDV
        FROM TB_T_Device d 
        LEFT JOIN TB_M_Category c ON d.CategoryID = c.CategoryID 
@@ -1275,7 +1459,15 @@ app.get("/api/products", async (req, res) => {
 
 // Create product
 app.post("/api/products", verifyToken, checkAdmin, async (req, res) => {
-  const { ProductName, ProductCode, CategoryID, StatusID, Image } = req.body;
+  const {
+    ProductName,
+    ProductCode,
+    CategoryID,
+    StatusID,
+    Image,
+    Brand,
+    DeviceType,
+  } = req.body;
 
   if (!ProductName || !ProductCode || !CategoryID || !StatusID) {
     return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
@@ -1283,9 +1475,18 @@ app.post("/api/products", verifyToken, checkAdmin, async (req, res) => {
 
   try {
     const [result] = await db.execute(
-      "INSERT INTO TB_T_Device (devicename, stickerid, CategoryID, DVStatusID, sticker) VALUES (?, ?, ?, ?, ?)",
-      [ProductName, ProductCode, CategoryID, StatusID, Image || null],
+      "INSERT INTO TB_T_Device (devicename, stickerid, CategoryID, DVStatusID, sticker, Brand, DeviceType) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [
+        ProductName,
+        ProductCode,
+        CategoryID,
+        StatusID,
+        Image || null,
+        Brand || null,
+        DeviceType || null,
+      ],
     );
+
     res
       .status(201)
       .json({ message: "เพิ่มสินค้าสำเร็จ", productId: result.insertId });
@@ -1298,12 +1499,27 @@ app.post("/api/products", verifyToken, checkAdmin, async (req, res) => {
 // Update product
 app.put("/api/products/:id", verifyToken, checkAdmin, async (req, res) => {
   const { id } = req.params;
-  const { ProductName, ProductCode, CategoryID, StatusID, Image } = req.body;
+  const {
+    ProductName,
+    ProductCode,
+    CategoryID,
+    StatusID,
+    Image,
+    Brand,
+    DeviceType,
+  } = req.body;
 
   try {
     let query =
-      "UPDATE TB_T_Device SET devicename=?, stickerid=?, CategoryID=?, DVStatusID=?";
-    let params = [ProductName, ProductCode, CategoryID, StatusID];
+      "UPDATE TB_T_Device SET devicename=?, stickerid=?, CategoryID=?, DVStatusID=?, Brand=?, DeviceType=?";
+    let params = [
+      ProductName,
+      ProductCode,
+      CategoryID,
+      StatusID,
+      Brand || null,
+      DeviceType || null,
+    ];
 
     if (Image !== undefined) {
       query += ", sticker=?";
@@ -1314,6 +1530,7 @@ app.put("/api/products/:id", verifyToken, checkAdmin, async (req, res) => {
     params.push(id);
 
     await db.execute(query, params);
+
     res.json({ message: "แก้ไขข้อมูลสินค้าสำเร็จ" });
   } catch (error) {
     console.error("Error updating product:", error);
@@ -1332,6 +1549,194 @@ app.delete("/api/products/:id", verifyToken, checkAdmin, async (req, res) => {
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการลบสินค้า" });
   }
 });
+
+// --- Favorites Endpoints ---
+
+// Get user favorites
+app.get("/api/favorites", verifyToken, async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const [rows] = await db.execute(
+      "SELECT DVID as ProductID FROM TB_T_Favorite WHERE EMPID = ?",
+      [userId],
+    );
+    res.json(rows.map((row) => row.ProductID));
+  } catch (error) {
+    console.error("Error fetching favorites:", error);
+    res.status(500).json({ message: "Error fetching favorites" });
+  }
+});
+
+// Add to favorites
+app.post("/api/favorites", verifyToken, async (req, res) => {
+  const userId = req.user.id;
+  const { productId } = req.body;
+  try {
+    await db.execute(
+      "INSERT IGNORE INTO TB_T_Favorite (EMPID, DVID) VALUES (?, ?)",
+      [userId, productId],
+    );
+    res.json({ message: "Added to favorites" });
+  } catch (error) {
+    console.error("Error adding favorite:", error);
+    res.status(500).json({ message: "Error adding favorite" });
+  }
+});
+
+// Remove from favorites
+app.delete("/api/favorites/:productId", verifyToken, async (req, res) => {
+  const userId = req.user.id;
+  const { productId } = req.params;
+  try {
+    await db.execute("DELETE FROM TB_T_Favorite WHERE EMPID = ? AND DVID = ?", [
+      userId,
+      productId,
+    ]);
+    res.json({ message: "Removed from favorites" });
+  } catch (error) {
+    console.error("Error removing favorite:", error);
+    res.status(500).json({ message: "Error removing favorite" });
+  }
+});
+
+// API Import Products from Excel (Admin only)
+app.post(
+  "/api/products/import",
+  verifyToken,
+  checkAdmin,
+  upload.single("file"),
+  async (req, res) => {
+    if (!multer) {
+      return res
+        .status(500)
+        .json({ message: "Multer module is not installed." });
+    }
+    if (!ExcelJS) {
+      return res
+        .status(500)
+        .json({ message: "ExcelJS module is not installed." });
+    }
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded." });
+    }
+
+    const connection = await db.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // 1. Load Master Data for Mapping (Name -> ID)
+      const [categories] = await connection.execute(
+        "SELECT CategoryID, CategoryName FROM TB_M_Category",
+      );
+      const [statuses] = await connection.execute(
+        "SELECT DVStatusID, StatusNameDV FROM TB_M_StatusDevice",
+      );
+
+      const categoryMap = new Map(
+        categories.map((c) => [
+          c.CategoryName.toLowerCase().trim(),
+          c.CategoryID,
+        ]),
+      );
+      const statusMap = new Map(
+        statuses.map((s) => [
+          s.StatusNameDV.toLowerCase().trim(),
+          s.DVStatusID,
+        ]),
+      );
+
+      // 2. Parse Excel File
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(req.file.buffer);
+      const worksheet = workbook.getWorksheet(1); // Get first sheet
+
+      let successCount = 0;
+      let errors = [];
+
+      // Iterate rows (starting from row 2 to skip header)
+      // Expected Columns: ProductName | ProductCode | CategoryName | StatusName
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return; // Skip header
+
+        const productName = row.getCell(1).value
+          ? row.getCell(1).value.toString().trim()
+          : null;
+        const productCode = row.getCell(2).value
+          ? row.getCell(2).value.toString().trim()
+          : null;
+        const categoryName = row.getCell(3).value
+          ? row.getCell(3).value.toString().trim()
+          : null;
+        const statusName = row.getCell(4).value
+          ? row.getCell(4).value.toString().trim()
+          : null;
+        // Optional: Brand (Col 5), Type (Col 6)
+
+        if (!productName || !productCode) {
+          errors.push(`Row ${rowNumber}: Missing Name or Code`);
+          return;
+        }
+
+        // Resolve IDs
+        const categoryId = categoryName
+          ? categoryMap.get(categoryName.toLowerCase())
+          : null;
+        const statusId = statusName
+          ? statusMap.get(statusName.toLowerCase())
+          : null;
+
+        if (!categoryId) {
+          errors.push(`Row ${rowNumber}: Category '${categoryName}' not found`);
+          return;
+        }
+        if (!statusId) {
+          errors.push(`Row ${rowNumber}: Status '${statusName}' not found`);
+          return;
+        }
+
+        // We will execute inserts sequentially or push to a promise array.
+        // For simplicity in transaction, we await here.
+        // Note: In a real bulk scenario, you might want to construct a bulk INSERT query.
+      });
+
+      // Second pass for async operations (since eachRow is synchronous callback structure in some versions, but we need to await DB)
+      // Better approach: iterate rows manually
+      for (let i = 2; i <= worksheet.rowCount; i++) {
+        const row = worksheet.getRow(i);
+        const productName = row.getCell(1).text?.trim();
+        const productCode = row.getCell(2).text?.trim();
+        const categoryName = row.getCell(3).text?.trim();
+        const statusName = row.getCell(4).text?.trim();
+        const brand = row.getCell(5).text?.trim() || null;
+        const deviceType = row.getCell(6).text?.trim() || null;
+
+        if (!productName || !productCode) continue;
+
+        const categoryId = categoryMap.get(categoryName?.toLowerCase());
+        const statusId = statusMap.get(statusName?.toLowerCase());
+
+        if (categoryId && statusId) {
+          await connection.execute(
+            "INSERT INTO TB_T_Device (devicename, stickerid, CategoryID, DVStatusID, Brand, DeviceType) VALUES (?, ?, ?, ?, ?, ?)",
+            [productName, productCode, categoryId, statusId, brand, deviceType],
+          );
+          successCount++;
+        }
+      }
+
+      await connection.commit();
+      res.json({ message: `Imported ${successCount} products successfully.` });
+    } catch (error) {
+      await connection.rollback();
+      console.error("Import error:", error);
+      res
+        .status(500)
+        .json({ message: "Error importing products: " + error.message });
+    } finally {
+      connection.release();
+    }
+  },
+);
 
 // --- Master Product Management Endpoints (TB_M_Product) ---
 // Optional: For managing the master product list if needed separately from devices
@@ -1395,7 +1800,7 @@ app.get("/api/stock-movements", verifyToken, checkAdmin, async (req, res) => {
     const [logs] = await db.execute(`
       SELECT l.*, p.ProductName, p.ProductCode 
       FROM TB_L_StockMovement l
-      JOIN TB_M_Product p ON l.ProductID = p.ProductID
+      LEFT JOIN TB_M_Product p ON l.ProductID = p.ProductID
       ORDER BY l.CreatedDate DESC
     `);
     res.json(logs);

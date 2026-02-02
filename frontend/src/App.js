@@ -12,6 +12,7 @@ import ResetPassword from "./components/ResetPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
 import MainLayout from "./MainLayout";
 import AdminDashboard from "./components/AdminDashboard";
+import UserDashboard from "./components/UserDashboard";
 import ProductManagement from "./components/ProductManagement";
 import BorrowRequest from "./components/BorrowRequest";
 import BorrowHistory from "./components/BorrowHistory";
@@ -19,6 +20,15 @@ import UserProfile from "./components/UserProfile";
 import MemberManagement from "./components/MemberManagement";
 import ApprovalPage from "./components/ApprovalPage.jsx"; // Import ApprovalPage with extension
 import ActivityLogPage from "./components/ActivityLogPage.jsx";
+import AccessDenied from "./components/AccessDenied";
+
+const DashboardResolver = () => {
+  const user = JSON.parse(localStorage.getItem("user"));
+  if (user?.role === "Admin") {
+    return <AdminDashboard />;
+  }
+  return <UserDashboard />;
+};
 
 function App() {
   return (
@@ -29,6 +39,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/access-denied" element={<AccessDenied />} />
 
         {/* --- Protected Routes (ที่มี Sidebar/Header) --- */}
         {/* ใช้การเขียนแบบ Nested Route:
@@ -38,29 +49,21 @@ function App() {
         */}
         <Route
           element={
-            <ProtectedRoute allowedRoles={["Admin", "User", "Staff"]}>
+            <ProtectedRoute
+              allowedRoles={["Admin", "User", "Staff", "Manager"]}
+            >
               <MainLayout />
             </ProtectedRoute>
           }
         >
           {/* ใส่ Route ย่อยๆ ที่ต้องการให้แสดงใน MainLayout ตรงนี้ */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<AdminDashboard />} />{" "}
-          {/* Assuming AdminDashboard is also for general dashboard */}
+          <Route path="dashboard" element={<DashboardResolver />} />
           <Route path="products" element={<ProductManagement />} />
           <Route path="approvals" element={<ApprovalPage />} />{" "}
           {/* ใช้ ApprovalPage แทน PendingRequests */}
           <Route path="logs" element={<ActivityLogPage />} />
           <Route path="members" element={<MemberManagement />} />
-          <Route
-            path="inventory"
-            element={
-              <div style={{ padding: "20px" }}>
-                <h2>รายการคงเหลือ</h2>
-                <p>หน้าจอนี้กำลังอยู่ระหว่างการพัฒนา</p>
-              </div>
-            }
-          />
           <Route path="borrow" element={<BorrowRequest />} />
           <Route path="history" element={<BorrowHistory />} />
           <Route path="profile" element={<UserProfile />} />

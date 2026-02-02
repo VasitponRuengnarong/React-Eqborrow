@@ -18,8 +18,7 @@ import {
 import "./Sidebar.css";
 import { apiFetch } from "./api";
 
-const defaultProfileImage = "/logo.png"; // Placeholder for profile image
-const defaultLogo = "/logo.png"; // Placeholder for logo
+const defaultProfileImage = "/images/logo.png"; // Placeholder for profile image
 
 const Sidebar = ({
   activeMenu,
@@ -119,12 +118,6 @@ const Sidebar = ({
             path: "/logs",
           },
           { id: "members", label: "สมาชิก", icon: Users, path: "/members" }, // Corrected path
-          {
-            id: "inventory", // Corrected ID to match path
-            label: "รายการคงเหลือ",
-            icon: BarChart2,
-            path: "/inventory",
-          },
         ]
       : []),
     // General user menus (also visible to Admin)
@@ -159,7 +152,7 @@ const Sidebar = ({
       {/* Logo */}
       <div className="sidebar-logo">
         <div className="logo-icon">
-          <img src="/logo.png" alt="Eqborrow Logo" />
+          <img src="/images/logo.png" alt="Eqborrow Logo" />
         </div>
         <div className="logo-text">
           <div className="logo-main">Eqborrow</div>

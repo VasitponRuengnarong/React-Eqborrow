@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { apiFetch } from "./api";
 import Swal from "sweetalert2";
-import { Download } from "lucide-react"; // Import ไอคอน Download
+import { Download, ChevronLeft, ChevronRight, Search } from "lucide-react"; // Import ไอคอน Download
 import "./Management.css"; // ใช้ CSS เดิมเพื่อให้หน้าตาสอดคล้องกัน
 
 const BorrowHistory = () => {
   const [borrows, setBorrows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -135,6 +138,30 @@ const BorrowHistory = () => {
     );
   };
 
+  // Filter Logic
+  const filteredBorrows = borrows.filter((borrow) => {
+    const term = searchTerm.toLowerCase();
+    const borrowerName =
+      `${borrow.fname || ""} ${borrow.lname || ""}`.toLowerCase();
+    const itemNames = borrow.items
+      ? borrow.items
+          .map((item) => (item.ItemName || "").toLowerCase())
+          .join(" ")
+      : "";
+    return borrowerName.includes(term) || itemNames.includes(term);
+  });
+
+  // Pagination Logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredBorrows.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredBorrows.length / itemsPerPage);
+
+  // Reset page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   if (loading) return <div className="p-4">กำลังโหลดข้อมูล...</div>;
 
   return (
@@ -151,6 +178,45 @@ const BorrowHistory = () => {
         )}
       </div>
 
+      {/* Search Bar */}
+      <div
+        style={{
+          marginBottom: "1rem",
+          display: "flex",
+          justifyContent: "flex-start",
+        }}
+      >
+        <div style={{ position: "relative", width: "100%", maxWidth: "400px" }}>
+          <Search
+            size={18}
+            style={{
+              position: "absolute",
+              left: "12px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              color: "#9ca3af",
+            }}
+          />
+          <input
+            type="text"
+            placeholder="ค้นหาชื่อผู้ยืม หรือ ชื่ออุปกรณ์..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px 10px 10px 40px",
+              border: "1px solid #e5e7eb",
+              borderRadius: "8px",
+              fontSize: "0.95rem",
+              outline: "none",
+              transition: "border-color 0.2s",
+            }}
+            onFocus={(e) => (e.target.style.borderColor = "#ff8000")}
+            onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
+          />
+        </div>
+      </div>
+
       <div className="table-container">
         <table>
           <thead>
@@ -161,21 +227,20 @@ const BorrowHistory = () => {
               <th>วัตถุประสงค์</th>
               <th>สถานะ</th>
               <th>รายการอุปกรณ์</th>
-              <th>จัดการ</th>
             </tr>
           </thead>
           <tbody>
-            {borrows.length === 0 ? (
+            {filteredBorrows.length === 0 ? (
               <tr>
                 <td
                   colSpan="7"
                   style={{ textAlign: "center", padding: "2rem" }}
                 >
-                  ไม่พบรายการประวัติ
+                  {searchTerm ? "ไม่พบข้อมูลที่ค้นหา" : "ไม่พบรายการประวัติ"}
                 </td>
               </tr>
             ) : (
-              borrows.map((borrow) => (
+              currentItems.map((borrow) => (
                 <tr key={borrow.BorrowID}>
                   <td>
                     {new Date(borrow.CreatedDate).toLocaleDateString("th-TH")}
@@ -228,6 +293,51 @@ const BorrowHistory = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Controls */}
+      {!loading && filteredBorrows.length > 0 && (
+        <div
+          className="pagination-controls"
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            gap: "10px",
+            marginTop: "1rem",
+          }}
+        >
+          <button
+            className="btn btn-secondary"
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            style={{
+              padding: "6px 12px",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <ChevronLeft size={16} /> ก่อนหน้า
+          </button>
+          <span style={{ fontSize: "0.9rem", color: "#555" }}>
+            หน้า <strong>{currentPage}</strong> จาก{" "}
+            <strong>{totalPages}</strong>
+          </span>
+          <button
+            className="btn btn-secondary"
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+            }
+            disabled={currentPage === totalPages}
+            style={{
+              padding: "6px 12px",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            ถัดไป <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
     </div>
   );
 };

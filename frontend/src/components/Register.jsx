@@ -17,8 +17,6 @@ import Swal from "sweetalert2";
 import "./Register.css";
 import Aurora from "./Aurora";
 
-const defaultLogo = "https://via.placeholder.com/120"; // Placeholder for logo
-
 const Register = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -204,7 +202,7 @@ const Register = () => {
           <div className="brand-content">
             <div className="thai-pbs-logo">
               <img
-                src="/logo.png" // Use absolute path for assets in public folder
+                src="/images/logo.png" // Use absolute path for assets in public folder
                 alt="Eqborrow Logo" // More specific alt text
                 style={{ height: "120px", width: "auto" }} // Consistent height, auto width
               />

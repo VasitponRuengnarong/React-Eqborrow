@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { Search, Edit, Trash2, Save, X, User, Plus } from "lucide-react";
+import {
+  Search,
+  Edit,
+  Trash2,
+  Save,
+  X,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import "./MemberManagement.css";
 import "./Management.css";
 import Swal from "sweetalert2"; // Import SweetAlert2
 
-const defaultProfileImage = "/logo.png"; // Placeholder for profile image
+const defaultProfileImage = "/images/logo.png"; // Placeholder for profile image
 
 const MemberManagement = () => {
   const [activeTab, setActiveTab] = useState("members"); // members, departments, roles
@@ -12,9 +21,14 @@ const MemberManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingId, setEditingId] = useState(null);
+  const [filterRole, setFilterRole] = useState("");
+  const [filterDepartment, setFilterDepartment] = useState("");
   const [user, setUser] = useState(null); // To check user role for authorization
   const [editForm, setEditForm] = useState({ roleId: "", statusId: "" });
-  const [masterData, setMasterData] = useState({ roles: [], statuses: [] });
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   // State for simple CRUD (Departments & Roles)
   const [departments, setDepartments] = useState([]);
@@ -30,6 +44,10 @@ const MemberManagement = () => {
       setUser(JSON.parse(storedUser));
     }
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterRole, filterDepartment, itemsPerPage]);
 
   const fetchUsers = async () => {
     try {
@@ -63,12 +81,10 @@ const MemberManagement = () => {
       if (rolesRes.ok) {
         const rolesData = await rolesRes.json();
         setRoles(rolesData);
-        setMasterData((prev) => ({ ...prev, roles: rolesData }));
       }
       if (statusRes.ok) {
         const statusData = await statusRes.json();
         setStatuses(statusData);
-        setMasterData((prev) => ({ ...prev, statuses: statusData }));
       }
       if (deptRes.ok) setDepartments(await deptRes.json());
       if (instRes.ok) setInstitutions(await instRes.json());
@@ -174,11 +190,22 @@ const MemberManagement = () => {
 
   const filteredUsers = users.filter(
     (u) =>
-      u.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.EMP_NUM.includes(searchTerm),
+      (u.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.EMP_NUM.includes(searchTerm)) &&
+      (filterRole ? u.RoleID?.toString() === filterRole : true) &&
+      (filterDepartment
+        ? u.DepartmentID?.toString() === filterDepartment
+        : true),
   );
+
+  // --- Pagination Logic ---
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  // --- End Pagination Logic ---
 
   // --- Simple CRUD Logic for Departments & Roles ---
   const [newItemName, setNewItemName] = useState("");
@@ -349,13 +376,17 @@ const MemberManagement = () => {
     <div className="crud-section">
       <div className="crud-header">
         <h3>{title}</h3>
-        <div className="add-row">
+        <div
+          className="add-row"
+          style={{ display: "flex", alignItems: "center", gap: "8px" }}
+        >
           <input
             type="text"
             value={newItemName}
             onChange={(e) => setNewItemName(e.target.value)}
             placeholder={`ระบุชื่อ${title}...`}
             disabled={!isAdminUser} // Disable if not admin
+            style={{ height: "42px", margin: 0 }} // Ensure height matches button
           />
           <button className="btn-add-mini" onClick={() => handleAddItem(type)}>
             <Plus size={16} /> เพิ่ม
@@ -480,14 +511,54 @@ const MemberManagement = () => {
 
       {activeTab === "members" && (
         <>
-          <div className="search-bar">
-            <Search size={18} className="search-icon" />
-            <input
-              type="text"
-              placeholder="ค้นหาจาก ชื่อจริง, ชื่อผู้ใช้, หรือรหัสพนักงาน..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="filter-bar">
+            <div className="search-wrapper">
+              <div className="search-input-group">
+                <Search size={20} className="search-icon-left" />
+                <input
+                  type="text"
+                  className="search-input-custom"
+                  placeholder="ค้นหาจาก ชื่อจริง, ชื่อผู้ใช้, หรือรหัสพนักงาน..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <div className="search-actions-right">
+                  {searchTerm && (
+                    <button
+                      className="btn-clear"
+                      onClick={() => setSearchTerm("")}
+                      title="ล้างคำค้นหา"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <select
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">ทั้งหมด (ตำแหน่ง)</option>
+              {roles.map((r) => (
+                <option key={r.RoleID} value={r.RoleID}>
+                  {r.RoleName}
+                </option>
+              ))}
+            </select>
+            <select
+              value={filterDepartment}
+              onChange={(e) => setFilterDepartment(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">ทั้งหมด (แผนก)</option>
+              {departments.map((d) => (
+                <option key={d.DepartmentID} value={d.DepartmentID}>
+                  {d.DepartmentName}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="table-container">
@@ -516,7 +587,7 @@ const MemberManagement = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map((user) => (
+                  currentItems.map((user) => (
                     <tr key={user.EMPID}>
                       <td>
                         <div className="user-cell">
@@ -552,7 +623,7 @@ const MemberManagement = () => {
                               })
                             }
                           >
-                            {masterData.roles.map((r) => (
+                            {roles.map((r) => (
                               <option key={r.RoleID} value={r.RoleID}>
                                 {r.RoleName}
                               </option>
@@ -577,7 +648,7 @@ const MemberManagement = () => {
                               })
                             }
                           >
-                            {masterData.statuses.map((s) => (
+                            {statuses.map((s) => (
                               <option key={s.EMPStatusID} value={s.EMPStatusID}>
                                 {s.StatusNameEMP}
                               </option>
@@ -630,6 +701,50 @@ const MemberManagement = () => {
               </tbody>
             </table>
           </div>
+          {/* Pagination Controls */}
+          {!loading && filteredUsers.length > itemsPerPage && (
+            <div
+              className="pagination-controls"
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                alignItems: "center",
+                gap: "10px",
+                marginTop: "1rem",
+              }}
+            >
+              <button
+                className="btn btn-secondary"
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "6px 12px",
+                }}
+              >
+                <ChevronLeft size={16} /> ก่อนหน้า
+              </button>
+              <span style={{ fontSize: "0.9rem" }}>
+                หน้า <strong>{currentPage}</strong> จาก{" "}
+                <strong>{totalPages}</strong>
+              </span>
+              <button
+                className="btn btn-secondary"
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
+                disabled={currentPage === totalPages}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "6px 12px",
+                }}
+              >
+                ถัดไป <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
         </>
       )}
 

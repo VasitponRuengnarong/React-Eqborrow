@@ -142,7 +142,7 @@ const BorrowRequest = () => {
   return (
     <div className="borrow-request-page">
       <div className="page-header">
-        <h1>ยืมสินค้</h1>
+        <h1>ยืมสินค้า</h1>
         <p>กรอกแบบฟอร์มเพื่อขอยืมอุปกรณ์</p>
       </div>
 
