@@ -107,4 +107,12 @@
 .form-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Responsive Design for Mobile */
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr; /* Stack inputs vertically on small screens */
+  }
 }

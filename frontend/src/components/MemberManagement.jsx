@@ -8,6 +8,8 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
+  Filter,
+  Layers,
 } from "lucide-react";
 import "./MemberManagement.css";
 import "./Management.css";
@@ -21,10 +23,12 @@ const MemberManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingId, setEditingId] = useState(null);
-  const [filterRole, setFilterRole] = useState("");
-  const [filterDepartment, setFilterDepartment] = useState("");
+  const [filterRoles, setFilterRoles] = useState([]);
+  const [filterDepartments, setFilterDepartments] = useState([]);
   const [user, setUser] = useState(null); // To check user role for authorization
   const [editForm, setEditForm] = useState({ roleId: "", statusId: "" });
+  const [isRoleFilterOpen, setIsRoleFilterOpen] = useState(false);
+  const [isDeptFilterOpen, setIsDeptFilterOpen] = useState(false);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,7 +51,7 @@ const MemberManagement = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterRole, filterDepartment, itemsPerPage]);
+  }, [searchTerm, filterRoles, filterDepartments, itemsPerPage]);
 
   const fetchUsers = async () => {
     try {
@@ -194,9 +198,11 @@ const MemberManagement = () => {
         u.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
         u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
         u.EMP_NUM.includes(searchTerm)) &&
-      (filterRole ? u.RoleID?.toString() === filterRole : true) &&
-      (filterDepartment
-        ? u.DepartmentID?.toString() === filterDepartment
+      (filterRoles.length > 0
+        ? filterRoles.includes(u.RoleID?.toString())
+        : true) &&
+      (filterDepartments.length > 0
+        ? filterDepartments.includes(u.DepartmentID?.toString())
         : true),
   );
 
@@ -535,30 +541,116 @@ const MemberManagement = () => {
                 </div>
               </div>
             </div>
-            <select
-              value={filterRole}
-              onChange={(e) => setFilterRole(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">ทั้งหมด (ตำแหน่ง)</option>
-              {roles.map((r) => (
-                <option key={r.RoleID} value={r.RoleID}>
-                  {r.RoleName}
-                </option>
-              ))}
-            </select>
-            <select
-              value={filterDepartment}
-              onChange={(e) => setFilterDepartment(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">ทั้งหมด (แผนก)</option>
-              {departments.map((d) => (
-                <option key={d.DepartmentID} value={d.DepartmentID}>
-                  {d.DepartmentName}
-                </option>
-              ))}
-            </select>
+
+            <div style={{ display: "flex", gap: "10px" }}>
+              {/* Role Filter */}
+              <div className="filter-wrapper">
+                <button
+                  className={`filter-toggle-btn ${isRoleFilterOpen ? "active" : ""}`}
+                  onClick={() => {
+                    setIsRoleFilterOpen(!isRoleFilterOpen);
+                    setIsDeptFilterOpen(false);
+                  }}
+                >
+                  <Filter size={16} />
+                  <span>
+                    {filterRoles.length > 0
+                      ? filterRoles.length === 1
+                        ? roles.find(
+                            (r) => r.RoleID.toString() === filterRoles[0],
+                          )?.RoleName
+                        : `ตำแหน่ง (${filterRoles.length})`
+                      : "ตำแหน่ง"}
+                  </span>
+                </button>
+                {isRoleFilterOpen && (
+                  <div className="chip-popup-container">
+                    <div className="chip-container">
+                      <button
+                        className={`chip ${filterRoles.length === 0 ? "active" : ""}`}
+                        onClick={() => {
+                          setFilterRoles([]);
+                          // setIsRoleFilterOpen(false);
+                        }}
+                      >
+                        <Layers size={14} /> ทั้งหมด
+                      </button>
+                      {roles.map((r) => (
+                        <button
+                          key={r.RoleID}
+                          className={`chip ${filterRoles.includes(r.RoleID.toString()) ? "active" : ""}`}
+                          onClick={() => {
+                            const id = r.RoleID.toString();
+                            setFilterRoles((prev) =>
+                              prev.includes(id)
+                                ? prev.filter((item) => item !== id)
+                                : [...prev, id],
+                            );
+                          }}
+                        >
+                          {r.RoleName}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Department Filter */}
+              <div className="filter-wrapper">
+                <button
+                  className={`filter-toggle-btn ${isDeptFilterOpen ? "active" : ""}`}
+                  onClick={() => {
+                    setIsDeptFilterOpen(!isDeptFilterOpen);
+                    setIsRoleFilterOpen(false);
+                  }}
+                >
+                  <Filter size={16} />
+                  <span>
+                    {filterDepartments.length > 0
+                      ? filterDepartments.length === 1
+                        ? departments.find(
+                            (d) =>
+                              d.DepartmentID.toString() ===
+                              filterDepartments[0],
+                          )?.DepartmentName
+                        : `แผนก (${filterDepartments.length})`
+                      : "แผนก"}
+                  </span>
+                </button>
+                {isDeptFilterOpen && (
+                  <div className="chip-popup-container">
+                    <div className="chip-container">
+                      <button
+                        className={`chip ${filterDepartments.length === 0 ? "active" : ""}`}
+                        onClick={() => {
+                          setFilterDepartments([]);
+                          // setIsDeptFilterOpen(false);
+                        }}
+                      >
+                        <Layers size={14} /> ทั้งหมด
+                      </button>
+                      {departments.map((d) => (
+                        <button
+                          key={d.DepartmentID}
+                          className={`chip ${filterDepartments.includes(d.DepartmentID.toString()) ? "active" : ""}`}
+                          onClick={() => {
+                            const id = d.DepartmentID.toString();
+                            setFilterDepartments((prev) =>
+                              prev.includes(id)
+                                ? prev.filter((item) => item !== id)
+                                : [...prev, id],
+                            );
+                          }}
+                        >
+                          {d.DepartmentName}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="table-container">

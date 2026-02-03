@@ -224,15 +224,17 @@ const Register = () => {
               <div
                 className={`form-group form-column ${errors.firstName ? "has-error" : ""}`}
               >
+                <label htmlFor="firstName" className="input-label">
+                  ชื่อจริง
+                </label>
                 <User className="input-icon" size={20} />
                 <input
                   type="text"
                   id="firstName"
-                  placeholder=" "
+                  placeholder="กรอกชื่อจริง"
                   value={formData.firstName}
                   onChange={handleChange}
                 />
-                <label htmlFor="firstName">ชื่อจริง</label>
                 {errors.firstName && (
                   <span className="error-message">{errors.firstName}</span>
                 )}
@@ -240,15 +242,17 @@ const Register = () => {
               <div
                 className={`form-group form-column ${errors.lastName ? "has-error" : ""}`}
               >
+                <label htmlFor="lastName" className="input-label">
+                  นามสกุล
+                </label>
                 <User className="input-icon" size={20} />
                 <input
                   type="text"
                   id="lastName"
-                  placeholder=" "
+                  placeholder="กรอกนามสกุล"
                   value={formData.lastName}
                   onChange={handleChange}
                 />
-                <label htmlFor="lastName">นามสกุล</label>
                 {errors.lastName && (
                   <span className="error-message">{errors.lastName}</span>
                 )}
@@ -260,15 +264,17 @@ const Register = () => {
               <div
                 className={`form-group form-column ${errors.employeeId ? "has-error" : ""}`}
               >
+                <label htmlFor="employeeId" className="input-label">
+                  รหัสพนักงาน
+                </label>
                 <FileText className="input-icon" size={20} />
                 <input
                   type="text"
                   id="employeeId"
-                  placeholder=" "
+                  placeholder="กรอกรหัสพนักงาน"
                   value={formData.employeeId}
                   onChange={handleChange}
                 />
-                <label htmlFor="employeeId">รหัสพนักงาน</label>
                 {errors.employeeId && (
                   <span className="error-message">{errors.employeeId}</span>
                 )}
@@ -276,15 +282,17 @@ const Register = () => {
               <div
                 className={`form-group form-column ${errors.username ? "has-error" : ""}`}
               >
+                <label htmlFor="username" className="input-label">
+                  ชื่อผู้ใช้
+                </label>
                 <User className="input-icon" size={20} />
                 <input
                   type="text"
                   id="username"
-                  placeholder=" "
+                  placeholder="กรอกชื่อผู้ใช้"
                   value={formData.username}
                   onChange={handleChange}
                 />
-                <label htmlFor="username">ชื่อผู้ใช้</label>
                 {errors.username && (
                   <span className="error-message">{errors.username}</span>
                 )}
@@ -296,6 +304,9 @@ const Register = () => {
               <div
                 className={`form-group form-column ${errors.institutionId ? "has-error" : ""}`}
               >
+                <label htmlFor="institutionId" className="input-label">
+                  สำนัก
+                </label>
                 <Building className="input-icon" size={20} />
                 <select
                   id="institutionId"
@@ -311,9 +322,6 @@ const Register = () => {
                     </option>
                   ))}
                 </select>
-                <label htmlFor="institutionId" className="select-label">
-                  สำนัก
-                </label>
                 {errors.institutionId && (
                   <span className="error-message">{errors.institutionId}</span>
                 )}
@@ -321,6 +329,9 @@ const Register = () => {
               <div
                 className={`form-group form-column ${errors.departmentId ? "has-error" : ""}`}
               >
+                <label htmlFor="departmentId" className="input-label">
+                  ฝ่าย
+                </label>
                 <Users className="input-icon" size={20} />
                 <select
                   id="departmentId"
@@ -336,40 +347,8 @@ const Register = () => {
                     </option>
                   ))}
                 </select>
-                <label htmlFor="departmentId" className="select-label">
-                  ฝ่าย
-                </label>
                 {errors.departmentId && (
                   <span className="error-message">{errors.departmentId}</span>
-                )}
-              </div>
-            </div>
-
-            {/* Row 4: Role & Employee Status */}
-            <div className="form-row">
-              <div
-                className={`form-group form-column ${errors.empStatusId ? "has-error" : ""}`}
-              >
-                <Briefcase className="input-icon" size={20} />
-                <select
-                  id="empStatusId"
-                  value={formData.empStatusId}
-                  onChange={handleChange}
-                  className="form-select"
-                  disabled={dataLoading}
-                >
-                  <option value="">-- เลือกสถานะ --</option>
-                  {masterData.empStatuses.map((status) => (
-                    <option key={status.EMPStatusID} value={status.EMPStatusID}>
-                      {status.StatusNameEMP}
-                    </option>
-                  ))}
-                </select>
-                <label htmlFor="empStatusId" className="select-label">
-                  สถานะพนักงาน
-                </label>
-                {errors.empStatusId && (
-                  <span className="error-message">{errors.empStatusId}</span>
                 )}
               </div>
             </div>
@@ -379,15 +358,17 @@ const Register = () => {
               <div
                 className={`form-group form-column ${errors.phone ? "has-error" : ""}`}
               >
+                <label htmlFor="phone" className="input-label">
+                  เบอร์โทรศัพท์
+                </label>
                 <Phone className="input-icon" size={20} />
                 <input
                   type="tel"
                   id="phone"
-                  placeholder=" "
+                  placeholder="กรอกเบอร์โทรศัพท์"
                   value={formData.phone}
                   onChange={handleChange}
                 />
-                <label htmlFor="phone">เบอร์โทรศัพท์</label>
                 {errors.phone && (
                   <span className="error-message">{errors.phone}</span>
                 )}
@@ -395,15 +376,17 @@ const Register = () => {
               <div
                 className={`form-group form-column ${errors.email ? "has-error" : ""}`}
               >
+                <label htmlFor="email" className="input-label">
+                  อีเมล
+                </label>
                 <Mail className="input-icon" size={20} />
                 <input
                   type="email"
                   id="email"
-                  placeholder=" "
+                  placeholder="กรอกอีเมล"
                   value={formData.email}
                   onChange={handleChange}
                 />
-                <label htmlFor="email">อีเมล</label>
                 {errors.email && (
                   <span className="error-message">{errors.email}</span>
                 )}
@@ -435,16 +418,18 @@ const Register = () => {
             </div>
 
             <div className={`form-group ${errors.password ? "has-error" : ""}`}>
+              <label htmlFor="password" className="input-label">
+                รหัสผ่าน
+              </label>
               <div className="password-input-wrapper">
                 <Lock className="input-icon" size={20} />
                 <input
                   type={showPassword ? "text" : "password"}
                   id="password"
-                  placeholder=" "
+                  placeholder="กรอกรหัสผ่าน"
                   value={formData.password}
                   onChange={handleChange}
                 />
-                <label htmlFor="password">รหัสผ่าน</label>
                 <button
                   type="button"
                   className="password-toggle"
@@ -462,16 +447,18 @@ const Register = () => {
             <div
               className={`form-group ${errors.confirmPassword ? "has-error" : ""}`}
             >
+              <label htmlFor="confirmPassword" className="input-label">
+                ยืนยันรหัสผ่าน
+              </label>
               <div className="password-input-wrapper">
                 <Lock className="input-icon" size={20} />
                 <input
                   type={showPassword ? "text" : "password"}
                   id="confirmPassword"
-                  placeholder=" "
+                  placeholder="ยืนยันรหัสผ่าน"
                   value={formData.confirmPassword}
                   onChange={handleChange}
                 />
-                <label htmlFor="confirmPassword">ยืนยันรหัสผ่าน</label>
               </div>
               {errors.confirmPassword && (
                 <span className="error-message">{errors.confirmPassword}</span>

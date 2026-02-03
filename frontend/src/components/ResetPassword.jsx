@@ -91,7 +91,7 @@ const ResetPassword = () => {
           <div className="brand-content">
             <div className="thai-pbs-logo">
               <img
-                src="/logo.png"
+                src="/images/logo.png"
                 alt="Eqborrow Logo"
                 style={{ height: "120px", width: "auto" }}
               />

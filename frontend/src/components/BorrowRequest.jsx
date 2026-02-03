@@ -1,11 +1,31 @@
 import React, { useState, useEffect } from "react";
-import { Calendar, Plus, Trash2, Save, ShoppingCart } from "lucide-react";
+import {
+  Calendar,
+  Plus,
+  Trash2,
+  Save,
+  ShoppingCart,
+  Filter,
+  Layers,
+  Box,
+  Camera,
+  Monitor,
+  Laptop,
+  Smartphone,
+  Tablet,
+  Headphones,
+  Mic,
+  Speaker,
+  ChevronDown,
+} from "lucide-react";
 import "./BorrowRequest.css";
 import Swal from "sweetalert2"; // Import SweetAlert2
 
 const BorrowRequest = () => {
   const [user, setUser] = useState(null);
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategories, setSelectedCategories] = useState([]);
   const [formData, setFormData] = useState({
     borrowDate: "",
     returnDate: "",
@@ -19,6 +39,13 @@ const BorrowRequest = () => {
   });
   const [selectedItems, setSelectedItems] = useState([]);
   const [loading, setLoading] = useState(false); // Keep loading state
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+
+  // Find selected product for preview
+  const selectedProduct = products.find(
+    (p) => p.DVID.toString() === currentItem.productId.toString(),
+  );
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -26,6 +53,7 @@ const BorrowRequest = () => {
       setUser(JSON.parse(storedUser));
     }
     fetchProducts();
+    fetchCategories();
   }, []);
 
   const fetchProducts = async () => {
@@ -37,6 +65,18 @@ const BorrowRequest = () => {
       }
     } catch (error) {
       console.error("Error fetching products:", error);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch("/api/categories");
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data);
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
     }
   };
 
@@ -89,6 +129,14 @@ const BorrowRequest = () => {
       Swal.fire("ข้อผิดพลาด!", "กรุณากรอกข้อมูลให้ครบถ้วน", "warning");
       return;
     }
+    if (new Date(formData.returnDate) < new Date(formData.borrowDate)) {
+      Swal.fire(
+        "ข้อผิดพลาด!",
+        "กรุณากรอกวันที่คืนต้องไม่น้อยกว่าวันที่ยืม",
+        "warning",
+      );
+      return;
+    }
     if (selectedItems.length === 0) {
       Swal.fire(
         "ข้อผิดพลาด!",
@@ -137,6 +185,53 @@ const BorrowRequest = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getCategoryIcon = (categoryName) => {
+    if (!categoryName) return <Box size={16} />;
+    const name = categoryName.toLowerCase();
+    if (name.includes("กล้อง") || name.includes("camera"))
+      return <Camera size={16} />;
+    if (
+      name.includes("คอม") ||
+      name.includes("computer") ||
+      name.includes("pc") ||
+      name.includes("monitor")
+    )
+      return <Monitor size={16} />;
+    if (name.includes("โน้ตบุ๊ก") || name.includes("laptop"))
+      return <Laptop size={16} />;
+    if (
+      name.includes("มือถือ") ||
+      name.includes("phone") ||
+      name.includes("mobile")
+    )
+      return <Smartphone size={16} />;
+    if (
+      name.includes("แท็บเล็ต") ||
+      name.includes("tablet") ||
+      name.includes("ipad")
+    )
+      return <Tablet size={16} />;
+    if (
+      name.includes("หูฟัง") ||
+      name.includes("headphone") ||
+      name.includes("headset")
+    )
+      return <Headphones size={16} />;
+    if (
+      name.includes("ไมค์") ||
+      name.includes("mic") ||
+      name.includes("microphone")
+    )
+      return <Mic size={16} />;
+    if (
+      name.includes("ลำโพง") ||
+      name.includes("speaker") ||
+      name.includes("audio")
+    )
+      return <Speaker size={16} />;
+    return <Box size={16} />;
   };
 
   return (
@@ -188,48 +283,164 @@ const BorrowRequest = () => {
           </div>
 
           <div className="form-section">
-            <h3>
-              <ShoppingCart size={20} /> รายการอุปกรณ์
-            </h3>
+            <div className="items-header">
+              <h3>
+                <ShoppingCart size={20} /> รายการอุปกรณ์
+              </h3>
+
+              {/* Filter Section */}
+              <div className="filter-wrapper">
+                <button
+                  type="button"
+                  className={`filter-toggle-btn ${isFilterOpen ? "active" : ""}`}
+                  onClick={() => setIsFilterOpen(!isFilterOpen)}
+                >
+                  <Filter size={18} />
+                  <span>
+                    {selectedCategories.length > 0
+                      ? selectedCategories.length === 1
+                        ? categories.find(
+                            (c) => c.CategoryID == selectedCategories[0],
+                          )?.CategoryName
+                        : `หมวดหมู่ (${selectedCategories.length})`
+                      : "หมวดหมู่สินค้า"}
+                  </span>
+                </button>
+
+                {isFilterOpen && (
+                  <div className="chip-popup-container">
+                    <div className="chip-container">
+                      <button
+                        type="button"
+                        className={`chip ${selectedCategories.length === 0 ? "active" : ""}`}
+                        onClick={() => {
+                          setSelectedCategories([]);
+                          // setIsFilterOpen(false);
+                        }}
+                      >
+                        <Layers size={16} /> ทั้งหมด
+                      </button>
+                      {categories.map((cat) => (
+                        <button
+                          key={cat.CategoryID}
+                          type="button"
+                          className={`chip ${selectedCategories.includes(cat.CategoryID.toString()) ? "active" : ""}`}
+                          onClick={() => {
+                            const id = cat.CategoryID.toString();
+                            setSelectedCategories((prev) =>
+                              prev.includes(id)
+                                ? prev.filter((item) => item !== id)
+                                : [...prev, id],
+                            );
+                          }}
+                        >
+                          {getCategoryIcon(cat.CategoryName)}
+                          {cat.CategoryName}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="add-item-box">
-              <div className="form-row">
-                <div className="form-group flex-grow">
+              <div
+                className="form-group item-product"
+                style={{ position: "relative" }}
+              >
+                <label>ชื่ออุปกรณ์</label>
+                <div
+                  className="custom-select-wrapper"
+                  onMouseEnter={() => setShowPreview(true)}
+                  onMouseLeave={() => setShowPreview(false)}
+                >
                   <select
+                    className="modern-select"
                     value={currentItem.productId}
                     onChange={(e) => {
                       const product = products.find(
-                        (p) => p.ProductID === parseInt(e.target.value),
+                        (p) => p.DVID === parseInt(e.target.value),
                       );
                       setCurrentItem({
                         ...currentItem,
                         productId: e.target.value,
-                        name: product ? product.ProductName : "",
+                        name: product ? product.DeviceName : "",
                       });
                     }}
                   >
                     <option value="">-- เลือกรายการ --</option>
-                    {products.map((p) => (
-                      <option key={p.ProductID} value={p.ProductID}>
-                        {p.ProductName}
-                      </option>
-                    ))}
+                    {products
+                      .filter(
+                        (p) =>
+                          selectedCategories.length === 0 ||
+                          selectedCategories.includes(p.CategoryID.toString()),
+                      )
+                      .map((p) => (
+                        <option key={p.DVID} value={p.DVID}>
+                          {p.DeviceName}
+                        </option>
+                      ))}
                   </select>
+                  <ChevronDown className="select-arrow" size={18} />
                 </div>
-                <div className="form-group w-100">
-                  <input
-                    type="number"
-                    min="1"
-                    value={currentItem.quantity}
-                    onChange={(e) =>
-                      setCurrentItem({
-                        ...currentItem,
-                        quantity: parseInt(e.target.value),
-                      })
-                    }
-                  />
-                </div>
+                {selectedProduct && selectedProduct.Image && showPreview && (
+                  <div
+                    className="product-preview-popup"
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 5px)",
+                      left: "0",
+                      zIndex: 50,
+                      backgroundColor: "white",
+                      padding: "10px",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                      border: "1px solid #e2e8f0",
+                      width: "220px",
+                      pointerEvents: "none",
+                    }}
+                  >
+                    <img
+                      src={selectedProduct.Image}
+                      alt={selectedProduct.DeviceName}
+                      style={{
+                        width: "100%",
+                        height: "auto",
+                        maxHeight: "160px",
+                        objectFit: "contain",
+                        borderRadius: "4px",
+                        display: "block",
+                      }}
+                    />
+                    <div
+                      style={{
+                        marginTop: "8px",
+                        fontSize: "12px",
+                        color: "#64748b",
+                        textAlign: "center",
+                      }}
+                    >
+                      {selectedProduct.DeviceName}
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="form-group">
+              <div className="form-group item-quantity">
+                <label>จำนวน</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={currentItem.quantity}
+                  onChange={(e) =>
+                    setCurrentItem({
+                      ...currentItem,
+                      quantity: parseInt(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div className="form-group item-remark">
                 <input
                   type="text"
                   value={currentItem.remark}
@@ -239,9 +450,15 @@ const BorrowRequest = () => {
                   placeholder="เช่น ขอสายชาร์จด้วย"
                 />
               </div>
-              <button type="button" className="add-btn" onClick={handleAddItem}>
-                <Plus size={16} /> เพิ่มรายการ
-              </button>
+              <div className="item-actions">
+                <button
+                  type="button"
+                  className="add-btn"
+                  onClick={handleAddItem}
+                >
+                  <Plus size={16} /> เพิ่ม
+                </button>
+              </div>
             </div>
 
             {selectedItems.length > 0 && (

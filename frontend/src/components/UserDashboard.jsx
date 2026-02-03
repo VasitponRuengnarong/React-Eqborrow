@@ -115,7 +115,7 @@ const UserDashboard = () => {
     try {
       const items = [
         {
-          name: borrowItem.ProductName, // Backend expects 'name' (ItemName)
+          name: borrowItem.DeviceName, // Backend expects 'name' (ItemName)
           quantity: 1, // Default 1 for individual assets
           remark: "",
         },
@@ -151,39 +151,39 @@ const UserDashboard = () => {
 
   const toggleFavorite = async (e, product) => {
     e.stopPropagation();
-    const isFav = favorites.includes(product.ProductID);
+    const isFav = favorites.includes(product.DVID);
 
     // Optimistic update
     if (isFav) {
-      setFavorites((prev) => prev.filter((id) => id !== product.ProductID));
+      setFavorites((prev) => prev.filter((id) => id !== product.DVID));
       try {
-        await apiFetch(`/api/favorites/${product.ProductID}`, {
+        await apiFetch(`/api/favorites/${product.DVID}`, {
           method: "DELETE",
         });
       } catch (error) {
-        setFavorites((prev) => [...prev, product.ProductID]); // Revert on error
+        setFavorites((prev) => [...prev, product.DVID]); // Revert on error
       }
     } else {
-      setFavorites((prev) => [...prev, product.ProductID]);
+      setFavorites((prev) => [...prev, product.DVID]);
       try {
         await apiFetch("/api/favorites", {
           method: "POST",
-          body: JSON.stringify({ productId: product.ProductID }),
+          body: JSON.stringify({ productId: product.DVID }),
         });
       } catch (error) {
-        setFavorites((prev) => prev.filter((id) => id !== product.ProductID)); // Revert on error
+        setFavorites((prev) => prev.filter((id) => id !== product.DVID)); // Revert on error
       }
     }
   };
 
   // Filter products
   const filteredProducts = products.filter((p) => {
+    const lowerTerm = searchTerm.toLowerCase();
     const matchesSearch =
-      p.ProductName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.ProductCode.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFav = showFavoritesOnly
-      ? favorites.includes(p.ProductID)
-      : true;
+      (p.DeviceName &&
+        String(p.DeviceName).toLowerCase().includes(lowerTerm)) ||
+      (p.DeviceCode && String(p.DeviceCode).toLowerCase().includes(lowerTerm));
+    const matchesFav = showFavoritesOnly ? favorites.includes(p.DVID) : true;
     return matchesSearch && matchesFav;
   });
 
@@ -212,10 +212,74 @@ const UserDashboard = () => {
 
   return (
     <div className="user-dashboard">
+      <style>{`
+        .stats-grid-user {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 24px;
+          margin-bottom: 32px;
+        }
+        .stat-card-user {
+          background: #ffffff;
+          border-radius: 24px;
+          padding: 28px;
+          display: flex;
+          align-items: center;
+          gap: 24px;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+          border: 1px solid #f1f5f9;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          cursor: pointer;
+          position: relative;
+          overflow: hidden;
+        }
+        .stat-card-user:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.01);
+          border-color: transparent;
+        }
+        .icon-wrapper {
+          width: 64px;
+          height: 64px;
+          border-radius: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          transition: transform 0.3s ease;
+        }
+        .stat-card-user:hover .icon-wrapper {
+          transform: scale(1.1) rotate(5deg);
+        }
+        .icon-wrapper.blue { background: #eff6ff; color: #3b82f6; }
+        .icon-wrapper.red { background: #fef2f2; color: #ef4444; }
+        .icon-wrapper.orange { background: #fff7ed; color: #f97316; }
+        
+        .stat-info {
+          display: flex;
+          flex-direction: column;
+        }
+        .stat-info h3 {
+          margin: 0 0 6px 0;
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        .stat-value {
+          margin: 0;
+          font-size: 2.5rem;
+          font-weight: 800;
+          color: #0f172a;
+          line-height: 1;
+          letter-spacing: -0.03em;
+        }
+      `}</style>
       {/* 1. Welcome Section */}
       <div className="welcome-section">
-        <h1>Hello, {user?.firstName || "User"} 👋</h1>
-        <p>Here is your current borrowing status.</p>
+        <h1>สวัสดี, {user?.firstName || "User"} 👋</h1>
+        <p>สถานะการยืมปัจจุบันของคุณ</p>
       </div>
 
       {/* 2. My Active Status (Top Row) */}
@@ -230,8 +294,8 @@ const UserDashboard = () => {
           <div className="icon-wrapper blue">
             <Package size={24} />
           </div>
-          <div>
-            <h3>Items on Hand</h3>
+          <div className="stat-info">
+            <h3>Total Assets</h3>
             <p className="stat-value">{userStats.itemsOnHand}</p>
           </div>
         </div>
@@ -245,8 +309,8 @@ const UserDashboard = () => {
           <div className="icon-wrapper red">
             <AlertCircle size={24} />
           </div>
-          <div>
-            <h3>Due Soon</h3>
+          <div className="stat-info">
+            <h3>Overdue</h3>
             <p className="stat-value">{userStats.dueSoon}</p>
           </div>
         </div>
@@ -254,8 +318,8 @@ const UserDashboard = () => {
           <div className="icon-wrapper orange">
             <Clock size={24} />
           </div>
-          <div>
-            <h3>Pending Requests</h3>
+          <div className="stat-info">
+            <h3>Pending Approval</h3>
             <p className="stat-value">{userStats.pendingRequests}</p>
           </div>
         </div>
@@ -397,26 +461,24 @@ const UserDashboard = () => {
         ) : (
           filteredProducts.map((product) => (
             <div
-              key={product.ProductID}
+              key={product.DVID}
               className="product-card-user"
               onClick={() => handleProductClick(product)}
             >
               <div className="product-img-wrapper">
                 <button
-                  className={`btn-favorite-card ${favorites.includes(product.ProductID) ? "active" : ""}`}
+                  className={`btn-favorite-card ${favorites.includes(product.DVID) ? "active" : ""}`}
                   onClick={(e) => toggleFavorite(e, product)}
                 >
                   <Heart
                     size={18}
-                    fill={
-                      favorites.includes(product.ProductID) ? "#ff4081" : "none"
-                    }
+                    fill={favorites.includes(product.DVID) ? "#ff4081" : "none"}
                   />
                 </button>
 
                 <img
                   src={product.Image || "/images/logo.png"}
-                  alt={product.ProductName}
+                  alt={product.DeviceName}
                 />
                 <span
                   className={`status-badge ${product.StatusNameDV === "ว่าง" ? "available" : "unavailable"}`}
@@ -425,8 +487,8 @@ const UserDashboard = () => {
                 </span>
               </div>
               <div className="product-info">
-                <h3>{product.ProductName}</h3>
-                <p className="product-code">#{product.ProductCode}</p>
+                <h3>{product.DeviceName}</h3>
+                <p className="product-code">#{product.DeviceCode}</p>
                 <button
                   className="btn-borrow"
                   disabled={product.StatusNameDV !== "ว่าง"}
@@ -465,11 +527,11 @@ const UserDashboard = () => {
             <div className="borrow-item-summary">
               <img
                 src={borrowItem.Image || "/images/logo.png"}
-                alt={borrowItem.ProductName}
+                alt={borrowItem.DeviceName}
               />
               <div>
-                <h4>{borrowItem.ProductName}</h4>
-                <p>#{borrowItem.ProductCode}</p>
+                <h4>{borrowItem.DeviceName}</h4>
+                <p>#{borrowItem.DeviceCode}</p>
               </div>
             </div>
 
@@ -544,13 +606,13 @@ const UserDashboard = () => {
               <div className="product-modal-image-wrapper">
                 <img
                   src={selectedProduct.Image || "/images/sennheiserEW100G4.png"}
-                  alt={selectedProduct.ProductName}
+                  alt={selectedProduct.DeviceName}
                 />
               </div>
               <div className="product-modal-info">
-                <h2>{selectedProduct.ProductName}</h2>
+                <h2>{selectedProduct.DeviceName}</h2>
                 <p className="modal-code">
-                  รหัสครุภัณฑ์: {selectedProduct.ProductCode}
+                  รหัสอุปกรณ์: {selectedProduct.DeviceCode}
                 </p>
                 <div className="modal-badges">
                   <span

@@ -312,7 +312,7 @@ const AdminDashboard = () => {
           <div className="chart-card">
             <div className="chart-header">
               <PieChart size={20} />
-              <h2>Available vs Borrowed</h2>
+              <h2>Available : Borrowed</h2>
             </div>
             <div className="pie-chart-container">
               <div className="pie-chart-wrapper">

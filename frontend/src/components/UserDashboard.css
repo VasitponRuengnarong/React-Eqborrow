@@ -244,7 +244,7 @@
 
 .btn-filter-fav {
   position: absolute;
-  right: 15px;
+  right: -90px;
   top: 50%;
   transform: translateY(-50%);
   background: none;

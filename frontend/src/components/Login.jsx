@@ -122,7 +122,7 @@ const LoginPage = () => {
           <div className="brand-content">
             <div className="thai-pbs-logo">
               <img
-                src="/logo.png" // Placeholder for logo
+                src="/images/logo.png" // Placeholder for logo
                 alt="Eqborrow Logo" // More specific alt text
                 style={{ height: "200px", width: "auto" }} // Consistent height, auto width
               />

@@ -12,6 +12,7 @@ import {
   FileUp,
   Filter,
   Loader,
+  Layers,
 } from "lucide-react";
 import "./ProductManagement.css";
 import "./Management.css";
@@ -27,31 +28,37 @@ const ProductManagement = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategory, setFilterCategory] = useState(""); // State สำหรับกรองหมวดหมู่
-  const [filterStatus, setFilterStatus] = useState(""); // State สำหรับกรองสถานะ
+  const [filterCategories, setFilterCategories] = useState([]); // State สำหรับกรองหมวดหมู่ (Multi)
+  const [filterStatuses, setFilterStatuses] = useState([]); // State สำหรับกรองสถานะ (Multi)
   const [suggestions, setSuggestions] = useState([]); // รายการแนะนำ Auto-complete
   const [showSuggestions, setShowSuggestions] = useState(false); // ควบคุมการแสดง Dropdown
   const [isSearching, setIsSearching] = useState(false); // สถานะ Loading
-  const [showFilters, setShowFilters] = useState(false); // ควบคุมการแสดงตัวกรอง
+  const [isCategoryFilterOpen, setIsCategoryFilterOpen] = useState(false);
+  const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false);
 
   // State สำหรับเพิ่มสินค้าใหม่
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({
-    ProductName: "",
-    ProductCode: "",
+    DeviceName: "",
+    DeviceCode: "",
+    SerialNumber: "",
     CategoryID: "",
     StatusID: "",
     Image: "",
     Brand: "",
     DeviceType: "",
+    Price: "",
+    Quantity: 0,
+    Description: "",
   });
 
   // State สำหรับการแก้ไข (Edit Modal)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState({
-    ProductID: null,
-    ProductName: "",
-    ProductCode: "",
+    DVID: null,
+    DeviceName: "",
+    DeviceCode: "",
+    SerialNumber: "",
     CategoryID: "",
     StatusID: "",
     Image: "", // รูปใหม่ที่อัปโหลด (Base64)
@@ -59,6 +66,8 @@ const ProductManagement = () => {
     Quantity: "", // เพิ่ม State สำหรับจำนวนคงเหลือในโหมดแก้ไข
     Brand: "",
     DeviceType: "",
+    Price: "",
+    Description: "",
   });
 
   // Master Data (สำหรับ Dropdown และ CRUD ย่อย)
@@ -106,7 +115,7 @@ const ProductManagement = () => {
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterCategory, filterStatus]);
+  }, [searchTerm, filterCategories, filterStatuses]);
 
   const isAdminUser = user?.role === "Admin" || user?.role === "admin";
 
@@ -150,13 +159,16 @@ const ProductManagement = () => {
 
       // จำลองการค้นหา (Simulate Async) เพื่อแสดง Loading Spinner
       setTimeout(() => {
+        const lowerValue = value.toLowerCase();
         const matches = products
           .filter(
             (p) =>
-              (p.ProductName &&
-                p.ProductName.toLowerCase().includes(value.toLowerCase())) ||
-              (p.ProductCode &&
-                p.ProductCode.toLowerCase().includes(value.toLowerCase())),
+              (p.DeviceName &&
+                String(p.DeviceName).toLowerCase().includes(lowerValue)) ||
+              (p.DeviceCode &&
+                String(p.DeviceCode).toLowerCase().includes(lowerValue)) ||
+              (p.SerialNumber &&
+                String(p.SerialNumber).toLowerCase().includes(lowerValue)),
           )
           .slice(0, 5); // แสดงสูงสุด 5 รายการ
 
@@ -177,16 +189,17 @@ const ProductManagement = () => {
   };
 
   const handleSuggestionClick = (product) => {
-    setSearchTerm(product.ProductName);
+    setSearchTerm(product.DeviceName);
     setShowSuggestions(false);
   };
 
   // --- 2. Main Product Actions (Edit/Delete) ---
   const handleEditClick = (product) => {
     setEditingProduct({
-      ProductID: product.ProductID,
-      ProductName: product.ProductName,
-      ProductCode: product.ProductCode,
+      DVID: product.DVID,
+      DeviceName: product.DeviceName,
+      DeviceCode: product.DeviceCode,
+      SerialNumber: product.SerialNumber || "",
       CategoryID: product.CategoryID,
       StatusID: product.StatusID,
       Image: "", // รีเซ็ตค่ารูปใหม่
@@ -194,6 +207,9 @@ const ProductManagement = () => {
       isImageDeleted: false,
       Brand: product.Brand || "",
       DeviceType: product.DeviceType || "",
+      Price: product.Price || "",
+      Quantity: product.Quantity || 0,
+      Description: product.Description || "",
     });
     setIsEditModalOpen(true);
   };
@@ -201,8 +217,8 @@ const ProductManagement = () => {
   const handleUpdateProduct = async (e) => {
     e.preventDefault();
     if (
-      !editingProduct.ProductName ||
-      !editingProduct.ProductCode ||
+      !editingProduct.DeviceName ||
+      !editingProduct.DeviceCode ||
       !editingProduct.CategoryID ||
       !editingProduct.StatusID
     ) {
@@ -212,12 +228,16 @@ const ProductManagement = () => {
 
     try {
       const body = {
-        ProductName: editingProduct.ProductName,
-        ProductCode: editingProduct.ProductCode,
+        DeviceName: editingProduct.DeviceName,
+        DeviceCode: editingProduct.DeviceCode,
+        SerialNumber: editingProduct.SerialNumber,
         CategoryID: editingProduct.CategoryID,
         StatusID: editingProduct.StatusID,
         Brand: editingProduct.Brand,
         DeviceType: editingProduct.DeviceType,
+        Price: editingProduct.Price,
+        Quantity: editingProduct.Quantity,
+        Description: editingProduct.Description,
       };
 
       // ส่งรูปภาพไปเฉพาะเมื่อมีการอัปโหลดใหม่ หรือมีการลบรูปภาพ
@@ -227,16 +247,13 @@ const ProductManagement = () => {
         body.Image = "";
       }
 
-      const response = await apiFetch(
-        `/api/products/${editingProduct.ProductID}`,
-        {
-          method: "PUT",
-          body: JSON.stringify(body),
-        },
-      );
+      const response = await apiFetch(`/api/products/${editingProduct.DVID}`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      });
 
       if (response.ok) {
-        Swal.fire("สำเร็จ", "อัปเดตข้อมูลครุภัณฑ์สำเร็จ", "success");
+        Swal.fire("สำเร็จ", "อัปเดตข้อมูลสินค้าสำเร็จ", "success");
         setIsEditModalOpen(false);
         fetchProducts();
       } else {
@@ -359,8 +376,8 @@ const ProductManagement = () => {
   const handleAddProduct = async (e) => {
     e.preventDefault();
     if (
-      !newProduct.ProductName ||
-      !newProduct.ProductCode ||
+      !newProduct.DeviceName ||
+      !newProduct.DeviceCode ||
       !newProduct.CategoryID ||
       !newProduct.StatusID
     ) {
@@ -378,13 +395,17 @@ const ProductManagement = () => {
         Swal.fire("สำเร็จ", "เพิ่มสินค้าเรียบร้อยแล้ว", "success");
         setIsAddModalOpen(false);
         setNewProduct({
-          ProductName: "",
-          ProductCode: "",
+          DeviceName: "",
+          DeviceCode: "",
+          SerialNumber: "",
           CategoryID: "",
           StatusID: "",
           Image: "",
           Brand: "",
           DeviceType: "",
+          Price: "",
+          Quantity: 0,
+          Description: "",
         });
         fetchProducts();
       } else {
@@ -633,15 +654,23 @@ const ProductManagement = () => {
   };
 
   // --- 4. Filtering ---
-  const filteredProducts = products.filter(
-    (p) =>
-      ((p.ProductName &&
-        p.ProductName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (p.ProductCode &&
-          p.ProductCode.toLowerCase().includes(searchTerm.toLowerCase()))) &&
-      (filterCategory ? p.CategoryID?.toString() === filterCategory : true) && // กรองหมวดหมู่
-      (filterStatus ? p.StatusID?.toString() === filterStatus : true), // กรองสถานะ
-  );
+  const filteredProducts = products.filter((p) => {
+    const lowerTerm = searchTerm.toLowerCase();
+    return (
+      ((p.DeviceName &&
+        String(p.DeviceName).toLowerCase().includes(lowerTerm)) ||
+        (p.DeviceCode &&
+          String(p.DeviceCode).toLowerCase().includes(lowerTerm)) ||
+        (p.SerialNumber &&
+          String(p.SerialNumber).toLowerCase().includes(lowerTerm))) &&
+      (filterCategories.length > 0
+        ? filterCategories.includes(p.CategoryID?.toString())
+        : true) && // กรองหมวดหมู่
+      (filterStatuses.length > 0
+        ? filterStatuses.includes(p.StatusID?.toString())
+        : true)
+    ); // กรองสถานะ
+  });
 
   // --- Pagination Logic ---
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -790,21 +819,22 @@ const ProductManagement = () => {
                   ) : suggestions.length > 0 ? (
                     suggestions.map((p) => (
                       <div
-                        key={p.ProductID}
+                        key={p.DVID}
                         className="suggestion-item"
                         onClick={() => handleSuggestionClick(p)}
                       >
                         <img
                           src={p.Image || defaultProductImage}
-                          alt={p.ProductName}
+                          alt={p.DeviceName}
                           className="suggestion-img"
                         />
                         <div className="suggestion-info">
                           <span className="suggestion-name">
-                            {p.ProductName}
+                            {p.DeviceName}
                           </span>
                           <span className="suggestion-code">
-                            #{p.ProductCode}
+                            #{p.DeviceCode}{" "}
+                            {p.SerialNumber ? `(SN: ${p.SerialNumber})` : ""}
                           </span>
                         </div>
                       </div>
@@ -816,43 +846,115 @@ const ProductManagement = () => {
               )}
             </div>
 
-            {/* ปุ่ม Filter Toggle */}
-            <button
-              className={`filter-toggle-btn ${showFilters ? "active" : ""}`}
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <Filter size={18} /> ตัวกรอง
-            </button>
-
-            {/* Collapsible Filters */}
-            {showFilters && (
-              <div className="filters-container">
-                <select
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                  className="filter-select"
+            <div style={{ display: "flex", gap: "10px" }}>
+              {/* Category Filter */}
+              <div className="filter-wrapper">
+                <button
+                  className={`filter-toggle-btn ${isCategoryFilterOpen ? "active" : ""}`}
+                  onClick={() => {
+                    setIsCategoryFilterOpen(!isCategoryFilterOpen);
+                    setIsStatusFilterOpen(false);
+                  }}
                 >
-                  <option value="">ทั้งหมด (หมวดหมู่)</option>
-                  {categories.map((c) => (
-                    <option key={c.CategoryID} value={c.CategoryID}>
-                      {c.CategoryName}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="filter-select"
-                >
-                  <option value="">ทั้งหมด (สถานะ)</option>
-                  {statuses.map((s) => (
-                    <option key={s.DVStatusID} value={s.DVStatusID}>
-                      {s.StatusNameDV}
-                    </option>
-                  ))}
-                </select>
+                  <Filter size={18} />
+                  <span>
+                    {filterCategories.length > 0
+                      ? filterCategories.length === 1
+                        ? categories.find(
+                            (c) =>
+                              c.CategoryID.toString() === filterCategories[0],
+                          )?.CategoryName
+                        : `หมวดหมู่ (${filterCategories.length})`
+                      : "หมวดหมู่"}
+                  </span>
+                </button>
+                {isCategoryFilterOpen && (
+                  <div className="chip-popup-container">
+                    <div className="chip-container">
+                      <button
+                        className={`chip ${filterCategories.length === 0 ? "active" : ""}`}
+                        onClick={() => {
+                          setFilterCategories([]);
+                          // setIsCategoryFilterOpen(false); // Keep open for multi-select
+                        }}
+                      >
+                        <Layers size={14} /> ทั้งหมด
+                      </button>
+                      {categories.map((c) => (
+                        <button
+                          key={c.CategoryID}
+                          className={`chip ${filterCategories.includes(c.CategoryID.toString()) ? "active" : ""}`}
+                          onClick={() => {
+                            const id = c.CategoryID.toString();
+                            setFilterCategories((prev) =>
+                              prev.includes(id)
+                                ? prev.filter((item) => item !== id)
+                                : [...prev, id],
+                            );
+                          }}
+                        >
+                          {c.CategoryName}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+
+              {/* Status Filter */}
+              <div className="filter-wrapper">
+                <button
+                  className={`filter-toggle-btn ${isStatusFilterOpen ? "active" : ""}`}
+                  onClick={() => {
+                    setIsStatusFilterOpen(!isStatusFilterOpen);
+                    setIsCategoryFilterOpen(false);
+                  }}
+                >
+                  <Filter size={18} />
+                  <span>
+                    {filterStatuses.length > 0
+                      ? filterStatuses.length === 1
+                        ? statuses.find(
+                            (s) =>
+                              s.DVStatusID.toString() === filterStatuses[0],
+                          )?.StatusNameDV
+                        : `สถานะ (${filterStatuses.length})`
+                      : "สถานะ"}
+                  </span>
+                </button>
+                {isStatusFilterOpen && (
+                  <div className="chip-popup-container">
+                    <div className="chip-container">
+                      <button
+                        className={`chip ${filterStatuses.length === 0 ? "active" : ""}`}
+                        onClick={() => {
+                          setFilterStatuses([]);
+                          // setIsStatusFilterOpen(false);
+                        }}
+                      >
+                        <Layers size={14} /> ทั้งหมด
+                      </button>
+                      {statuses.map((s) => (
+                        <button
+                          key={s.DVStatusID}
+                          className={`chip ${filterStatuses.includes(s.DVStatusID.toString()) ? "active" : ""}`}
+                          onClick={() => {
+                            const id = s.DVStatusID.toString();
+                            setFilterStatuses((prev) =>
+                              prev.includes(id)
+                                ? prev.filter((item) => item !== id)
+                                : [...prev, id],
+                            );
+                          }}
+                        >
+                          {s.StatusNameDV}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {isAdminUser && (
               <div style={{ display: "flex", gap: "10px" }}>
@@ -885,7 +987,9 @@ const ProductManagement = () => {
                 <tr>
                   <th>สินค้า</th>
                   <th>รหัสสินค้า</th>
+                  <th>Serial No.</th>
                   <th>หมวดหมู่</th>
+                  <th>จำนวน</th>
                   <th>สถานะ</th>
                   <th>จัดการ</th>
                 </tr>
@@ -893,33 +997,35 @@ const ProductManagement = () => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="6" className="text-center">
+                    <td colSpan="7" className="text-center">
                       กำลังโหลด...
                     </td>
                   </tr>
                 ) : filteredProducts.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="text-center">
+                    <td colSpan="7" className="text-center">
                       ไม่พบข้อมูลสินค้า
                     </td>
                   </tr>
                 ) : (
                   currentItems.map((p) => (
-                    <tr key={p.ProductID}>
+                    <tr key={p.DVID}>
                       <td>
                         <div className="user-cell">
                           <img
                             src={p.Image || defaultProductImage}
-                            alt={p.ProductName}
+                            alt={p.DeviceName}
                             className="avatar-circle product-zoom"
                           />
-                          <div className="user-name">{p.ProductName}</div>
+                          <div className="user-name">{p.DeviceName}</div>
                         </div>
                       </td>
-                      <td>{p.ProductCode}</td>
+                      <td>{p.DeviceCode}</td>
+                      <td>{p.SerialNumber || "-"}</td>
                       <td>
                         <span className="role-badge">{p.CategoryName}</span>
                       </td>
+                      <td>{p.Quantity}</td>
                       <td>
                         <span
                           className={`status-dot ${getDeviceStatusClass(p.StatusNameDV)}`}
@@ -933,15 +1039,15 @@ const ProductManagement = () => {
                             className="btn-icon edit"
                             onClick={() => handleEditClick(p)}
                             disabled={!isAdminUser}
-                            aria-label={`แก้ไข ${p.ProductName}`}
+                            aria-label={`แก้ไข ${p.DeviceName}`}
                           >
                             <Edit size={16} />
                           </button>
                           <button
                             className="btn-icon delete"
-                            onClick={() => handleDelete(p.ProductID)}
+                            onClick={() => handleDelete(p.DVID)}
                             disabled={!isAdminUser}
-                            aria-label={`ลบ ${p.ProductName}`}
+                            aria-label={`ลบ ${p.DeviceName}`}
                           >
                             <Trash2 size={16} />
                           </button>
@@ -1033,11 +1139,11 @@ const ProductManagement = () => {
                   <input
                     id="addProductName"
                     type="text"
-                    value={newProduct.ProductName}
+                    value={newProduct.DeviceName}
                     onChange={(e) =>
                       setNewProduct({
                         ...newProduct,
-                        ProductName: e.target.value,
+                        DeviceName: e.target.value,
                       })
                     }
                     required
@@ -1048,14 +1154,29 @@ const ProductManagement = () => {
                   <input
                     id="addProductCode"
                     type="text"
-                    value={newProduct.ProductCode}
+                    value={newProduct.DeviceCode}
                     onChange={(e) =>
                       setNewProduct({
                         ...newProduct,
-                        ProductCode: e.target.value,
+                        DeviceCode: e.target.value,
                       })
                     }
                     required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="addSerialNumber">Serial Number</label>
+                  <input
+                    id="addSerialNumber"
+                    type="text"
+                    value={newProduct.SerialNumber}
+                    onChange={(e) =>
+                      setNewProduct({
+                        ...newProduct,
+                        SerialNumber: e.target.value,
+                      })
+                    }
+                    placeholder="ระบุ Serial Number"
                   />
                 </div>
                 <div className="form-group">
@@ -1123,6 +1244,50 @@ const ProductManagement = () => {
                       </option>
                     ))}
                   </select>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="addPrice">ราคา</label>
+                  <input
+                    id="addPrice"
+                    type="number"
+                    value={newProduct.Price}
+                    onChange={(e) =>
+                      setNewProduct({ ...newProduct, Price: e.target.value })
+                    }
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="addQuantity">จำนวน</label>
+                  <input
+                    id="addQuantity"
+                    type="number"
+                    value={newProduct.Quantity}
+                    onChange={(e) =>
+                      setNewProduct({ ...newProduct, Quantity: e.target.value })
+                    }
+                    placeholder="0"
+                  />
+                </div>
+                <div className="form-group form-group-full">
+                  <label htmlFor="addDescription">รายละเอียด</label>
+                  <textarea
+                    id="addDescription"
+                    value={newProduct.Description}
+                    onChange={(e) =>
+                      setNewProduct({
+                        ...newProduct,
+                        Description: e.target.value,
+                      })
+                    }
+                    rows="3"
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      borderRadius: "8px",
+                      border: "1px solid #d1d5db",
+                    }}
+                  />
                 </div>
                 <div className="form-group form-group-full">
                   <label htmlFor="addProductImage">รูปภาพ</label>
@@ -1229,11 +1394,11 @@ const ProductManagement = () => {
                   <input
                     id="editProductName"
                     type="text"
-                    value={editingProduct.ProductName}
+                    value={editingProduct.DeviceName}
                     onChange={(e) =>
                       setEditingProduct({
                         ...editingProduct,
-                        ProductName: e.target.value,
+                        DeviceName: e.target.value,
                       })
                     }
                     required
@@ -1244,14 +1409,29 @@ const ProductManagement = () => {
                   <input
                     id="editProductCode"
                     type="text"
-                    value={editingProduct.ProductCode}
+                    value={editingProduct.DeviceCode}
                     onChange={(e) =>
                       setEditingProduct({
                         ...editingProduct,
-                        ProductCode: e.target.value,
+                        DeviceCode: e.target.value,
                       })
                     }
                     required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="editSerialNumber">Serial Number</label>
+                  <input
+                    id="editSerialNumber"
+                    type="text"
+                    value={editingProduct.SerialNumber}
+                    onChange={(e) =>
+                      setEditingProduct({
+                        ...editingProduct,
+                        SerialNumber: e.target.value,
+                      })
+                    }
+                    placeholder="ระบุ Serial Number"
                   />
                 </div>
                 <div className="form-group">
@@ -1325,6 +1505,54 @@ const ProductManagement = () => {
                       </option>
                     ))}
                   </select>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="editPrice">ราคา</label>
+                  <input
+                    id="editPrice"
+                    type="number"
+                    value={editingProduct.Price}
+                    onChange={(e) =>
+                      setEditingProduct({
+                        ...editingProduct,
+                        Price: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="editQuantity">จำนวน</label>
+                  <input
+                    id="editQuantity"
+                    type="number"
+                    value={editingProduct.Quantity}
+                    onChange={(e) =>
+                      setEditingProduct({
+                        ...editingProduct,
+                        Quantity: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="form-group form-group-full">
+                  <label htmlFor="editDescription">รายละเอียด</label>
+                  <textarea
+                    id="editDescription"
+                    value={editingProduct.Description}
+                    onChange={(e) =>
+                      setEditingProduct({
+                        ...editingProduct,
+                        Description: e.target.value,
+                      })
+                    }
+                    rows="3"
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      borderRadius: "8px",
+                      border: "1px solid #d1d5db",
+                    }}
+                  />
                 </div>
                 <div className="form-group form-group-full">
                   <label htmlFor="editProductImage">

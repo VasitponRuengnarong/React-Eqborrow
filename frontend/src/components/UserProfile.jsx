@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { User, Mail, Phone, Lock, Save, Camera } from "lucide-react";
+import { User, Mail, Phone, Lock, Save, Camera, X } from "lucide-react";
 import "./UserProfile.css";
 import Swal from "sweetalert2";
 import "./Management.css"; // Import Management.css for consistent button styles
 import { apiFetch } from "./api";
 import ImageDisplay from "./ImageDisplay";
 
-const defaultProfileImage = "https://via.placeholder.com/100"; // Placeholder for profile image
+const defaultProfileImage = "/images/logo.png";
 
 const UserProfile = () => {
   const [user, setUser] = useState(null);
@@ -23,6 +23,7 @@ const UserProfile = () => {
     confirmPassword: "",
   });
   const [loading, setLoading] = useState(false);
+  const [isProfileDirty, setIsProfileDirty] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -38,6 +39,33 @@ const UserProfile = () => {
       });
     }
   }, []);
+
+  // Check for unsaved changes in the profile form
+  useEffect(() => {
+    if (user) {
+      const isDirty =
+        formData.firstName !== (user.firstName || "") ||
+        formData.lastName !== (user.lastName || "") ||
+        formData.email !== (user.email || "") ||
+        formData.phone !== (user.phone || "") ||
+        formData.profileImage !== (user.profileImage || "");
+      setIsProfileDirty(isDirty);
+    }
+  }, [formData, user]);
+
+  // Warn user before leaving the page with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isProfileDirty) {
+        e.preventDefault();
+        e.returnValue = ""; // Required for modern browsers
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isProfileDirty]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -60,11 +88,25 @@ const UserProfile = () => {
     }
   };
 
+  const handleCancel = () => {
+    if (user) {
+      setFormData({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        profileImage: user.profileImage || "",
+      });
+    }
+  };
+
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await apiFetch(`/api/profile/${user.EMPID}`, {
+      // ใช้ user.id เป็นหลัก ถ้าไม่มีให้ใช้ EMPID (เพื่อรองรับโครงสร้างข้อมูลที่แตกต่างกัน)
+      const userId = user.id || user.EMPID;
+      const response = await apiFetch(`/api/profile/${userId}`, {
         method: "PUT",
         body: JSON.stringify(formData),
       });
@@ -111,7 +153,9 @@ const UserProfile = () => {
 
     setLoading(true);
     try {
-      const response = await apiFetch(`/api/profile/${user.EMPID}/password`, {
+      // ใช้ user.id เป็นหลัก ถ้าไม่มีให้ใช้ EMPID
+      const userId = user.id || user.EMPID;
+      const response = await apiFetch(`/api/profile/${userId}/password`, {
         method: "PUT",
         body: JSON.stringify({
           currentPassword: passwordData.currentPassword,
@@ -233,6 +277,14 @@ const UserProfile = () => {
               </div>
             </div>
             <div className="form-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleCancel}
+                disabled={loading}
+              >
+                <X size={18} /> ยกเลิก
+              </button>
               <button
                 type="submit"
                 className="btn btn-primary"

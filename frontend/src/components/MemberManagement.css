@@ -3,6 +3,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  color: #000000;
 }
 
 .avatar-circle {
@@ -43,4 +44,65 @@
 .role-badge.staff {
   background-color: #d5f5e3;
   color: #27ae60;
+}
+
+/* Chip Filter Styles */
+.filter-wrapper {
+  position: relative;
+}
+
+.chip-popup-container {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  padding: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  min-width: 280px;
+  animation: popupFadeIn 0.2s ease-out;
+}
+
+.chip-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid #e0e0e0;
+  background-color: #f5f5f5;
+  color: #555;
+  font-size: 13px;
+  font-family: "Kanit", sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chip:hover {
+  background-color: #e0e0e0;
+}
+
+.chip.active {
+  background-color: #ff8000;
+  color: white;
+  border-color: #ff8000;
+}
+
+@keyframes popupFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

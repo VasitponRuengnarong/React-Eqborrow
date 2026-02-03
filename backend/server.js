@@ -44,6 +44,70 @@ db.getConnection()
   .then(async (connection) => {
     console.log("Connected to database: ebrs_system");
 
+    // --- 1. Master Tables ---
+    // Auto-create TB_M_Role
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS TB_M_Role (
+        RoleID INT AUTO_INCREMENT PRIMARY KEY,
+        RoleName VARCHAR(50) NOT NULL
+      )
+    `);
+    // Seed Roles
+    await connection.execute(
+      `INSERT IGNORE INTO TB_M_Role (RoleID, RoleName) VALUES (1, 'Admin'), (2, 'Staff'), (3, 'User'), (4, 'Manager')`,
+    );
+
+    // Auto-create TB_M_Institution
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS TB_M_Institution (
+        InstitutionID INT AUTO_INCREMENT PRIMARY KEY,
+        InstitutionName VARCHAR(255) NOT NULL
+      )
+    `);
+
+    // Auto-create TB_M_Department
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS TB_M_Department (
+        DepartmentID INT AUTO_INCREMENT PRIMARY KEY,
+        DepartmentName VARCHAR(255) NOT NULL,
+        InstitutionID INT,
+        FOREIGN KEY (InstitutionID) REFERENCES TB_M_Institution(InstitutionID) ON DELETE SET NULL
+      )
+    `);
+
+    // Auto-create TB_M_StatusEMP
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS TB_M_StatusEMP (
+        EMPStatusID INT AUTO_INCREMENT PRIMARY KEY,
+        StatusName VARCHAR(50) NOT NULL
+      )
+    `);
+    // Seed StatusEMP
+    await connection.execute(
+      `INSERT IGNORE INTO TB_M_StatusEMP (EMPStatusID, StatusName) VALUES (1, 'Active'), (2, 'Inactive')`,
+    );
+
+    // Auto-create TB_M_Category table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS TB_M_Category (
+        CategoryID INT AUTO_INCREMENT PRIMARY KEY,
+        CategoryName VARCHAR(255) NOT NULL
+      )
+    `);
+
+    // Auto-create TB_M_StatusDevice table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS TB_M_StatusDevice (
+        DVStatusID INT AUTO_INCREMENT PRIMARY KEY,
+        StatusNameDV VARCHAR(255) NOT NULL
+      )
+    `);
+    // Seed StatusDevice
+    await connection.execute(
+      `INSERT IGNORE INTO TB_M_StatusDevice (DVStatusID, StatusNameDV) VALUES (1, 'ว่าง'), (2, 'ถูกยืม'), (3, 'ส่งซ่อม'), (4, 'ชำรุด'), (5, 'สูญหาย')`,
+    );
+
+    // --- 2. Transaction Tables ---
     // Auto-create TB_L_StockMovement table to prevent "Table doesn't exist" error
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS TB_L_StockMovement (
@@ -68,17 +132,236 @@ db.getConnection()
       )
     `);
 
+    // Auto-create TB_T_Employee
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS TB_T_Employee (
+        EMPID INT AUTO_INCREMENT PRIMARY KEY,
+        fname VARCHAR(100),
+        lname VARCHAR(100),
+        EMP_NUM VARCHAR(50) UNIQUE,
+        username VARCHAR(50) UNIQUE,
+        email VARCHAR(100) UNIQUE,
+        phone VARCHAR(20),
+        password VARCHAR(255),
+        image LONGTEXT,
+        RoleID INT,
+        InstitutionID INT,
+        DepartmentID INT,
+        EMPStatusID INT,
+        reset_token VARCHAR(255),
+        reset_token_expires DATETIME,
+        CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (RoleID) REFERENCES TB_M_Role(RoleID),
+        FOREIGN KEY (InstitutionID) REFERENCES TB_M_Institution(InstitutionID),
+        FOREIGN KEY (DepartmentID) REFERENCES TB_M_Department(DepartmentID),
+        FOREIGN KEY (EMPStatusID) REFERENCES TB_M_StatusEMP(EMPStatusID)
+      )
+    `);
+
+    // Auto-create TB_T_Borrow
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS TB_T_Borrow (
+        BorrowID INT AUTO_INCREMENT PRIMARY KEY,
+        EMPID INT,
+        BorrowDate DATE,
+        ReturnDate DATE,
+        Purpose TEXT,
+        Status ENUM('Pending', 'Approved', 'Rejected', 'Returned', 'Cancelled') DEFAULT 'Pending',
+        CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (EMPID) REFERENCES TB_T_Employee(EMPID)
+      )
+    `);
+
+    // Auto-create TB_T_BorrowDetail
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS TB_T_BorrowDetail (
+        DetailID INT AUTO_INCREMENT PRIMARY KEY,
+        BorrowID INT,
+        ItemName VARCHAR(255),
+        Quantity INT,
+        Remark TEXT,
+        FOREIGN KEY (BorrowID) REFERENCES TB_T_Borrow(BorrowID) ON DELETE CASCADE
+      )
+    `);
+
+    // Auto-create TB_T_Device table (Replaces TB_M_Product)
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS TB_T_Device (
+        DVID INT AUTO_INCREMENT PRIMARY KEY,
+        DeviceName VARCHAR(255) NOT NULL,
+        DeviceCode VARCHAR(100),
+        SerialNumber VARCHAR(100),
+        Price DECIMAL(10, 2),
+        Quantity INT DEFAULT 0,
+        Description TEXT,
+        Image LONGTEXT,
+        CategoryID INT,
+        StatusID INT,
+        Brand VARCHAR(100),
+        DeviceType VARCHAR(100),
+        CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Auto-create TB_L_ActivityLog
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS TB_L_ActivityLog (
+        LogID INT AUTO_INCREMENT PRIMARY KEY,
+        ActionType VARCHAR(50),
+        BorrowID INT,
+        ActorID INT,
+        Details TEXT,
+        CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Auto-add columns if they don't exist (Simple check)
     try {
       await connection.execute("SELECT Brand FROM TB_T_Device LIMIT 1");
     } catch (e) {
       if (e.code === "ER_BAD_FIELD_ERROR") {
-        console.log("Adding Brand and DeviceType columns to TB_T_Device...");
+        console.log("Adding columns to TB_T_Device...");
         await connection.execute(
-          "ALTER TABLE TB_T_Device ADD COLUMN Brand VARCHAR(100) DEFAULT NULL, ADD COLUMN DeviceType VARCHAR(100) DEFAULT NULL",
+          "ALTER TABLE TB_T_Device ADD COLUMN CategoryID INT",
+        );
+        await connection.execute(
+          "ALTER TABLE TB_T_Device ADD COLUMN StatusID INT",
+        );
+        await connection.execute(
+          "ALTER TABLE TB_T_Device ADD COLUMN Brand VARCHAR(100)",
+        );
+        await connection.execute(
+          "ALTER TABLE TB_T_Device ADD COLUMN DeviceType VARCHAR(100)",
         );
       }
     }
+
+    // Check specifically for DeviceCode column
+    try {
+      await connection.execute("SELECT DeviceCode FROM TB_T_Device LIMIT 1");
+    } catch (e) {
+      if (e.code === "ER_BAD_FIELD_ERROR") {
+        console.log("Adding DeviceCode column to TB_T_Device...");
+        await connection.execute(
+          "ALTER TABLE TB_T_Device ADD COLUMN DeviceCode VARCHAR(100)",
+        );
+      }
+    }
+
+    // Check specifically for SerialNumber column
+    try {
+      await connection.execute("SELECT SerialNumber FROM TB_T_Device LIMIT 1");
+    } catch (e) {
+      if (e.code === "ER_BAD_FIELD_ERROR") {
+        console.log("Adding SerialNumber column to TB_T_Device...");
+        await connection.execute(
+          "ALTER TABLE TB_T_Device ADD COLUMN SerialNumber VARCHAR(100)",
+        );
+      }
+    }
+
+    // Check specifically for Image column
+    try {
+      await connection.execute("SELECT Image FROM TB_T_Device LIMIT 1");
+    } catch (e) {
+      if (e.code === "ER_BAD_FIELD_ERROR") {
+        console.log("Adding Image column to TB_T_Device...");
+        await connection.execute(
+          "ALTER TABLE TB_T_Device ADD COLUMN Image LONGTEXT",
+        );
+      }
+    }
+
+    // Check specifically for StatusID column
+    try {
+      await connection.execute("SELECT StatusID FROM TB_T_Device LIMIT 1");
+    } catch (e) {
+      if (e.code === "ER_BAD_FIELD_ERROR") {
+        console.log("Adding StatusID column to TB_T_Device...");
+        await connection.execute(
+          "ALTER TABLE TB_T_Device ADD COLUMN StatusID INT",
+        );
+      }
+    }
+
+    // Check specifically for CategoryID column
+    try {
+      await connection.execute("SELECT CategoryID FROM TB_T_Device LIMIT 1");
+    } catch (e) {
+      if (e.code === "ER_BAD_FIELD_ERROR") {
+        console.log("Adding CategoryID column to TB_T_Device...");
+        await connection.execute(
+          "ALTER TABLE TB_T_Device ADD COLUMN CategoryID INT",
+        );
+      }
+    }
+
+    // Check specifically for Price column
+    try {
+      await connection.execute("SELECT Price FROM TB_T_Device LIMIT 1");
+    } catch (e) {
+      if (e.code === "ER_BAD_FIELD_ERROR") {
+        console.log("Adding Price column to TB_T_Device...");
+        await connection.execute(
+          "ALTER TABLE TB_T_Device ADD COLUMN Price DECIMAL(10, 2)",
+        );
+      }
+    }
+
+    // Check specifically for Quantity column
+    try {
+      await connection.execute("SELECT Quantity FROM TB_T_Device LIMIT 1");
+    } catch (e) {
+      if (e.code === "ER_BAD_FIELD_ERROR") {
+        console.log("Adding Quantity column to TB_T_Device...");
+        await connection.execute(
+          "ALTER TABLE TB_T_Device ADD COLUMN Quantity INT DEFAULT 0",
+        );
+      }
+    }
+
+    // Check specifically for Description column
+    try {
+      await connection.execute("SELECT Description FROM TB_T_Device LIMIT 1");
+    } catch (e) {
+      if (e.code === "ER_BAD_FIELD_ERROR") {
+        console.log("Adding Description column to TB_T_Device...");
+        await connection.execute(
+          "ALTER TABLE TB_T_Device ADD COLUMN Description TEXT",
+        );
+      }
+    }
+
+    // --- Data Migration: stickerid -> DeviceCode, serialnumber -> SerialNumber ---
+    try {
+      // Try to select stickerid to see if it exists
+      await connection.execute("SELECT stickerid FROM TB_T_Device LIMIT 1");
+      console.log("Migrating stickerid to DeviceCode...");
+      await connection.execute(
+        "UPDATE TB_T_Device SET DeviceCode = stickerid WHERE (DeviceCode IS NULL OR DeviceCode = '') AND stickerid IS NOT NULL",
+      );
+    } catch (e) {
+      // Ignore if stickerid column does not exist
+    }
+
+    try {
+      // Try to select serialnumber (lowercase) to see if it exists
+      await connection.execute("SELECT serialnumber FROM TB_T_Device LIMIT 1");
+      console.log("Migrating serialnumber to SerialNumber...");
+      await connection.execute(
+        "UPDATE TB_T_Device SET SerialNumber = serialnumber WHERE (SerialNumber IS NULL OR SerialNumber = '') AND serialnumber IS NOT NULL",
+      );
+    } catch (e) {
+      // Ignore if serialnumber column does not exist
+    }
+
+    // --- Mock Data: Generate SerialNumber if missing ---
+    console.log("Generating mock SerialNumbers for missing entries...");
+    await connection.execute(`
+      UPDATE TB_T_Device 
+      SET SerialNumber = CONCAT('SN-', LPAD(DVID, 5, '0')) 
+      WHERE SerialNumber IS NULL OR SerialNumber = ''
+    `);
 
     connection.release();
   })
@@ -93,6 +376,19 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Health Check Endpoint
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "Backend is running and accessible" });
+});
+
+// Debug Endpoint to verify table schema
+app.get("/api/debug/schema/:tableName", async (req, res) => {
+  try {
+    const { tableName } = req.params;
+    const [columns] = await db.execute(`DESCRIBE ${tableName}`);
+    res.json(columns);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error fetching schema", error: error.message });
+  }
 });
 
 // Middleware to verify JWT and attach user to request
@@ -763,7 +1059,7 @@ app.get(
       const [borrowed] = await db.execute(`
       SELECT COUNT(*) as count 
       FROM TB_T_Device d 
-      JOIN TB_M_StatusDevice s ON d.DVStatusID = s.DVStatusID 
+      JOIN TB_M_StatusDevice s ON d.StatusID = s.DVStatusID 
       WHERE s.StatusNameDV = 'ถูกยืม'
     `);
 
@@ -794,7 +1090,7 @@ app.get(
       const [pieData] = await db.execute(`
       SELECT s.StatusNameDV as name, COUNT(*) as value
       FROM TB_T_Device d
-      JOIN TB_M_StatusDevice s ON d.DVStatusID = s.DVStatusID
+      JOIN TB_M_StatusDevice s ON d.StatusID = s.DVStatusID
       WHERE s.StatusNameDV IN ('ว่าง', 'ถูกยืม')
       GROUP BY s.StatusNameDV
     `);
@@ -851,10 +1147,10 @@ app.get("/api/dashboard/user-stats", verifyToken, async (req, res) => {
       `
       SELECT b.BorrowID, b.BorrowDate, b.ReturnDate, b.Status,
              bd.ItemName, bd.Quantity,
-             d.stickerid as AssetCode, d.sticker as Image
+             d.DeviceCode as AssetCode, d.Image
       FROM TB_T_Borrow b
       JOIN TB_T_BorrowDetail bd ON b.BorrowID = bd.BorrowID
-      LEFT JOIN TB_T_Device d ON bd.ItemName = d.devicename COLLATE utf8mb4_unicode_ci
+      LEFT JOIN TB_T_Device d ON bd.ItemName = d.DeviceName COLLATE utf8mb4_unicode_ci
       WHERE b.EMPID = ? AND b.Status = 'Approved'
       ORDER BY b.ReturnDate ASC
     `,
@@ -899,11 +1195,11 @@ app.get(
       const threshold = 5; // Alert if available items are less than 5
       const [rows] = await db.execute(
         `
-      SELECT d.devicename as ProductName, 
+      SELECT d.DeviceName, 
              SUM(CASE WHEN s.StatusNameDV = 'ว่าง' THEN 1 ELSE 0 END) as AvailableCount
       FROM TB_T_Device d
-      JOIN TB_M_StatusDevice s ON d.DVStatusID = s.DVStatusID
-      GROUP BY d.devicename
+      JOIN TB_M_StatusDevice s ON d.StatusID = s.DVStatusID
+      GROUP BY d.DeviceName
       HAVING AvailableCount < ?
       ORDER BY AvailableCount ASC
     `,
@@ -1103,9 +1399,9 @@ app.get("/api/borrows", verifyToken, async (req, res) => {
     for (let borrow of borrows) {
       const [details] = await db.execute(
         `
-        SELECT bd.*, d.stickerid as ProductCode, d.sticker as Image
+        SELECT bd.*, d.DeviceCode, d.Image
         FROM TB_T_BorrowDetail bd
-        LEFT JOIN TB_T_Device d ON bd.ItemName = d.devicename COLLATE utf8mb4_unicode_ci
+        LEFT JOIN TB_T_Device d ON bd.ItemName = d.DeviceName COLLATE utf8mb4_unicode_ci
         WHERE bd.BorrowID = ?
         `,
         [borrow.BorrowID],
@@ -1441,13 +1737,13 @@ app.put("/api/profile/:id/password", verifyToken, async (req, res) => {
 app.get("/api/products", async (req, res) => {
   try {
     const [products] = await db.execute(
-      `SELECT d.DVID as ProductID, d.devicename as ProductName, d.stickerid as ProductCode, 
-              d.sticker as Image, d.Brand, d.DeviceType,
+      `SELECT d.DVID, d.DeviceName, d.DeviceCode, d.SerialNumber,
+              d.Image, d.Brand, d.DeviceType, d.Price, d.Quantity, d.Description,
               d.CategoryID, c.CategoryName, 
-              d.DVStatusID as StatusID, s.StatusNameDV
+              d.StatusID, s.StatusNameDV
        FROM TB_T_Device d 
        LEFT JOIN TB_M_Category c ON d.CategoryID = c.CategoryID 
-       LEFT JOIN TB_M_StatusDevice s ON d.DVStatusID = s.DVStatusID
+       LEFT JOIN TB_M_StatusDevice s ON d.StatusID = s.DVStatusID
        ORDER BY d.DVID DESC`,
     );
     res.json(products);
@@ -1460,30 +1756,38 @@ app.get("/api/products", async (req, res) => {
 // Create product
 app.post("/api/products", verifyToken, checkAdmin, async (req, res) => {
   const {
-    ProductName,
-    ProductCode,
+    DeviceName,
+    DeviceCode,
+    SerialNumber,
     CategoryID,
     StatusID,
     Image,
     Brand,
     DeviceType,
+    Price,
+    Quantity,
+    Description,
   } = req.body;
 
-  if (!ProductName || !ProductCode || !CategoryID || !StatusID) {
+  if (!DeviceName || !DeviceCode || !CategoryID || !StatusID) {
     return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
   }
 
   try {
     const [result] = await db.execute(
-      "INSERT INTO TB_T_Device (devicename, stickerid, CategoryID, DVStatusID, sticker, Brand, DeviceType) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO TB_T_Device (DeviceName, DeviceCode, SerialNumber, CategoryID, StatusID, Image, Brand, DeviceType, Price, Quantity, Description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
-        ProductName,
-        ProductCode,
+        DeviceName,
+        DeviceCode,
+        SerialNumber || null,
         CategoryID,
         StatusID,
         Image || null,
         Brand || null,
         DeviceType || null,
+        Price || 0,
+        Quantity || 0,
+        Description || "",
       ],
     );
 
@@ -1500,29 +1804,37 @@ app.post("/api/products", verifyToken, checkAdmin, async (req, res) => {
 app.put("/api/products/:id", verifyToken, checkAdmin, async (req, res) => {
   const { id } = req.params;
   const {
-    ProductName,
-    ProductCode,
+    DeviceName,
+    DeviceCode,
+    SerialNumber,
     CategoryID,
     StatusID,
     Image,
     Brand,
     DeviceType,
+    Price,
+    Quantity,
+    Description,
   } = req.body;
 
   try {
     let query =
-      "UPDATE TB_T_Device SET devicename=?, stickerid=?, CategoryID=?, DVStatusID=?, Brand=?, DeviceType=?";
+      "UPDATE TB_T_Device SET DeviceName=?, DeviceCode=?, SerialNumber=?, CategoryID=?, StatusID=?, Brand=?, DeviceType=?, Price=?, Quantity=?, Description=?";
     let params = [
-      ProductName,
-      ProductCode,
+      DeviceName,
+      DeviceCode,
+      SerialNumber || null,
       CategoryID,
       StatusID,
       Brand || null,
       DeviceType || null,
+      Price || 0,
+      Quantity || 0,
+      Description || "",
     ];
 
     if (Image !== undefined) {
-      query += ", sticker=?";
+      query += ", Image=?";
       params.push(Image);
     }
 
@@ -1654,14 +1966,14 @@ app.post(
       let errors = [];
 
       // Iterate rows (starting from row 2 to skip header)
-      // Expected Columns: ProductName | ProductCode | CategoryName | StatusName
+      // Expected Columns: DeviceName | DeviceCode | CategoryName | StatusName
       worksheet.eachRow((row, rowNumber) => {
         if (rowNumber === 1) return; // Skip header
 
-        const productName = row.getCell(1).value
+        const deviceName = row.getCell(1).value
           ? row.getCell(1).value.toString().trim()
           : null;
-        const productCode = row.getCell(2).value
+        const deviceCode = row.getCell(2).value
           ? row.getCell(2).value.toString().trim()
           : null;
         const categoryName = row.getCell(3).value
@@ -1672,7 +1984,7 @@ app.post(
           : null;
         // Optional: Brand (Col 5), Type (Col 6)
 
-        if (!productName || !productCode) {
+        if (!deviceName || !deviceCode) {
           errors.push(`Row ${rowNumber}: Missing Name or Code`);
           return;
         }
@@ -1703,22 +2015,31 @@ app.post(
       // Better approach: iterate rows manually
       for (let i = 2; i <= worksheet.rowCount; i++) {
         const row = worksheet.getRow(i);
-        const productName = row.getCell(1).text?.trim();
-        const productCode = row.getCell(2).text?.trim();
+        const deviceName = row.getCell(1).text?.trim();
+        const deviceCode = row.getCell(2).text?.trim();
+        const serialNumber = row.getCell(7).text?.trim() || null; // Assume SerialNumber is in Column 7
         const categoryName = row.getCell(3).text?.trim();
         const statusName = row.getCell(4).text?.trim();
         const brand = row.getCell(5).text?.trim() || null;
         const deviceType = row.getCell(6).text?.trim() || null;
 
-        if (!productName || !productCode) continue;
+        if (!deviceName || !deviceCode) continue;
 
         const categoryId = categoryMap.get(categoryName?.toLowerCase());
         const statusId = statusMap.get(statusName?.toLowerCase());
 
         if (categoryId && statusId) {
           await connection.execute(
-            "INSERT INTO TB_T_Device (devicename, stickerid, CategoryID, DVStatusID, Brand, DeviceType) VALUES (?, ?, ?, ?, ?, ?)",
-            [productName, productCode, categoryId, statusId, brand, deviceType],
+            "INSERT INTO TB_T_Device (DeviceName, DeviceCode, SerialNumber, CategoryID, StatusID, Brand, DeviceType) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [
+              deviceName,
+              deviceCode,
+              serialNumber,
+              categoryId,
+              statusId,
+              brand,
+              deviceType,
+            ],
           );
           successCount++;
         }
@@ -1738,14 +2059,14 @@ app.post(
   },
 );
 
-// --- Master Product Management Endpoints (TB_M_Product) ---
+// --- Master Product Management Endpoints (TB_T_Device) ---
 // Optional: For managing the master product list if needed separately from devices
 
 // Get all master products
 app.get("/api/master-products", async (req, res) => {
   try {
     const [products] = await db.execute(
-      "SELECT * FROM TB_M_Product ORDER BY CreatedDate DESC",
+      "SELECT * FROM TB_T_Device ORDER BY CreatedDate DESC",
     );
     res.json(products);
   } catch (error) {
@@ -1756,17 +2077,17 @@ app.get("/api/master-products", async (req, res) => {
 
 // Create master product
 app.post("/api/master-products", verifyToken, checkAdmin, async (req, res) => {
-  const { ProductName, ProductCode, Price, Quantity, Description, Image } =
+  const { DeviceName, DeviceCode, Price, Quantity, Description, Image } =
     req.body;
 
-  if (!ProductName) {
+  if (!DeviceName) {
     return res.status(400).json({ message: "กรุณากรอกชื่อสินค้า" });
   }
 
   try {
     const [result] = await db.execute(
-      "INSERT INTO TB_M_Product (ProductName, ProductCode, Price, Quantity, Description, Image) VALUES (?, ?, ?, ?, ?, ?)",
-      [ProductName, ProductCode, Price, Quantity, Description, Image],
+      "INSERT INTO TB_T_Device (DeviceName, DeviceCode, Price, Quantity, Description, Image) VALUES (?, ?, ?, ?, ?, ?)",
+      [DeviceName, DeviceCode, Price, Quantity, Description, Image],
     );
     res
       .status(201)
@@ -1785,7 +2106,7 @@ app.delete(
   async (req, res) => {
     const { id } = req.params;
     try {
-      await db.execute("DELETE FROM TB_M_Product WHERE ProductID = ?", [id]);
+      await db.execute("DELETE FROM TB_T_Device WHERE DVID = ?", [id]);
       res.json({ message: "ลบสินค้าหลักสำเร็จ" });
     } catch (error) {
       console.error("Error deleting master product:", error);
@@ -1798,9 +2119,9 @@ app.delete(
 app.get("/api/stock-movements", verifyToken, checkAdmin, async (req, res) => {
   try {
     const [logs] = await db.execute(`
-      SELECT l.*, p.ProductName, p.ProductCode 
+      SELECT l.*, p.DeviceName, p.DeviceCode 
       FROM TB_L_StockMovement l
-      LEFT JOIN TB_M_Product p ON l.ProductID = p.ProductID
+      LEFT JOIN TB_T_Device p ON l.ProductID = p.DVID
       ORDER BY l.CreatedDate DESC
     `);
     res.json(logs);
