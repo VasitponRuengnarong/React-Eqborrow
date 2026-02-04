@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   User,
@@ -8,7 +8,6 @@ import {
   FileText,
   Building,
   Users,
-  Image as ImageIcon,
   Eye,
   EyeOff,
   Camera,
@@ -18,6 +17,7 @@ import {
 import Swal from "sweetalert2";
 import "./Register.css";
 import Aurora from "./Aurora";
+import CustomSelect from "./CustomSelect"; // Import the new component
 
 const Register = () => {
   const navigate = useNavigate();
@@ -44,7 +44,7 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState(null); // 'institution' | 'department' | null
+  const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false); // State for duplicate check loading
   const [currentStep, setCurrentStep] = useState(1);
 
   useEffect(() => {
@@ -78,17 +78,6 @@ const Register = () => {
 
     fetchMasterData();
   }, []);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (activeDropdown && !event.target.closest(".input-wrapper")) {
-        setActiveDropdown(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [activeDropdown]);
 
   const handleChange = (e) => {
     const { id, value } = e.target;
@@ -140,9 +129,45 @@ const Register = () => {
       }
       return newData;
     });
-    setActiveDropdown(null);
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
   };
+
+  // Function to check for duplicate username/email
+  const checkDuplicateCredentials = useCallback(async (username, email) => {
+    setIsCheckingDuplicate(true);
+    let usernameExists = false;
+    let emailExists = false;
+    try {
+      // Check username
+      const usernameRes = await fetch(
+        `/api/check-username?username=${username}`,
+      );
+      const usernameData = await usernameRes.json();
+      if (usernameData.exists) {
+        usernameExists = true;
+      }
+
+      // Check email
+      const emailRes = await fetch(`/api/check-email?email=${email}`);
+      const emailData = await emailRes.json();
+      if (emailData.exists) {
+        emailExists = true;
+      }
+    } catch (error) {
+      console.error("Error checking duplicates:", error);
+      Swal.fire(
+        "เกิดข้อผิดพลาด!",
+        "ไม่สามารถตรวจสอบข้อมูลซ้ำได้ กรุณาลองใหม่",
+        "error",
+      );
+    } finally {
+      setIsCheckingDuplicate(false);
+    }
+    return { usernameExists, emailExists };
+  }, []);
+
+  // --- Validation Logic ---
+  // (ปรับปรุง validateStep เพื่อรวมการตรวจสอบซ้ำ)
 
   const validateStep = (step) => {
     const newErrors = {};
@@ -165,10 +190,11 @@ const Register = () => {
     }
 
     if (step === 3) {
+      // Validation for Step 3 (Account) - will be enhanced with duplicate check
       if (!formData.username.trim()) newErrors.username = "กรุณากรอกชื่อผู้ใช้";
       if (!formData.email.trim()) {
         newErrors.email = "กรุณากรอกอีเมล";
-      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      } else if (!/\S+@\S+\.\S/.test(formData.email)) {
         newErrors.email = "รูปแบบอีเมลไม่ถูกต้อง";
       }
     }
@@ -187,10 +213,34 @@ const Register = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (validateStep(currentStep)) {
+      // Special handling for Step 3 to check for duplicates
+      if (currentStep === 3) {
+        setLoading(true); // Show loading for duplicate check
+        const { usernameExists, emailExists } = await checkDuplicateCredentials(
+          formData.username,
+          formData.email,
+        );
+        setLoading(false);
+
+        const duplicateErrors = {};
+        if (usernameExists) {
+          duplicateErrors.username = "ชื่อผู้ใช้นี้มีอยู่ในระบบแล้ว";
+        }
+        if (emailExists) {
+          duplicateErrors.email = "อีเมลนี้มีอยู่ในระบบแล้ว";
+        }
+
+        if (Object.keys(duplicateErrors).length > 0) {
+          setErrors((prev) => ({ ...prev, ...duplicateErrors }));
+          return; // Stop if duplicates found
+        }
+      }
       setCurrentStep((prev) => prev + 1);
     }
+    // Scroll to top of form section to ensure user sees next step
+    document.querySelector(".register-form-section").scrollTo(0, 0);
   };
 
   const handleBack = () => {
@@ -199,6 +249,24 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Final validation including duplicate check
+    if (!validateStep(4)) return;
+
+    setLoading(true); // Show loading for duplicate check
+    const { usernameExists, emailExists } = await checkDuplicateCredentials(
+      formData.username,
+      formData.email,
+    );
+    setLoading(false);
+
+    if (usernameExists || emailExists) {
+      setErrors((prev) => ({
+        ...prev,
+        ...(usernameExists && { username: "ชื่อผู้ใช้นี้มีอยู่ในระบบแล้ว" }),
+        ...(emailExists && { email: "อีเมลนี้มีอยู่ในระบบแล้ว" }),
+      }));
+      return; // Stop if duplicates found
+    }
     if (!validateStep(4)) return;
 
     setLoading(true);
@@ -354,7 +422,7 @@ const Register = () => {
                   <h3 className="section-title">ข้อมูลส่วนตัว</h3>
                   <div className="form-row">
                     <div
-                      className={`form-group form-column ${errors.firstName ? "has-error" : ""}`}
+                      className={`form-group ${errors.firstName ? "has-error" : ""}`}
                     >
                       <label htmlFor="firstName" className="input-label">
                         ชื่อจริง
@@ -376,7 +444,7 @@ const Register = () => {
                       )}
                     </div>
                     <div
-                      className={`form-group form-column ${errors.lastName ? "has-error" : ""}`}
+                      className={`form-group ${errors.lastName ? "has-error" : ""}`}
                     >
                       <label htmlFor="lastName" className="input-label">
                         นามสกุล
@@ -399,7 +467,7 @@ const Register = () => {
 
                   <div className="form-row">
                     <div
-                      className={`form-group form-column ${errors.employeeId ? "has-error" : ""}`}
+                      className={`form-group ${errors.employeeId ? "has-error" : ""}`}
                     >
                       <label htmlFor="employeeId" className="input-label">
                         รหัสพนักงาน
@@ -421,7 +489,7 @@ const Register = () => {
                       )}
                     </div>
                     <div
-                      className={`form-group form-column ${errors.phone ? "has-error" : ""}`}
+                      className={`form-group ${errors.phone ? "has-error" : ""}`}
                     >
                       <label htmlFor="phone" className="input-label">
                         เบอร์โทรศัพท์
@@ -451,57 +519,23 @@ const Register = () => {
                 <h3 className="section-title">สังกัด</h3>
                 <div className="form-row">
                   <div
-                    className={`form-group form-column ${errors.institutionId ? "has-error" : ""}`}
+                    className={`form-group ${errors.institutionId ? "has-error" : ""}`}
                   >
                     <label htmlFor="institutionId" className="input-label">
                       สำนัก
                     </label>
-                    <div className="input-wrapper">
-                      <Building className="input-icon" size={20} />
-                      <div
-                        className={`form-select custom-select-trigger ${activeDropdown === "institution" ? "active" : ""}`}
-                        onClick={() =>
-                          !dataLoading &&
-                          setActiveDropdown(
-                            activeDropdown === "institution"
-                              ? null
-                              : "institution",
-                          )
-                        }
-                      >
-                        <span
-                          className={
-                            !formData.institutionId ? "placeholder-text" : ""
-                          }
-                        >
-                          {getInstitutionName(formData.institutionId) ||
-                            "-- เลือกสำนัก --"}
-                        </span>
-                        <ChevronDown
-                          size={16}
-                          className={`dropdown-arrow ${activeDropdown === "institution" ? "rotate" : ""}`}
-                        />
-                      </div>
-
-                      {activeDropdown === "institution" && (
-                        <div className="chip-popup">
-                          {masterData.institutions.map((inst) => (
-                            <div
-                              key={inst.InstitutionID}
-                              className={`chip-option ${Number(formData.institutionId) === inst.InstitutionID ? "active" : ""}`}
-                              onClick={() =>
-                                handleSelect(
-                                  "institutionId",
-                                  inst.InstitutionID,
-                                )
-                              }
-                            >
-                              {inst.InstitutionName}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <CustomSelect
+                      icon={Building}
+                      placeholder="-- เลือกสำนัก --"
+                      options={masterData.institutions}
+                      value={formData.institutionId}
+                      onSelect={(value) => handleSelect("institutionId", value)}
+                      displayValue={getInstitutionName(formData.institutionId)}
+                      optionValueKey="InstitutionID"
+                      optionLabelKey="InstitutionName"
+                      disabled={dataLoading}
+                      error={!!errors.institutionId}
+                    />
                     {errors.institutionId && (
                       <span className="error-message">
                         {errors.institutionId}
@@ -509,63 +543,23 @@ const Register = () => {
                     )}
                   </div>
                   <div
-                    className={`form-group form-column ${errors.departmentId ? "has-error" : ""}`}
+                    className={`form-group ${errors.departmentId ? "has-error" : ""}`}
                   >
                     <label htmlFor="departmentId" className="input-label">
                       ฝ่าย
                     </label>
-                    <div className="input-wrapper">
-                      <Users className="input-icon" size={20} />
-                      <div
-                        className={`form-select custom-select-trigger ${activeDropdown === "department" ? "active" : ""}`}
-                        onClick={() =>
-                          !dataLoading &&
-                          setActiveDropdown(
-                            activeDropdown === "department"
-                              ? null
-                              : "department",
-                          )
-                        }
-                      >
-                        <span
-                          className={
-                            !formData.departmentId ? "placeholder-text" : ""
-                          }
-                        >
-                          {getDepartmentName(formData.departmentId) ||
-                            "-- เลือกฝ่าย --"}
-                        </span>
-                        <ChevronDown
-                          size={16}
-                          className={`dropdown-arrow ${activeDropdown === "department" ? "rotate" : ""}`}
-                        />
-                      </div>
-
-                      {activeDropdown === "department" && (
-                        <div className="chip-popup">
-                          {filteredDepartments.length > 0 ? (
-                            filteredDepartments.map((dept) => (
-                              <div
-                                key={dept.DepartmentID}
-                                className={`chip-option ${Number(formData.departmentId) === dept.DepartmentID ? "active" : ""}`}
-                                onClick={() =>
-                                  handleSelect(
-                                    "departmentId",
-                                    dept.DepartmentID,
-                                  )
-                                }
-                              >
-                                {dept.DepartmentName}
-                              </div>
-                            ))
-                          ) : (
-                            <div className="no-options">
-                              ไม่มีฝ่ายในสังกัดนี้
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    <CustomSelect
+                      icon={Users}
+                      placeholder="-- เลือกฝ่าย --"
+                      options={filteredDepartments}
+                      value={formData.departmentId}
+                      onSelect={(value) => handleSelect("departmentId", value)}
+                      displayValue={getDepartmentName(formData.departmentId)}
+                      optionValueKey="DepartmentID"
+                      optionLabelKey="DepartmentName"
+                      disabled={dataLoading || !formData.institutionId}
+                      error={!!errors.departmentId}
+                    />
                     {errors.departmentId && (
                       <span className="error-message">
                         {errors.departmentId}
@@ -582,7 +576,7 @@ const Register = () => {
                 <h3 className="section-title">บัญชีผู้ใช้</h3>
                 <div className="form-row">
                   <div
-                    className={`form-group form-column ${errors.username ? "has-error" : ""}`}
+                    className={`form-group ${errors.username ? "has-error" : ""}`}
                   >
                     <label htmlFor="username" className="input-label">
                       ชื่อผู้ใช้
@@ -602,7 +596,7 @@ const Register = () => {
                     )}
                   </div>
                   <div
-                    className={`form-group form-column ${errors.email ? "has-error" : ""}`}
+                    className={`form-group ${errors.email ? "has-error" : ""}`}
                   >
                     <label htmlFor="email" className="input-label">
                       อีเมล
@@ -631,7 +625,7 @@ const Register = () => {
                 <h3 className="section-title">ความปลอดภัย</h3>
                 <div className="form-row">
                   <div
-                    className={`form-group form-column ${errors.password ? "has-error" : ""}`}
+                    className={`form-group ${errors.password ? "has-error" : ""}`}
                   >
                     <label htmlFor="password" className="input-label">
                       รหัสผ่าน
@@ -664,7 +658,7 @@ const Register = () => {
                   </div>
 
                   <div
-                    className={`form-group form-column ${errors.confirmPassword ? "has-error" : ""}`}
+                    className={`form-group ${errors.confirmPassword ? "has-error" : ""}`}
                   >
                     <label htmlFor="confirmPassword" className="input-label">
                       ยืนยันรหัสผ่าน
@@ -709,7 +703,7 @@ const Register = () => {
                 <button
                   type="submit"
                   className="register-btn"
-                  disabled={loading}
+                  disabled={loading || isCheckingDuplicate} // Disable if checking duplicates
                 >
                   {loading ? <div className="spinner"></div> : "สมัครสมาชิก"}
                 </button>

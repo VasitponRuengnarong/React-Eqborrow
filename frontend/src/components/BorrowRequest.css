@@ -338,7 +338,7 @@
   border: 1px solid #eee;
   border-radius: 16px;
   padding: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 11px 30px rgba(32, 32, 32, 0.289);
   z-index: 100;
   animation: popupFadeIn 0.3s ease-out;
   left: auto;

@@ -1,131 +1,159 @@
-.borrow-history-container {
+.history-container {
   padding: 20px;
-  background-color: #f5f7fa;
-  min-height: 100%;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.history-content {
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
 .history-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
 }
 
 .history-card {
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
   overflow: hidden;
-  border-left: 4px solid transparent;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .history-card:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-.history-header {
-  padding: 15px 20px;
-  border-bottom: 1px solid #eee;
+.history-card-header {
+  padding: 16px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #fff;
 }
 
-.header-left {
-  display: flex;
-  gap: 15px;
-  align-items: center;
+.history-id {
+  font-weight: 600;
+  color: #111827;
 }
 
-.borrow-id {
-  font-weight: bold;
-  color: #2c3e50;
-}
-
-.borrow-date {
-  color: #95a5a6;
+.history-id .label {
+  color: #6b7280;
+  font-weight: 400;
   font-size: 0.9rem;
+}
+
+.history-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.history-card-body {
+  padding: 16px;
+}
+
+.history-info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.info-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.info-value {
+  font-size: 0.9rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+.item-list-compact {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0 0;
+}
+
+.item-list-compact li {
+  font-size: 0.9rem;
+  color: #4b5563;
+  padding: 2px 0;
+  border-bottom: 1px dashed #f3f4f6;
+}
+
+.item-list-compact li:last-child {
+  border-bottom: none;
+}
+
+.item-list-compact .qty {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  margin-left: 4px;
+}
+
+.history-card-footer {
+  padding: 12px 16px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
 }
 
 .status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
+  gap: 6px;
+  padding: 4px 10px;
   border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-.status-badge.pending {
-  background-color: #fff3cd;
-  color: #f39c12;
-}
-.status-badge.approved {
-  background-color: #d4edda;
-  color: #27ae60;
-}
-.status-badge.rejected {
-  background-color: #f8d7da;
-  color: #c0392b;
-}
-.status-badge.returned {
-  background-color: #d1ecf1;
-  color: #17a2b8;
-}
-
-.history-body {
-  padding: 20px;
-}
-
-.history-info {
-  margin-bottom: 15px;
-  color: #34495e;
-}
-
-.history-info p {
-  margin: 5px 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.mini-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-.mini-table th {
-  text-align: left;
-  padding: 8px;
-  background-color: #f9f9f9;
-  color: #7f8c8d;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
-.mini-table td {
-  padding: 8px;
-  border-bottom: 1px solid #eee;
-  color: #2c3e50;
+.status-badge.approved {
+  background: #dcfce7;
+  color: #166534;
+}
+.status-badge.pending {
+  background: #fef9c3;
+  color: #854d0e;
+}
+.status-badge.rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.status-badge.returned {
+  background: #eff6ff;
+  color: #1e40af;
 }
 
-.mini-table tr:last-child td {
-  border-bottom: none;
-}
-
-.btn-return {
-  background-color: #3498db;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 20px;
+.reject-reason {
   font-size: 0.8rem;
-  cursor: pointer;
-  margin-left: 10px;
-  transition: background-color 0.2s;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.btn-return:hover {
-  background-color: #2980b9;
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #9ca3af;
 }

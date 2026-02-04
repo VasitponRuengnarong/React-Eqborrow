@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Mail, ArrowLeft } from "lucide-react";
 import Swal from "sweetalert2";
-import "./Login.css"; // ใช้ CSS เดียวกับหน้า Login เพื่อความคุมธีม
+import "./ForgotPassword.css";
 import Aurora from "./Aurora";
 import { apiFetch } from "./api";
 
@@ -65,10 +65,7 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div
-      className="login-page"
-      style={{ position: "relative", overflow: "hidden" }}
-    >
+    <div className="forgot-password-page">
       <div
         style={{
           position: "absolute",
@@ -87,16 +84,16 @@ const ForgotPassword = () => {
         />
       </div>
       <div
-        className="login-container"
+        className="forgot-password-container"
         style={{ position: "relative", zIndex: 1 }}
       >
         {/* Left Side - Brand */}
-        <div className="login-brand">
+        <div className="forgot-password-brand">
           <div className="brand-content">
             <div className="thai-pbs-logo">
               <img
-                src="/frontend/public/images/logo.png"
-                alt="Eqborrow Logo"
+                src="/images/logo.png"
+                alt="Eqborrow Logo" // More specific alt text
                 style={{ height: "120px", width: "auto" }}
               />
             </div>
@@ -106,13 +103,17 @@ const ForgotPassword = () => {
         </div>
 
         {/* Right Side - Form */}
-        <div className="login-form-section">
-          <div className="login-header">
+        <div className="forgot-password-form-section">
+          <div className="forgot-password-header">
             <h2>ลืมรหัสผ่าน?</h2>
             <p>กรอกอีเมลที่ใช้สมัครสมาชิกเพื่อรับลิงก์รีเซ็ตรหัสผ่าน</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="login-form" noValidate>
+          <form
+            onSubmit={handleSubmit}
+            className="forgot-password-form"
+            noValidate
+          >
             <div className={`form-group ${errors.email ? "has-error" : ""}`}>
               <Mail className="input-icon" size={20} />
               <input
@@ -120,20 +121,29 @@ const ForgotPassword = () => {
                 id="email"
                 placeholder=" "
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors({ ...errors, email: "" });
+                }}
               />
-              <label htmlFor="email">อีเมล</label>
+              <label htmlFor="email" className="input-label">
+                อีเมล
+              </label>
               {errors.email && (
                 <span className="error-message">{errors.email}</span>
               )}
             </div>
 
-            <button type="submit" className="login-btn" disabled={loading}>
+            <button
+              type="submit"
+              className="forgot-password-btn"
+              disabled={loading}
+            >
               {loading ? <div className="spinner"></div> : "ส่งลิงก์รีเซ็ต"}
             </button>
           </form>
 
-          <div className="login-footer">
+          <div className="forgot-password-footer">
             <p>
               <Link
                 to="/login"

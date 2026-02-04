@@ -95,6 +95,47 @@ db.getConnection()
       )
     `);
 
+    // --- NEW: TB_M_Brand ---
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS TB_M_Brand (
+        BrandID INT AUTO_INCREMENT PRIMARY KEY,
+        BrandName VARCHAR(100) NOT NULL UNIQUE
+      )
+    `);
+
+    // --- NEW: TB_M_Type ---
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS TB_M_Type (
+        TypeID INT AUTO_INCREMENT PRIMARY KEY,
+        TypeName VARCHAR(100) NOT NULL UNIQUE
+      )
+    `);
+
+    // --- NEW: TB_M_Model ---
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS TB_M_Model (
+        ModelID INT AUTO_INCREMENT PRIMARY KEY,
+        ModelName VARCHAR(100) NOT NULL,
+        BrandID INT,
+        FOREIGN KEY (BrandID) REFERENCES TB_M_Brand(BrandID) ON DELETE SET NULL
+      )
+    `);
+
+    // --- NEW: TB_M_Product (Master) ---
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS TB_M_Product (
+        ProductID INT AUTO_INCREMENT PRIMARY KEY,
+        ProductName VARCHAR(255) NOT NULL,
+        ModelID INT,
+        CategoryID INT,
+        TypeID INT,
+        Description TEXT,
+        FOREIGN KEY (ModelID) REFERENCES TB_M_Model(ModelID) ON DELETE SET NULL,
+        FOREIGN KEY (CategoryID) REFERENCES TB_M_Category(CategoryID) ON DELETE SET NULL,
+        FOREIGN KEY (TypeID) REFERENCES TB_M_Type(TypeID) ON DELETE SET NULL
+      )
+    `);
+
     // Auto-create TB_M_StatusDevice table
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS TB_M_StatusDevice (
@@ -152,8 +193,8 @@ db.getConnection()
         reset_token_expires DATETIME,
         CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (RoleID) REFERENCES TB_M_Role(RoleID),
-        FOREIGN KEY (InstitutionID) REFERENCES TB_M_Institution(InstitutionID),
-        FOREIGN KEY (DepartmentID) REFERENCES TB_M_Department(DepartmentID),
+        FOREIGN KEY (InstitutionID) REFERENCES TB_M_Institution(InstitutionID) ON DELETE SET NULL,
+        FOREIGN KEY (DepartmentID) REFERENCES TB_M_Department(DepartmentID) ON DELETE SET NULL,
         FOREIGN KEY (EMPStatusID) REFERENCES TB_M_StatusEMP(EMPStatusID)
       )
     `);
@@ -197,9 +238,13 @@ db.getConnection()
         Image LONGTEXT,
         CategoryID INT,
         StatusID INT,
+        BrandID INT,
+        TypeID INT,
         Brand VARCHAR(100),
         DeviceType VARCHAR(100),
-        CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP
+        CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (BrandID) REFERENCES TB_M_Brand(BrandID) ON DELETE SET NULL,
+        FOREIGN KEY (TypeID) REFERENCES TB_M_Type(TypeID) ON DELETE SET NULL
       )
     `);
 
@@ -328,6 +373,349 @@ db.getConnection()
         console.log("Adding Description column to TB_T_Device...");
         await connection.execute(
           "ALTER TABLE TB_T_Device ADD COLUMN Description TEXT",
+        );
+      }
+    }
+
+    // --- SEED DATA: Populate all tables with requested equipment ---
+    const equipmentData = [
+      {
+        name: "Sony Alpha 7 IV",
+        brand: "Sony",
+        type: "Camera",
+        category: "Camera & Lens",
+        desc: "Full-frame mirrorless camera, 33MP sensor, 4K 60p video, real-time Eye AF, hybrid autofocus system, professional photography and videography.",
+      },
+      {
+        name: "Sony Alpha A7S III",
+        brand: "Sony",
+        type: "Camera",
+        category: "Camera & Lens",
+        desc: "Full-frame mirrorless camera, 12.1MP optimized for video, 4K 120p recording, high ISO sensitivity, low light performance, S-Cinetone.",
+      },
+      {
+        name: "Sony FX3",
+        brand: "Sony",
+        type: "Camera",
+        category: "Camera & Lens",
+        desc: "Cinema Line full-frame camera, compact cage-free design, 4K 120p, active cooling fan, XLR handle unit, cinematic color science.",
+      },
+      {
+        name: "Sony FE 24-70mm GM II",
+        brand: "Sony",
+        type: "Lens",
+        category: "Camera & Lens",
+        desc: "G Master standard zoom lens, F2.8 constant aperture, lightweight design, advanced autofocus, high resolution, nano AR coating.",
+      },
+      {
+        name: "Canon EOS R5",
+        brand: "Canon",
+        type: "Camera",
+        category: "Camera & Lens",
+        desc: "Professional full-frame mirrorless, 45MP resolution, 8K RAW video recording, in-body image stabilization (IBIS), Dual Pixel CMOS AF II.",
+      },
+      {
+        name: "Canon EOS C70",
+        brand: "Canon",
+        type: "Camera",
+        category: "Camera & Lens",
+        desc: "Cinema EOS camera, RF mount, Super 35mm DGO sensor, 4K 120p high frame rate, compact body, professional filmmaking tool.",
+      },
+      {
+        name: "Canon RF 15-35mm F2.8 L IS USM",
+        brand: "Canon",
+        type: "Lens",
+        category: "Camera & Lens",
+        desc: "Ultra-wide zoom lens, F2.8 constant aperture, image stabilization, Nano USM motor, L-series weather-sealed build, landscape and architecture.",
+      },
+      {
+        name: "Panasonic Lumix GH6",
+        brand: "Panasonic",
+        type: "Camera",
+        category: "Camera & Lens",
+        desc: "Micro Four Thirds mirrorless camera, 5.7K 60p video, Apple ProRes support, built-in active cooling, dynamic range boost, V-Log installed.",
+      },
+      {
+        name: "Panasonic Lumix S5 II",
+        brand: "Panasonic",
+        type: "Camera",
+        category: "Camera & Lens",
+        desc: "Full-frame mirrorless camera, Phase Hybrid AF, Active I.S., unlimited 4K 60p recording, 24.2MP sensor, real-time LUT.",
+      },
+      {
+        name: "Panasonic HC-X2000",
+        brand: "Panasonic",
+        type: "Camera",
+        category: "Camera & Lens",
+        desc: "Professional 4K camcorder, 24x optical zoom, compact and lightweight, 3G-SDI output, livestreaming capabilities, LEICA Dicomar lens.",
+      },
+      {
+        name: "Shure SM7B",
+        brand: "Shure",
+        type: "Microphone",
+        category: "Audio & Headphones",
+        desc: "Dynamic vocal microphone, cardioid pattern, flat wide-range frequency response, electromagnetic shielding, standard for podcasting and broadcasting.",
+      },
+      {
+        name: "Shure SM58",
+        brand: "Shure",
+        type: "Microphone",
+        category: "Audio & Headphones",
+        desc: "Legendary dynamic vocal microphone, cardioid pattern, pneumatic shock mount, built-in pop filter, durable construction for live performance.",
+      },
+      {
+        name: "Shure SRH1540",
+        brand: "Shure",
+        type: "Headphones",
+        category: "Audio & Headphones",
+        desc: "Premium closed-back headphones, 40mm neodymium drivers, carbon fiber construction, Alcantara ear pads, audiophile sound quality.",
+      },
+      {
+        name: "Sennheiser MKH 416",
+        brand: "Sennheiser",
+        type: "Microphone",
+        category: "Audio & Headphones",
+        desc: "Short shotgun interference tube microphone, high directivity, moisture resistant, industry standard for film, TV, and outdoor recording.",
+      },
+      {
+        name: "Sennheiser EW 112P G4",
+        brand: "Sennheiser",
+        type: "Microphone",
+        category: "Audio & Headphones",
+        desc: "Portable wireless microphone system, includes ME 2-II lavalier mic, robust bodypack transmitter, broadcast quality sound, reliable UHF transmission.",
+      },
+      {
+        name: "Sennheiser HD 280 Pro",
+        brand: "Sennheiser",
+        type: "Headphones",
+        category: "Audio & Headphones",
+        desc: "Dynamic closed-back monitor headphones, high ambient noise attenuation, accurate linear sound reproduction, collapsible design for mixing.",
+      },
+      {
+        name: "MacBook Pro 14",
+        brand: "Apple",
+        type: "Laptop",
+        category: "Computer & Display",
+        desc: "14-inch Liquid Retina XDR display, Apple M2/M3 Pro chip, high-performance laptop, 1080p FaceTime camera, six-speaker sound system.",
+      },
+      {
+        name: "MacBook Pro 16 M1",
+        brand: "Apple",
+        type: "Laptop",
+        category: "Computer & Display",
+        desc: "16-inch Liquid Retina XDR display, Apple M1 Pro/Max chip, long battery life, studio-quality mics, professional creative workstation.",
+      },
+      {
+        name: "iPad Pro 12.9",
+        brand: "Apple",
+        type: "Tablet",
+        category: "Computer & Display",
+        desc: "12.9-inch Liquid Retina XDR display, ProMotion technology, M1/M2 chip, Apple Pencil support, portable creative tablet.",
+      },
+      {
+        name: "Apple Studio Display",
+        brand: "Apple",
+        type: "Monitor",
+        category: "Computer & Display",
+        desc: "27-inch 5K Retina display, 12MP Ultra Wide camera with Center Stage, six-speaker spatial audio, P3 wide color gamut.",
+      },
+      {
+        name: "Dell Latitude 7420",
+        brand: "Dell",
+        type: "Laptop",
+        category: "Computer & Display",
+        desc: "Business laptop, 14-inch FHD display, Intel Core i7, lightweight carbon fiber design, privacy features, long battery life.",
+      },
+      {
+        name: "Dell Precision 5680",
+        brand: "Dell",
+        type: "Laptop",
+        category: "Computer & Display",
+        desc: "Mobile workstation, 16-inch display, NVIDIA RTX graphics, Intel Core i9, high performance for 3D rendering and CAD applications.",
+      },
+      {
+        name: "Dell XPS 15",
+        brand: "Dell",
+        type: "Laptop",
+        category: "Computer & Display",
+        desc: "Premium 15.6-inch laptop, OLED InfinityEdge display, CNC machined aluminum chassis, creator-focused performance, high-fidelity audio.",
+      },
+      {
+        name: "Dell UltraSharp U2723QE",
+        brand: "Dell",
+        type: "Monitor",
+        category: "Computer & Display",
+        desc: "27-inch 4K USB-C Hub monitor, IPS Black technology, high contrast ratio, 98% DCI-P3 color coverage, multitasking connectivity.",
+      },
+      {
+        name: "Manfrotto 504X Tripod",
+        brand: "Manfrotto",
+        type: "Tripod",
+        category: "Accessories",
+        desc: "Fluid video head with aluminum twin leg tripod, variable fluid drag system, counterbalance system, stable base for professional video.",
+      },
+      {
+        name: "Manfrotto MK055XPRO3",
+        brand: "Manfrotto",
+        type: "Tripod",
+        category: "Accessories",
+        desc: "Aluminum 3-section tripod, 90-degree column mechanism, Quick Power Lock levers, high load capacity, professional photography support.",
+      },
+      {
+        name: "Manfrotto MVH502AH",
+        brand: "Manfrotto",
+        type: "Tripod Head",
+        category: "Accessories",
+        desc: "Pro video head, flat base, variable fluid drag system on pan and tilt, counterbalance setting, smooth movement for DSLRs.",
+      },
+      {
+        name: "Manfrotto Pixi Evo",
+        brand: "Manfrotto",
+        type: "Tripod",
+        category: "Accessories",
+        desc: "Mini tripod, 2-section legs, adjustable angles, lightweight and portable, supports cameras up to 2.5kg, tabletop vlogging.",
+      },
+    ];
+
+    console.log("Seeding equipment data...");
+    for (const item of equipmentData) {
+      // 1. Category
+      await connection.execute(
+        "INSERT IGNORE INTO TB_M_Category (CategoryName) VALUES (?)",
+        [item.category],
+      );
+
+      // 2. Brand
+      await connection.execute(
+        "INSERT IGNORE INTO TB_M_Brand (BrandName) VALUES (?)",
+        [item.brand],
+      );
+
+      // 3. Type
+      await connection.execute(
+        "INSERT IGNORE INTO TB_M_Type (TypeName) VALUES (?)",
+        [item.type],
+      );
+
+      // Get IDs
+      const [catRes] = await connection.execute(
+        "SELECT CategoryID FROM TB_M_Category WHERE CategoryName = ?",
+        [item.category],
+      );
+      const [brandRes] = await connection.execute(
+        "SELECT BrandID FROM TB_M_Brand WHERE BrandName = ?",
+        [item.brand],
+      );
+      const [typeRes] = await connection.execute(
+        "SELECT TypeID FROM TB_M_Type WHERE TypeName = ?",
+        [item.type],
+      );
+
+      const catID = catRes[0].CategoryID;
+      const brandID = brandRes[0].BrandID;
+      const typeID = typeRes[0].TypeID;
+
+      // 4. Model (Assuming Model Name is the Item Name)
+      await connection.execute(
+        "INSERT IGNORE INTO TB_M_Model (ModelName, BrandID) VALUES (?, ?)",
+        [item.name, brandID],
+      );
+      const [modelRes] = await connection.execute(
+        "SELECT ModelID FROM TB_M_Model WHERE ModelName = ? AND BrandID = ?",
+        [item.name, brandID],
+      );
+      const modelID = modelRes[0].ModelID;
+
+      // 5. Product (Master)
+      const [prodExist] = await connection.execute(
+        "SELECT ProductID FROM TB_M_Product WHERE ProductName = ?",
+        [item.name],
+      );
+      if (prodExist.length === 0) {
+        await connection.execute(
+          "INSERT INTO TB_M_Product (ProductName, ModelID, CategoryID, TypeID, Description) VALUES (?, ?, ?, ?, ?)",
+          [item.name, modelID, catID, typeID, item.desc],
+        );
+      }
+
+      // 6. Device (Inventory)
+      const [devExist] = await connection.execute(
+        "SELECT DVID FROM TB_T_Device WHERE DeviceName = ?",
+        [item.name],
+      );
+      if (devExist.length === 0) {
+        const mockPrice = Math.floor(Math.random() * 50000) + 5000;
+        const mockQty = Math.floor(Math.random() * 10) + 1;
+        const deviceCode = `EQ-${catID}-${brandID}-${Math.floor(Math.random() * 1000)}`;
+        const serialNum = `SN-${Math.floor(Math.random() * 1000000)}`;
+
+        await connection.execute(
+          `
+            INSERT INTO TB_T_Device 
+            (DeviceName, DeviceCode, SerialNumber, CategoryID, StatusID, BrandID, TypeID, Brand, DeviceType, Price, Quantity, Description) 
+            VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            item.name,
+            deviceCode,
+            serialNum,
+            catID,
+            brandID,
+            typeID,
+            item.brand,
+            item.type,
+            mockPrice,
+            mockQty,
+            item.desc,
+          ],
+        );
+      }
+    }
+
+    // --- Data Migration: Brand/DeviceType Text -> ID ---
+    try {
+      // Check if BrandID exists
+      await connection.execute("SELECT BrandID FROM TB_T_Device LIMIT 1");
+    } catch (e) {
+      if (e.code === "ER_BAD_FIELD_ERROR") {
+        console.log("Migrating Brand text to BrandID...");
+        await connection.execute(
+          "ALTER TABLE TB_T_Device ADD COLUMN BrandID INT",
+        );
+        await connection.execute(
+          "ALTER TABLE TB_T_Device ADD CONSTRAINT FK_Device_Brand FOREIGN KEY (BrandID) REFERENCES TB_M_Brand(BrandID) ON DELETE SET NULL",
+        );
+
+        // Populate Master
+        await connection.execute(
+          "INSERT IGNORE INTO TB_M_Brand (BrandName) SELECT DISTINCT Brand FROM TB_T_Device WHERE Brand IS NOT NULL AND Brand != ''",
+        );
+        // Update IDs
+        await connection.execute(
+          "UPDATE TB_T_Device d JOIN TB_M_Brand b ON d.Brand = b.BrandName SET d.BrandID = b.BrandID",
+        );
+      }
+    }
+
+    try {
+      // Check if TypeID exists
+      await connection.execute("SELECT TypeID FROM TB_T_Device LIMIT 1");
+    } catch (e) {
+      if (e.code === "ER_BAD_FIELD_ERROR") {
+        console.log("Migrating DeviceType text to TypeID...");
+        await connection.execute(
+          "ALTER TABLE TB_T_Device ADD COLUMN TypeID INT",
+        );
+        await connection.execute(
+          "ALTER TABLE TB_T_Device ADD CONSTRAINT FK_Device_Type FOREIGN KEY (TypeID) REFERENCES TB_M_Type(TypeID) ON DELETE SET NULL",
+        );
+
+        // Populate Master
+        await connection.execute(
+          "INSERT IGNORE INTO TB_M_Type (TypeName) SELECT DISTINCT DeviceType FROM TB_T_Device WHERE DeviceType IS NOT NULL AND DeviceType != ''",
+        );
+        // Update IDs
+        await connection.execute(
+          "UPDATE TB_T_Device d JOIN TB_M_Type t ON d.DeviceType = t.TypeName SET d.TypeID = t.TypeID",
         );
       }
     }
@@ -843,7 +1231,7 @@ app.post("/api/register", async (req, res) => {
 
     // Auto-assign role based on employee ID pattern
     // Force assign 'User' role (3) for all public registrations
-    const finalRoleId = 3;
+    const finalRoleId = 2;
 
     // Insert new employee into TB_T_Employee
     const insertQuery =
@@ -1059,7 +1447,7 @@ app.get(
       const [borrowed] = await db.execute(`
       SELECT COUNT(*) as count 
       FROM TB_T_Device d 
-      JOIN TB_M_StatusDevice s ON d.StatusID = s.DVStatusID 
+      JOIN TB_M_StatusDevice s ON d.DVStatusID = s.DVStatusID 
       WHERE s.StatusNameDV = 'ถูกยืม'
     `);
 
@@ -1090,7 +1478,7 @@ app.get(
       const [pieData] = await db.execute(`
       SELECT s.StatusNameDV as name, COUNT(*) as value
       FROM TB_T_Device d
-      JOIN TB_M_StatusDevice s ON d.StatusID = s.DVStatusID
+      JOIN TB_M_StatusDevice s ON d.DVStatusID = s.DVStatusID 
       WHERE s.StatusNameDV IN ('ว่าง', 'ถูกยืม')
       GROUP BY s.StatusNameDV
     `);
@@ -1198,7 +1586,7 @@ app.get(
       SELECT d.DeviceName, 
              SUM(CASE WHEN s.StatusNameDV = 'ว่าง' THEN 1 ELSE 0 END) as AvailableCount
       FROM TB_T_Device d
-      JOIN TB_M_StatusDevice s ON d.StatusID = s.DVStatusID
+      JOIN TB_M_StatusDevice s ON d.DVStatusID = s.DVStatusID
       GROUP BY d.DeviceName
       HAVING AvailableCount < ?
       ORDER BY AvailableCount ASC
@@ -1737,19 +2125,56 @@ app.put("/api/profile/:id/password", verifyToken, async (req, res) => {
 app.get("/api/products", async (req, res) => {
   try {
     const [products] = await db.execute(
-      `SELECT d.DVID, d.DeviceName, d.DeviceCode, d.SerialNumber,
-              d.Image, d.Brand, d.DeviceType, d.Price, d.Quantity, d.Description,
-              d.CategoryID, c.CategoryName, 
-              d.StatusID, s.StatusNameDV
+      `SELECT d.DVID, d.devicename as DeviceName, d.stickerid as DeviceCode, d.serialnumber as SerialNumber,
+              d.sticker as Image, d.Brand, d.DeviceType, d.Price, d.Quantity, d.Description,
+              d.CategoryID, c.CategoryName,
+              d.DVStatusID as StatusID, s.StatusNameDV,
+              d.BrandID, b.BrandName,
+              d.TypeID, t.TypeName
        FROM TB_T_Device d 
        LEFT JOIN TB_M_Category c ON d.CategoryID = c.CategoryID 
-       LEFT JOIN TB_M_StatusDevice s ON d.StatusID = s.DVStatusID
+       LEFT JOIN TB_M_StatusDevice s ON d.DVStatusID = s.DVStatusID
+       LEFT JOIN TB_M_Brand b ON d.BrandID = b.BrandID
+       LEFT JOIN TB_M_Type t ON d.TypeID = t.TypeID
        ORDER BY d.DVID DESC`,
     );
     res.json(products);
   } catch (error) {
     console.error("Error fetching products:", error);
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการดึงข้อมูลสินค้า" });
+  }
+});
+
+// Search products
+app.get("/api/products/search", async (req, res) => {
+  const { q } = req.query;
+  try {
+    let sql = `SELECT d.DVID, d.devicename as DeviceName, d.stickerid as DeviceCode, d.serialnumber as SerialNumber,
+              d.sticker as Image, d.Brand, d.DeviceType, d.Price, d.Quantity, d.Description,
+              d.CategoryID, c.CategoryName,
+              d.DVStatusID as StatusID, s.StatusNameDV,
+              d.BrandID, b.BrandName,
+              d.TypeID, t.TypeName
+       FROM TB_T_Device d 
+       LEFT JOIN TB_M_Category c ON d.CategoryID = c.CategoryID 
+       LEFT JOIN TB_M_StatusDevice s ON d.DVStatusID = s.DVStatusID
+       LEFT JOIN TB_M_Brand b ON d.BrandID = b.BrandID
+       LEFT JOIN TB_M_Type t ON d.TypeID = t.TypeID`;
+
+    const params = [];
+    if (q) {
+      sql += ` WHERE d.devicename LIKE ? OR b.BrandName LIKE ? OR t.TypeName LIKE ? OR d.stickerid LIKE ?`;
+      const term = `%${q}%`;
+      params.push(term, term, term, term);
+    }
+
+    sql += ` ORDER BY d.DVID DESC`;
+
+    const [products] = await db.execute(sql, params);
+    res.json(products);
+  } catch (error) {
+    console.error("Error searching products:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการค้นหาสินค้า" });
   }
 });
 
@@ -1775,7 +2200,7 @@ app.post("/api/products", verifyToken, checkAdmin, async (req, res) => {
 
   try {
     const [result] = await db.execute(
-      "INSERT INTO TB_T_Device (DeviceName, DeviceCode, SerialNumber, CategoryID, StatusID, Image, Brand, DeviceType, Price, Quantity, Description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO TB_T_Device (devicename, stickerid, serialnumber, CategoryID, DVStatusID, sticker, Brand, DeviceType, Price, Quantity, Description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         DeviceName,
         DeviceCode,
@@ -1819,7 +2244,7 @@ app.put("/api/products/:id", verifyToken, checkAdmin, async (req, res) => {
 
   try {
     let query =
-      "UPDATE TB_T_Device SET DeviceName=?, DeviceCode=?, SerialNumber=?, CategoryID=?, StatusID=?, Brand=?, DeviceType=?, Price=?, Quantity=?, Description=?";
+      "UPDATE TB_T_Device SET devicename=?, stickerid=?, serialnumber=?, CategoryID=?, DVStatusID=?, Brand=?, DeviceType=?, Price=?, Quantity=?, Description=?";
     let params = [
       DeviceName,
       DeviceCode,
@@ -1834,7 +2259,7 @@ app.put("/api/products/:id", verifyToken, checkAdmin, async (req, res) => {
     ];
 
     if (Image !== undefined) {
-      query += ", Image=?";
+      query += ", sticker=?";
       params.push(Image);
     }
 
@@ -2030,7 +2455,7 @@ app.post(
 
         if (categoryId && statusId) {
           await connection.execute(
-            "INSERT INTO TB_T_Device (DeviceName, DeviceCode, SerialNumber, CategoryID, StatusID, Brand, DeviceType) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO TB_T_Device (devicename, stickerid, serialnumber, CategoryID, DVStatusID, Brand, DeviceType) VALUES (?, ?, ?, ?, ?, ?, ?)",
             [
               deviceName,
               deviceCode,
@@ -2086,7 +2511,7 @@ app.post("/api/master-products", verifyToken, checkAdmin, async (req, res) => {
 
   try {
     const [result] = await db.execute(
-      "INSERT INTO TB_T_Device (DeviceName, DeviceCode, Price, Quantity, Description, Image) VALUES (?, ?, ?, ?, ?, ?)",
+      "INSERT INTO TB_T_Device (devicename, stickerid, Price, Quantity, Description, sticker) VALUES (?, ?, ?, ?, ?, ?)",
       [DeviceName, DeviceCode, Price, Quantity, Description, Image],
     );
     res

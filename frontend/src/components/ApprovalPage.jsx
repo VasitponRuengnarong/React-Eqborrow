@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { apiFetch } from "./api";
 import Swal from "sweetalert2";
 import ImageDisplay from "./ImageDisplay"; // Import ImageDisplay
@@ -25,11 +25,7 @@ const ApprovalPage = () => {
   const [borrowToReturn, setBorrowToReturn] = useState(null);
   const [returnQuantities, setReturnQuantities] = useState({});
 
-  useEffect(() => {
-    fetchBorrows();
-  }, [filter]);
-
-  const fetchBorrows = async () => {
+  const fetchBorrows = useCallback(async () => {
     setLoading(true);
     try {
       // API เดิมดึงข้อมูลทั้งหมดมา แล้วเรามา filter ที่ Frontend
@@ -44,7 +40,11 @@ const ApprovalPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
+
+  useEffect(() => {
+    fetchBorrows();
+  }, [fetchBorrows]);
 
   useEffect(() => {
     if (borrowToReturn) {
@@ -233,19 +233,20 @@ const ApprovalPage = () => {
     <div className="management-page">
       <div className="page-header">
         <h2>อนุมัติการยืม-คืน</h2>
-        <p>จัดการคำขอยืมและยืนยันการคืนอุปกรณ์</p>
+        <p>จัดการคำขอยืมและยืนยันการคืนอุปกรณ์</p>{" "}
+        {/* Add transition for color */}
       </div>
 
       <div className="approval-controls">
         <div className="tabs-container">
-          <button
+          <button /* Add transition for background-color, color, box-shadow */
             className={`tab-btn ${filter === "Pending" ? "active" : ""}`}
             onClick={() => setFilter("Pending")}
           >
             รออนุมัติ
           </button>
           <button
-            className={`tab-btn ${filter === "Approved" ? "active" : ""}`}
+            className={`tab-btn ${filter === "Approved" ? "active" : ""}`} /* Add transition for background-color, color, box-shadow */
             onClick={() => setFilter("Approved")}
           >
             รอการคืน
@@ -253,7 +254,7 @@ const ApprovalPage = () => {
         </div>
         <div className="search-input-wrapper">
           <Search size={18} className="search-icon" />
-          <input
+          <input /* Add transition for background-color, color, border-color */
             type="text"
             className="search-input"
             placeholder="ค้นหาจากชื่อผู้ยืม..."
@@ -285,7 +286,7 @@ const ApprovalPage = () => {
       {isModalOpen && selectedItem && (
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
           <div
-            className="modal-content item-detail-modal"
+            className="modal-content item-detail-modal" /* Add transition for background-color, color, box-shadow */
             onClick={(e) => e.stopPropagation()}
           >
             <h2>รายละเอียดอุปกรณ์</h2>
@@ -314,7 +315,7 @@ const ApprovalPage = () => {
           onClick={() => setIsReturnModalOpen(false)}
         >
           <div
-            className="modal-content item-return-modal"
+            className="modal-content item-return-modal" /* Add transition for background-color, color, box-shadow */
             onClick={(e) => e.stopPropagation()}
           >
             <h2>ยืนยันการคืนอุปกรณ์</h2>
@@ -327,7 +328,7 @@ const ApprovalPage = () => {
                 <div key={item.BorrowDetailID} className="return-item">
                   <span className="return-item-name">{item.ItemName}</span>
                   <div className="return-quantity-control">
-                    <input
+                    <input /* Add transition for background-color, color, border-color */
                       type="number"
                       className="quantity-input"
                       value={returnQuantities[item.BorrowDetailID] || 0}

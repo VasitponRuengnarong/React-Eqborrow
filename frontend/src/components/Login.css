@@ -173,6 +173,11 @@
   z-index: 2;
 }
 
+.input-wrapper input {
+  width: 100%;
+  padding-left: 50px; /* Add padding to prevent text from overlapping the icon */
+}
+
 /* Focus within state for label and icon */
 .form-group:focus-within .input-label,
 .form-group:focus-within .input-icon {
@@ -217,7 +222,7 @@
 
 .password-toggle {
   position: absolute;
-  right: 0;
+  right: 16px; /* Adjust position to be inside the input area */
   background: none;
   border: none;
   cursor: pointer;

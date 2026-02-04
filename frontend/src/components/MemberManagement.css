@@ -1,121 +1,203 @@
-/* Specific styles for Member Management */
-.user-cell {
+.member-management-container {
+  padding: 20px;
+  background-color: var(--bg-body, #f9fafb);
+  min-height: 100%;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.controls-bar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.search-wrapper {
+  flex: 1;
+  min-width: 300px;
+  max-width: 500px;
+}
+
+.filter-wrapper {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #000000;
 }
 
-.avatar-circle {
-  width: 36px;
-  height: 36px;
-  background-color: #3498db;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-}
-
-.user-name {
-  font-weight: 500;
-  color: #000000;
-}
-.user-email {
-  font-size: 0.8rem;
-  color: #000000;
-}
-
-.add-row {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.add-row input {
-  padding: 0.6rem 1rem;
-  border: 1px solid #d1d5db;
+.role-select {
+  padding: 10px 16px;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  min-width: 250px;
-  font-size: 0.95rem;
-}
-
-.role-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-.role-badge.admin {
-  background-color: #e8daef;
-  color: #8e44ad;
-}
-.role-badge.user {
-  background-color: #d6eaf8;
-  color: #2980b9;
-}
-.role-badge.staff {
-  background-color: #d5f5e3;
-  color: #27ae60;
-}
-
-/* Chip Filter Styles */
-.filter-wrapper {
-  position: relative;
-}
-
-.chip-popup-container {
-  position: absolute;
-  top: calc(100% + 10px);
-  right: 0;
-  background: white;
-  border: 1px solid #eee;
-  border-radius: 16px;
-  padding: 15px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-  z-index: 100;
-  min-width: 280px;
-  animation: popupFadeIn 0.2s ease-out;
-}
-
-.chip-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.chip {
-  padding: 6px 12px;
-  border-radius: 20px;
-  border: 1px solid #e0e0e0;
-  background-color: #f5f5f5;
-  color: #555;
-  font-size: 13px;
-  font-family: "Kanit", sans-serif;
+  background-color: white;
   cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  font-size: 0.95rem;
+  color: #374151;
+  outline: none;
 }
 
-.chip:hover {
-  background-color: #e0e0e0;
-}
-
-.chip.active {
-  background-color: #ff8000;
-  color: white;
+.role-select:focus {
   border-color: #ff8000;
 }
 
-@keyframes popupFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.table-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+}
+
+.members-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+.members-table th {
+  text-align: left;
+  padding: 16px;
+  background-color: #f9fafb;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* กำหนดความกว้างของคอลัมน์ให้เหมาะสม */
+.members-table th:nth-child(2) {
+  width: 15%;
+} /* รหัสพนักงาน */
+.members-table th:nth-child(4) {
+  width: 12%;
+} /* ตำแหน่ง */
+.members-table th:last-child {
+  width: 15%;
+} /* จัดการ */
+
+.members-table td {
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+  color: #374151;
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.avatar-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-info-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-fullname {
+  font-weight: 500;
+  color: #111827;
+}
+
+.user-email {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.dept-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.dept-info small {
+  color: #6b7280;
+}
+
+.role-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.role-badge.admin {
+  background-color: #fee2e2;
+  color: #ef4444;
+}
+.role-badge.user {
+  background-color: #eff6ff;
+  color: #3b82f6;
+}
+.role-badge.approver {
+  background-color: #fff7ed;
+  color: #f97316;
+}
+
+.status-active {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #22c55e;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.role-edit-select {
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background-color: white;
+  cursor: pointer;
+}
+
+.btn-delete-icon {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-delete-icon:hover {
+  background-color: #fee2e2;
+}
+
+.btn-delete-icon:disabled {
+  color: #d1d5db;
+  cursor: not-allowed;
+}
+
+.text-center {
+  text-align: center;
 }

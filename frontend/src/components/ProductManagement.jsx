@@ -1,21 +1,21 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Search,
   Edit,
   Trash2,
-  Save,
   X,
   Plus,
-  Image as ImageIcon,
   ChevronLeft,
   ChevronRight,
   FileUp,
+  FileDown,
   Filter,
   Loader,
   Layers,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import "./ProductManagement.css";
-import "./Management.css";
 import Swal from "sweetalert2";
 import { apiFetch } from "./api";
 import Cropper from "react-easy-crop";
@@ -23,6 +23,20 @@ import Cropper from "react-easy-crop";
 // รูปภาพ Default สำหรับสินค้า
 const defaultProductImage = "/images/logo.png"; // ใช้รูปในเครื่องแทนเพื่อป้องกัน Error เน็ตหลุด
 
+const getInitialProductState = () => ({
+  DeviceName: "",
+  DeviceCode: "",
+  SerialNumber: "",
+  StickerID: "",
+  CategoryID: "",
+  StatusID: "",
+  Image: "", // Base64 for new image
+  Brand: "",
+  DeviceType: "",
+  Price: "",
+  Quantity: 1, // Default to 1
+  Description: "",
+});
 const ProductManagement = () => {
   const [activeTab, setActiveTab] = useState("products"); // products, categories, statuses
   const [products, setProducts] = useState([]);
@@ -36,38 +50,18 @@ const ProductManagement = () => {
   const [isCategoryFilterOpen, setIsCategoryFilterOpen] = useState(false);
   const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false);
 
-  // State สำหรับเพิ่มสินค้าใหม่
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newProduct, setNewProduct] = useState({
-    DeviceName: "",
-    DeviceCode: "",
-    SerialNumber: "",
-    CategoryID: "",
-    StatusID: "",
-    Image: "",
-    Brand: "",
-    DeviceType: "",
-    Price: "",
-    Quantity: 0,
-    Description: "",
+  // Unified state for Add/Edit Product Modal
+  const [productModal, setProductModal] = useState({
+    isOpen: false,
+    mode: "add", // 'add' or 'edit'
+    data: null,
   });
 
-  // State สำหรับการแก้ไข (Edit Modal)
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState({
-    DVID: null,
-    DeviceName: "",
-    DeviceCode: "",
-    SerialNumber: "",
-    CategoryID: "",
-    StatusID: "",
-    Image: "", // รูปใหม่ที่อัปโหลด (Base64)
-    currentImage: "", // รูปเดิม (URL/Base64)
-    Quantity: "", // เพิ่ม State สำหรับจำนวนคงเหลือในโหมดแก้ไข
-    Brand: "",
-    DeviceType: "",
-    Price: "",
-    Description: "",
+  // State for Stock Detail Modal
+  const [stockDetailModal, setStockDetailModal] = useState({
+    isOpen: false,
+    group: null,
+    items: [],
   });
 
   // Master Data (สำหรับ Dropdown และ CRUD ย่อย)
@@ -83,34 +77,15 @@ const ProductManagement = () => {
   // ดึงข้อมูล User เพื่อเช็คสิทธิ์ (Admin)
   const [user, setUser] = useState(null);
 
-  // State สำหรับ Drag & Drop
-  const [isDragging, setIsDragging] = useState(false);
-
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-
-  // Image Upload Progress State
-  const [uploadProgress, setUploadProgress] = useState(0);
-
-  // Crop State
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
-  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
-  const [imageToCrop, setImageToCrop] = useState(null);
-  const [cropTarget, setCropTarget] = useState(null); // 'new' or 'edit'
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: "ascending",
+  });
 
   const fileInputRef = useRef(null); // Ref for hidden file input
-
-  useEffect(() => {
-    fetchProducts();
-    fetchMasterData();
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -120,7 +95,7 @@ const ProductManagement = () => {
   const isAdminUser = user?.role === "Admin" || user?.role === "admin";
 
   // --- 1. Fetch Data Section ---
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       const response = await apiFetch("/api/products");
       if (response.ok) {
@@ -132,9 +107,9 @@ const ProductManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchMasterData = async () => {
+  const fetchMasterData = useCallback(async () => {
     try {
       const [catRes, statusRes] = await Promise.all([
         apiFetch("/api/categories"), // API หมวดหมู่สินค้า
@@ -146,7 +121,16 @@ const ProductManagement = () => {
     } catch (error) {
       console.error("Error fetching master data:", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+    fetchMasterData();
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, [fetchProducts, fetchMasterData]);
 
   // --- Search & Auto-complete Logic ---
   const handleSearchChange = (e) => {
@@ -193,74 +177,116 @@ const ProductManagement = () => {
     setShowSuggestions(false);
   };
 
+  const requestSort = (key) => {
+    let direction = "ascending";
+    if (sortConfig.key === key && sortConfig.direction === "ascending") {
+      direction = "descending";
+    }
+    setSortConfig({ key, direction });
+  };
   // --- 2. Main Product Actions (Edit/Delete) ---
   const handleEditClick = (product) => {
-    setEditingProduct({
-      DVID: product.DVID,
-      DeviceName: product.DeviceName,
-      DeviceCode: product.DeviceCode,
-      SerialNumber: product.SerialNumber || "",
-      CategoryID: product.CategoryID,
-      StatusID: product.StatusID,
-      Image: "", // รีเซ็ตค่ารูปใหม่
-      currentImage: product.Image || "",
-      isImageDeleted: false,
-      Brand: product.Brand || "",
-      DeviceType: product.DeviceType || "",
-      Price: product.Price || "",
-      Quantity: product.Quantity || 0,
-      Description: product.Description || "",
+    setProductModal({
+      isOpen: true,
+      mode: "edit",
+      data: product,
     });
-    setIsEditModalOpen(true);
   };
 
-  const handleUpdateProduct = async (e) => {
-    e.preventDefault();
+  const handleSaveProduct = async (formData) => {
+    const { mode } = productModal;
+    const isEditMode = mode === "edit";
+
     if (
-      !editingProduct.DeviceName ||
-      !editingProduct.DeviceCode ||
-      !editingProduct.CategoryID ||
-      !editingProduct.StatusID
+      !formData.DeviceName ||
+      !formData.DeviceCode ||
+      !formData.CategoryID ||
+      !formData.StatusID
     ) {
       Swal.fire("แจ้งเตือน", "กรุณากรอกข้อมูลให้ครบถ้วน", "warning");
       return;
     }
 
+    // --- Validation Logic: Unique SerialNumber and StickerID ---
+    if (formData.SerialNumber) {
+      const duplicateSerial = products.find(
+        (p) =>
+          p.SerialNumber &&
+          p.SerialNumber.toString().toLowerCase() ===
+            formData.SerialNumber.toString().toLowerCase() &&
+          p.DVID !== formData.DVID,
+      );
+
+      if (duplicateSerial) {
+        Swal.fire(
+          "แจ้งเตือน",
+          `Serial Number "${formData.SerialNumber}" มีอยู่ในระบบแล้ว`,
+          "warning",
+        );
+        return;
+      }
+    }
+
+    if (formData.StickerID) {
+      const duplicateSticker = products.find(
+        (p) =>
+          p.StickerID &&
+          p.StickerID.toString().toLowerCase() ===
+            formData.StickerID.toString().toLowerCase() &&
+          p.DVID !== formData.DVID,
+      );
+
+      if (duplicateSticker) {
+        Swal.fire(
+          "แจ้งเตือน",
+          `Sticker ID "${formData.StickerID}" มีอยู่ในระบบแล้ว`,
+          "warning",
+        );
+        return;
+      }
+    }
+    // -----------------------------------------------------------
+
     try {
+      const endpoint = isEditMode
+        ? `/api/products/${formData.DVID}`
+        : "/api/products";
+      const method = isEditMode ? "PUT" : "POST";
+
       const body = {
-        DeviceName: editingProduct.DeviceName,
-        DeviceCode: editingProduct.DeviceCode,
-        SerialNumber: editingProduct.SerialNumber,
-        CategoryID: editingProduct.CategoryID,
-        StatusID: editingProduct.StatusID,
-        Brand: editingProduct.Brand,
-        DeviceType: editingProduct.DeviceType,
-        Price: editingProduct.Price,
-        Quantity: editingProduct.Quantity,
-        Description: editingProduct.Description,
+        ...formData,
       };
 
-      // ส่งรูปภาพไปเฉพาะเมื่อมีการอัปโหลดใหม่ หรือมีการลบรูปภาพ
-      if (editingProduct.Image) {
-        body.Image = editingProduct.Image;
-      } else if (editingProduct.isImageDeleted) {
+      // Don't send currentImage URL to backend
+      delete body.currentImage;
+
+      // จัดการรูปภาพ
+      if (formData.isImageDeleted && !formData.Image) {
+        // กรณีลบรูป: ส่งค่าว่างไปเพื่อลบใน DB
         body.Image = "";
+      } else if (!formData.Image && isEditMode) {
+        // กรณีแก้ไขและไม่ได้เปลี่ยนรูป: ลบ key ออกเพื่อไม่ให้ส่งค่าว่างไปทับรูปเดิม
+        delete body.Image;
       }
 
-      const response = await apiFetch(`/api/products/${editingProduct.DVID}`, {
-        method: "PUT",
+      const response = await apiFetch(endpoint, {
+        method: method,
         body: JSON.stringify(body),
       });
 
       if (response.ok) {
-        Swal.fire("สำเร็จ", "อัปเดตข้อมูลสินค้าสำเร็จ", "success");
-        setIsEditModalOpen(false);
+        Swal.fire(
+          "สำเร็จ",
+          isEditMode ? "อัปเดตข้อมูลสำเร็จ" : "เพิ่มสินค้าสำเร็จ",
+          "success",
+        );
+        setProductModal({ isOpen: false, mode: "add", data: null });
         fetchProducts();
       } else {
         const errorData = await response.json();
         Swal.fire(
           "เกิดข้อผิดพลาด!",
-          errorData.message || "อัปเดตไม่สำเร็จ",
+          errorData.message || "ดำเนินการไม่สำเร็จ",
           "error",
         );
       }
@@ -270,93 +296,20 @@ const ProductManagement = () => {
     }
   };
 
-  // Helper function for image validation
-  const validateImage = (file) => {
-    // Check file type
-    if (!file.type.startsWith("image/")) {
-      Swal.fire("ข้อผิดพลาด", "กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น", "error");
-      return false;
-    }
-    // Check file size (limit to 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      Swal.fire("ข้อผิดพลาด", "ขนาดไฟล์รูปภาพต้องไม่เกิน 5MB", "error");
-      return false;
-    }
-    return true;
-  };
-
-  // Helper to read file with progress
-  const readFileWithProgress = (file, callback) => {
-    const reader = new FileReader();
-
-    reader.onprogress = (event) => {
-      if (event.lengthComputable) {
-        const percent = Math.round((event.loaded / event.total) * 100);
-        setUploadProgress(percent);
-      }
-    };
-
-    reader.onloadstart = () => setUploadProgress(1); // Start at 1%
-    reader.onloadend = () => {
-      setUploadProgress(0); // Reset on finish
-      callback(reader.result);
-    };
-
-    reader.readAsDataURL(file);
-  };
-
-  // --- Crop Logic ---
-  const onCropComplete = (croppedArea, croppedAreaPixels) => {
-    setCroppedAreaPixels(croppedAreaPixels);
-  };
-
-  const handleCropSave = async () => {
-    try {
-      const croppedImage = await getCroppedImg(imageToCrop, croppedAreaPixels);
-      if (cropTarget === "new") {
-        setNewProduct({ ...newProduct, Image: croppedImage });
-      } else if (cropTarget === "edit") {
-        setEditingProduct({ ...editingProduct, Image: croppedImage });
-      }
-      setIsCropModalOpen(false);
-      setImageToCrop(null);
-      setZoom(1);
-    } catch (e) {
-      console.error(e);
-      Swal.fire("Error", "เกิดข้อผิดพลาดในการตัดรูปภาพ", "error");
-    }
-  };
-
-  const initiateCrop = (imageSrc, target) => {
-    setImageToCrop(imageSrc);
-    setCropTarget(target);
-    setIsCropModalOpen(true);
-  };
-
-  const handleEditProductImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (!validateImage(file)) return;
-      readFileWithProgress(file, (result) => {
-        initiateCrop(result, "edit");
-      });
-    }
-  };
-
-  const handleDelete = async (id) => {
+  const handleDelete = async (product) => {
+    // Logic to delete a single product instance
     Swal.fire({
       title: "ยืนยันการลบ?",
-      text: "คุณต้องการลบรายการสินค้านี้ใช่หรือไม่?",
+      text: `คุณต้องการลบ "${product.DeviceName}" (SN: ${product.SerialNumber || "N/A"}) ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
-      confirmButtonText: "ลบเลย",
+      confirmButtonText: "ลบ",
       cancelButtonText: "ยกเลิก",
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const response = await apiFetch(`/api/products/${id}`, {
+          const response = await apiFetch(`/api/products/${product.DVID}`, {
             method: "DELETE",
           });
 
@@ -364,140 +317,82 @@ const ProductManagement = () => {
             Swal.fire("ลบสำเร็จ!", "ข้อมูลถูกลบเรียบร้อยแล้ว", "success");
             fetchProducts();
           } else {
-            Swal.fire("ผิดพลาด", "ไม่สามารถลบข้อมูลได้", "error");
+            const errorData = await response.json();
+            Swal.fire(
+              "ผิดพลาด",
+              errorData.message || "ไม่สามารถลบข้อมูลได้",
+              "error",
+            );
           }
         } catch (error) {
+          console.error("Delete error:", error);
           Swal.fire("Error", "Connection Error", "error");
         }
       }
     });
   };
 
-  const handleAddProduct = async (e) => {
-    e.preventDefault();
-    if (
-      !newProduct.DeviceName ||
-      !newProduct.DeviceCode ||
-      !newProduct.CategoryID ||
-      !newProduct.StatusID
-    ) {
-      Swal.fire("แจ้งเตือน", "กรุณากรอกข้อมูลให้ครบถ้วน", "warning");
+  const handleStockCardClick = (group) => {
+    // Filter items that belong to this group
+    const items = products.filter((p) => {
+      const pKey = `${p.DeviceName}|${p.DeviceType}|${p.CategoryID}|${p.Brand || ""}|${p.Model || ""}`;
+      const gKey = `${group.DeviceName}|${group.DeviceType}|${group.CategoryID}|${group.Brand || ""}|${group.Model || ""}`;
+      return pKey === gKey;
+    });
+    setStockDetailModal({ isOpen: true, group, items });
+  };
+
+  const handleExportClick = () => {
+    if (products.length === 0) {
+      Swal.fire("แจ้งเตือน", "ไม่มีข้อมูลสำหรับส่งออก", "warning");
       return;
     }
 
-    try {
-      const response = await apiFetch("/api/products", {
-        method: "POST",
-        body: JSON.stringify(newProduct),
-      });
+    // 1. กำหนดหัวตาราง (Headers)
+    const headers = [
+      "ชื่อสินค้า",
+      "รหัสสินค้า",
+      "Serial No.",
+      "Sticker ID",
+      "หมวดหมู่",
+      "สถานะ",
+      "ยี่ห้อ",
+      "รุ่น/ชนิด",
+      "ราคา",
+      "รายละเอียด",
+      "จำนวน",
+    ];
 
-      if (response.ok) {
-        Swal.fire("สำเร็จ", "เพิ่มสินค้าเรียบร้อยแล้ว", "success");
-        setIsAddModalOpen(false);
-        setNewProduct({
-          DeviceName: "",
-          DeviceCode: "",
-          SerialNumber: "",
-          CategoryID: "",
-          StatusID: "",
-          Image: "",
-          Brand: "",
-          DeviceType: "",
-          Price: "",
-          Quantity: 0,
-          Description: "",
-        });
-        fetchProducts();
-      } else {
-        const errorData = await response.json();
-        Swal.fire(
-          "ผิดพลาด",
-          errorData.message || "เพิ่มสินค้าไม่สำเร็จ",
-          "error",
-        );
-      }
-    } catch (error) {
-      console.error("Error adding product:", error);
-      Swal.fire("Error", "Connection Error", "error");
-    }
-  };
-
-  const handleNewProductImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (!validateImage(file)) return;
-      readFileWithProgress(file, (result) => {
-        initiateCrop(result, "new");
-      });
-    }
-  };
-
-  // --- Drag & Drop Handlers ---
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDropNewProduct = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file && validateImage(file)) {
-      readFileWithProgress(file, (result) => {
-        initiateCrop(result, "new");
-      });
-    }
-  };
-
-  const handleDropEditProduct = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file && validateImage(file)) {
-      readFileWithProgress(file, (result) => {
-        initiateCrop(result, "edit");
-      });
-    }
-  };
-
-  const handleRemoveNewProductImage = (e) => {
-    e.preventDefault();
-    e.stopPropagation(); // ป้องกันไม่ให้ event ทะลุไป trigger input file
-    setNewProduct({ ...newProduct, Image: "" });
-  };
-
-  const handleRemoveEditProductImage = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    Swal.fire({
-      title: "ยืนยันการลบรูปภาพ?",
-      text: "คุณต้องการลบรูปภาพสินค้านี้ใช่หรือไม่?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "ลบเลย",
-      cancelButtonText: "ยกเลิก",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setEditingProduct({
-          ...editingProduct,
-          Image: "",
-          currentImage: "",
-          isImageDeleted: true,
-        });
-        Swal.fire(
-          "ลบสำเร็จ!",
-          "รูปภาพถูกลบแล้ว (กดบันทึกเพื่อยืนยัน)",
-          "success",
-        );
-      }
+    // 2. แปลงข้อมูลสินค้าเป็น CSV Rows
+    const csvRows = products.map((item) => {
+      return [
+        `"${(item.DeviceName || "").replace(/"/g, '""')}"`,
+        `"${(item.DeviceCode || "").replace(/"/g, '""')}"`,
+        `"${(item.SerialNumber || "").replace(/"/g, '""')}"`,
+        `"${(item.StickerID || "").replace(/"/g, '""')}"`,
+        `"${(item.CategoryName || "").replace(/"/g, '""')}"`,
+        `"${(item.StatusNameDV || "").replace(/"/g, '""')}"`,
+        `"${(item.Brand || "").replace(/"/g, '""')}"`,
+        `"${(item.DeviceType || "").replace(/"/g, '""')}"`,
+        `"${item.Price || 0}"`,
+        `"${(item.Description || "").replace(/"/g, '""')}"`,
+        `"${item.Quantity || 0}"`,
+      ].join(",");
     });
+
+    // 3. รวม Headers และ Rows เข้าด้วยกัน พร้อมใส่ BOM (\uFEFF) เพื่อรองรับภาษาไทยใน Excel
+    const csvString = "\uFEFF" + [headers.join(","), ...csvRows].join("\n");
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `products_export_${new Date().toISOString().slice(0, 10)}.csv`,
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // --- Import Excel Logic ---
@@ -653,8 +548,33 @@ const ProductManagement = () => {
     }
   };
 
-  // --- 4. Filtering ---
-  const filteredProducts = products.filter((p) => {
+  // --- 4. Data Processing for Display ---
+
+  // Create a summary for the "stock" tab by grouping products
+  const stockSummary = React.useMemo(() => {
+    const grouped = products.reduce((acc, product) => {
+      // Group by Name, Type, Category, Brand (and Model if available)
+      const key = `${product.DeviceName}|${product.DeviceType}|${product.CategoryID}|${product.Brand || ""}|${product.Model || ""}`;
+      if (!acc[key]) {
+        acc[key] = {
+          ...product, // Use the first item as a template
+          Quantity: 0,
+          DVID: `group-${key}`, // Create a stable unique key for the group row
+        };
+      }
+      acc[key].Quantity += 1;
+      return acc;
+    }, {});
+    return Object.values(grouped);
+  }, [products]);
+
+  // Determine which list of items to show based on the active tab
+  const itemsToDisplay = React.useMemo(() => {
+    return activeTab === "stock" ? stockSummary : products;
+  }, [activeTab, products, stockSummary]);
+
+  // Filter the items based on search and filter criteria
+  const filteredProducts = itemsToDisplay.filter((p) => {
     const lowerTerm = searchTerm.toLowerCase();
     return (
       ((p.DeviceName &&
@@ -663,7 +583,7 @@ const ProductManagement = () => {
           String(p.DeviceCode).toLowerCase().includes(lowerTerm)) ||
         (p.SerialNumber &&
           String(p.SerialNumber).toLowerCase().includes(lowerTerm))) &&
-      (filterCategories.length > 0
+      (filterCategories.length > 0 // This logic works for both tabs
         ? filterCategories.includes(p.CategoryID?.toString())
         : true) && // กรองหมวดหมู่
       (filterStatuses.length > 0
@@ -672,14 +592,39 @@ const ProductManagement = () => {
     ); // กรองสถานะ
   });
 
+  // --- Sorting Logic ---
+  const sortedItems = React.useMemo(() => {
+    let sortableItems = [...filteredProducts];
+    if (sortConfig.key !== null) {
+      sortableItems.sort((a, b) => {
+        const valA = a[sortConfig.key] || ""; // Handle null/undefined
+        const valB = b[sortConfig.key] || ""; // Handle null/undefined
+
+        // Use localeCompare for robust string comparison, including numbers within strings
+        if (typeof valA === "string" && typeof valB === "string") {
+          return sortConfig.direction === "ascending"
+            ? valA.localeCompare(valB, undefined, { numeric: true })
+            : valB.localeCompare(valA, undefined, { numeric: true });
+        }
+
+        // Fallback for numbers or other types
+        if (valA < valB) {
+          return sortConfig.direction === "ascending" ? -1 : 1;
+        }
+        if (valA > valB) {
+          return sortConfig.direction === "ascending" ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [filteredProducts, sortConfig]);
+
   // --- Pagination Logic ---
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredProducts.slice(
-    indexOfFirstItem,
-    indexOfLastItem,
-  );
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const currentItems = sortedItems.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(sortedItems.length / itemsPerPage);
 
   // --- 5. Helper Function for Rendering Sub-Tables ---
   const renderCrudTable = (title, items, type, idKey, nameKey) => (
@@ -758,10 +703,10 @@ const ProductManagement = () => {
       {/* ใช้ Class เดิมเพื่อให้ CSS ทำงานได้เลย */}
       <div className="page-header">
         <h2>จัดการข้อมูลสินค้า</h2>
-        <p>จัดการรายการสินค้า, หมวดหมู่, และสถานะ</p>
+        <p>จัดการรายการสินค้า, หมวดหมู่, และสถานะ , จำนวนคงเหลือ</p>
       </div>
       <div className="tabs-container" role="tablist">
-        {["products", "categories", "statuses"].map((tab) => (
+        {["products", "categories", "statuses", "stock"].map((tab) => (
           <button
             key={tab}
             role="tab"
@@ -772,11 +717,161 @@ const ProductManagement = () => {
             {tab === "products" && "รายการสินค้า"}
             {tab === "categories" && "หมวดหมู่สินค้า"}
             {tab === "statuses" && "สถานะสินค้า"}
+            {tab === "stock" && "จำนวนคงเหลือ"}
           </button>
         ))}
       </div>
-      {activeTab === "products" && (
+      {(activeTab === "products" || activeTab === "stock") && (
         <>
+          <style>{`
+            .product-grid-container {
+              display: grid;
+              grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+              gap: 20px;
+              padding: 20px 0;
+            }
+            .product-card-stock {
+              background: var(--bg-card);
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+              transition: transform 0.2s, box-shadow 0.2s;
+              border: 1px solid var(--border-color);
+              display: flex;
+              flex-direction: column;
+            }
+            .product-card-stock:hover {
+              transform: translateY(-4px);
+              box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            }
+            .product-img-wrapper {
+              height: 180px;
+              width: 100%;
+              position: relative;
+              background: var(--bg-body);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border-bottom: 1px solid var(--border-color);
+            }
+            .product-img-wrapper img {
+              max-width: 100%;
+              max-height: 100%;
+              object-fit: contain;
+              padding: 16px;
+            }
+            .stock-badge {
+              position: absolute;
+              top: 12px;
+              right: 12px;
+              padding: 4px 10px;
+              border-radius: 20px;
+              font-size: 0.75rem;
+              font-weight: 600;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              color: white;
+            }
+            .stock-badge.available { background-color: #22c55e; }
+            .stock-badge.borrowed { background-color: #f59e0b; }
+            .stock-badge.maintenance { background-color: #f97316; }
+            .stock-badge.broken { background-color: #ef4444; }
+            .stock-badge.lost { background-color: #64748b; }
+            .stock-badge.default { background-color: #94a3b8; }
+            
+            .product-info {
+              padding: 16px;
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+            }
+            .product-info h3 {
+              margin: 0 0 4px 0;
+              font-size: 1rem;
+              font-weight: 600;
+              color: var(--text-primary);
+              line-height: 1.4;
+            }
+            .product-code {
+              color: var(--text-secondary);
+              font-size: 0.85rem;
+              margin-bottom: 12px;
+            }
+            .stock-footer {
+              margin-top: auto;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding-top: 12px;
+              border-top: 1px solid var(--border-color);
+            }
+            .stock-count {
+              font-size: 0.9rem;
+              font-weight: 600;
+              color: var(--text-primary);
+            }
+            .stock-count span {
+              color: #3b82f6;
+              font-size: 1.1rem;
+              margin-left: 4px;
+            }
+            .stock-count.low-stock, .stock-count.low-stock span {
+              color: #dc2626;
+            }
+            .low-stock-badge {
+              display: inline-flex;
+              align-items: center;
+              gap: 4px;
+              background-color: #fee2e2;
+              color: #b91c1c;
+              font-size: 0.7rem;
+              padding: 2px 6px;
+              border-radius: 4px;
+              margin-left: 8px;
+              vertical-align: middle;
+            }
+            .quantity-cell {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              min-width: 150px; /* Ensure it has enough space */
+            }
+            .quantity-value {
+              font-weight: 700;
+              font-size: 1.1rem;
+              min-width: 30px;
+              text-align: right;
+            }
+            .quantity-value.low {
+              color: #dc2626;
+            }
+            .quantity-bar-container {
+              flex-grow: 1;
+              height: 8px;
+              background-color: var(--border-color);
+              border-radius: 4px;
+              overflow: hidden;
+            }
+            .quantity-bar {
+              height: 100%;
+              border-radius: 4px;
+              transition: width 0.3s ease-in-out;
+            }
+            .quantity-bar.high { background-color: #22c55e; }
+            .quantity-bar.medium { background-color: #f59e0b; }
+            .quantity-bar.low { background-color: #ef4444; }
+            .sortable-header {
+              cursor: pointer;
+              user-select: none;
+              position: relative;
+            }
+            .sortable-header:hover {
+              background-color: #f8fafc;
+            }
+            .sort-icon {
+              display: inline-flex;
+              margin-left: 6px;
+            }
+          `}</style>
           <div className="filter-bar">
             {/* Search Bar Design ใหม่ */}
             <div className="search-wrapper">
@@ -967,13 +1062,21 @@ const ProductManagement = () => {
                 />
                 <button
                   className="btn btn-secondary"
+                  onClick={handleExportClick}
+                >
+                  <FileDown size={18} /> Export Excel
+                </button>
+                <button
+                  className="btn btn-secondary"
                   onClick={handleImportClick}
                 >
                   <FileUp size={18} /> Import Excel
                 </button>
                 <button
                   className="btn btn-primary"
-                  onClick={() => setIsAddModalOpen(true)}
+                  onClick={() =>
+                    setProductModal({ isOpen: true, mode: "add", data: null })
+                  }
                 >
                   <Plus size={18} /> เพิ่มสินค้า
                 </button>
@@ -981,84 +1084,183 @@ const ProductManagement = () => {
             )}
           </div>
 
-          <div className="table-container">
-            <table className="member-table">
-              <thead>
-                <tr>
-                  <th>สินค้า</th>
-                  <th>รหัสสินค้า</th>
-                  <th>Serial No.</th>
-                  <th>หมวดหมู่</th>
-                  <th>จำนวน</th>
-                  <th>สถานะ</th>
-                  <th>จัดการ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
+          {activeTab === "products" && (
+            <div className="table-container">
+              <table className="member-table">
+                <thead>
                   <tr>
-                    <td colSpan="7" className="text-center">
-                      กำลังโหลด...
-                    </td>
-                  </tr>
-                ) : filteredProducts.length === 0 ? (
-                  <tr>
-                    <td colSpan="7" className="text-center">
-                      ไม่พบข้อมูลสินค้า
-                    </td>
-                  </tr>
-                ) : (
-                  currentItems.map((p) => (
-                    <tr key={p.DVID}>
-                      <td>
-                        <div className="user-cell">
-                          <img
-                            src={p.Image || defaultProductImage}
-                            alt={p.DeviceName}
-                            className="avatar-circle product-zoom"
-                          />
-                          <div className="user-name">{p.DeviceName}</div>
-                        </div>
-                      </td>
-                      <td>{p.DeviceCode}</td>
-                      <td>{p.SerialNumber || "-"}</td>
-                      <td>
-                        <span className="role-badge">{p.CategoryName}</span>
-                      </td>
-                      <td>{p.Quantity}</td>
-                      <td>
-                        <span
-                          className={`status-dot ${getDeviceStatusClass(p.StatusNameDV)}`}
-                        >
-                          {p.StatusNameDV}
+                    <th
+                      onClick={() => requestSort("DeviceName")}
+                      className="sortable-header"
+                    >
+                      สินค้า
+                      {sortConfig.key === "DeviceName" && (
+                        <span className="sort-icon">
+                          {sortConfig.direction === "ascending" ? (
+                            <ArrowUp size={14} />
+                          ) : (
+                            <ArrowDown size={14} />
+                          )}
                         </span>
-                      </td>
-                      <td>
-                        <div className="action-buttons">
-                          <button
-                            className="btn-icon edit"
-                            onClick={() => handleEditClick(p)}
-                            disabled={!isAdminUser}
-                            aria-label={`แก้ไข ${p.DeviceName}`}
-                          >
-                            <Edit size={16} />
-                          </button>
-                          <button
-                            className="btn-icon delete"
-                            onClick={() => handleDelete(p.DVID)}
-                            disabled={!isAdminUser}
-                            aria-label={`ลบ ${p.DeviceName}`}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
+                      )}
+                    </th>
+                    <th
+                      onClick={() => requestSort("DeviceCode")}
+                      className="sortable-header"
+                    >
+                      รหัสสินค้า
+                      {sortConfig.key === "DeviceCode" && (
+                        <span className="sort-icon">
+                          {sortConfig.direction === "ascending" ? (
+                            <ArrowUp size={14} />
+                          ) : (
+                            <ArrowDown size={14} />
+                          )}
+                        </span>
+                      )}
+                    </th>
+                    <th
+                      onClick={() => requestSort("SerialNumber")}
+                      className="sortable-header"
+                    >
+                      Serial No.
+                      {sortConfig.key === "SerialNumber" && (
+                        <span className="sort-icon">
+                          {sortConfig.direction === "ascending" ? (
+                            <ArrowUp size={14} />
+                          ) : (
+                            <ArrowDown size={14} />
+                          )}
+                        </span>
+                      )}
+                    </th>
+                    <th>หมวดหมู่</th>
+                    <th>สถานะ</th>
+                    <th>จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan="7" className="text-center">
+                        กำลังโหลด...
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : filteredProducts.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="text-center">
+                        ไม่พบข้อมูลสินค้า
+                      </td>
+                    </tr>
+                  ) : (
+                    currentItems.map((p) => (
+                      <tr key={p.DVID}>
+                        <td>
+                          <div className="user-cell">
+                            <img
+                              src={p.Image || defaultProductImage}
+                              alt={p.DeviceName}
+                              className="avatar-circle product-zoom"
+                            />
+                            <div className="user-name">{p.DeviceName}</div>
+                          </div>
+                        </td>
+                        <td>{p.DeviceCode}</td>
+                        <td>{p.SerialNumber || "-"}</td>
+                        <td>
+                          <span className="role-badge">{p.CategoryName}</span>
+                        </td>
+                        <td>
+                          <span
+                            className={`status-dot ${getDeviceStatusClass(p.StatusNameDV)}`}
+                          >
+                            {p.StatusNameDV}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="action-buttons">
+                            <button
+                              className="btn-icon edit"
+                              onClick={() => handleEditClick(p)}
+                              disabled={!isAdminUser}
+                              aria-label={`แก้ไข ${p.DeviceName}`}
+                            >
+                              <Edit size={16} />
+                            </button>
+                            <button
+                              className="btn-icon delete"
+                              onClick={() => handleDelete(p)}
+                              disabled={!isAdminUser}
+                              aria-label={`ลบ ${p.DeviceName}`}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {activeTab === "stock" && (
+            <div className="product-grid-container">
+              {loading ? (
+                <div
+                  style={{
+                    gridColumn: "1 / -1",
+                    textAlign: "center",
+                    padding: "40px",
+                  }}
+                >
+                  กำลังโหลด...
+                </div>
+              ) : filteredProducts.length === 0 ? (
+                <div
+                  style={{
+                    gridColumn: "1 / -1",
+                    textAlign: "center",
+                    padding: "40px",
+                  }}
+                >
+                  ไม่พบข้อมูลสินค้า
+                </div>
+              ) : (
+                currentItems.map((p) => (
+                  <div
+                    key={p.DVID}
+                    className="product-card-stock"
+                    onClick={() => handleStockCardClick(p)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <div className="product-img-wrapper">
+                      <img
+                        src={p.Image || defaultProductImage}
+                        alt={p.DeviceName}
+                      />
+                      <span className="stock-badge available">
+                        {p.CategoryName}
+                      </span>
+                    </div>
+                    <div className="product-info">
+                      <h3>{p.DeviceName}</h3>
+                      <p className="product-code">
+                        {p.Brand || "-"}{" "}
+                        {p.DeviceType ? `• ${p.DeviceType}` : ""}
+                      </p>
+                      <div className="stock-footer">
+                        <div className="stock-count">
+                          คงเหลือ: <span>{p.Quantity}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
 
           {/* Pagination Controls */}
           {!loading && filteredProducts.length > 0 && (
@@ -1122,8 +1324,15 @@ const ProductManagement = () => {
           "DVStatusID",
           "StatusNameDV",
         )}
-      {/* Modal เพิ่มสินค้า */}
-      {isAddModalOpen && (
+      <ProductModal
+        modal={productModal}
+        onClose={() => setProductModal({ ...productModal, isOpen: false })}
+        onSave={handleSaveProduct}
+        categories={categories}
+        statuses={statuses}
+      />
+      {/* Modal เพิ่มหมวดหมู่/สถานะ */}
+      {isMasterDataModalOpen && (
         <div
           className="modal-overlay"
           role="dialog"
@@ -1131,519 +1340,6 @@ const ProductManagement = () => {
           aria-labelledby="add-modal-title"
         >
           <div className="modal-content">
-            <h2 id="add-modal-title">เพิ่มสินค้าใหม่</h2>
-            <form onSubmit={handleAddProduct} className="product-form">
-              <div className="form-grid">
-                <div className="form-group">
-                  <label htmlFor="addProductName">ชื่อสินค้า</label>
-                  <input
-                    id="addProductName"
-                    type="text"
-                    value={newProduct.DeviceName}
-                    onChange={(e) =>
-                      setNewProduct({
-                        ...newProduct,
-                        DeviceName: e.target.value,
-                      })
-                    }
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="addProductCode">รหัสสินค้า</label>
-                  <input
-                    id="addProductCode"
-                    type="text"
-                    value={newProduct.DeviceCode}
-                    onChange={(e) =>
-                      setNewProduct({
-                        ...newProduct,
-                        DeviceCode: e.target.value,
-                      })
-                    }
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="addSerialNumber">Serial Number</label>
-                  <input
-                    id="addSerialNumber"
-                    type="text"
-                    value={newProduct.SerialNumber}
-                    onChange={(e) =>
-                      setNewProduct({
-                        ...newProduct,
-                        SerialNumber: e.target.value,
-                      })
-                    }
-                    placeholder="ระบุ Serial Number"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="addBrand">ยี่ห้อ (Brand)</label>
-                  <input
-                    id="addBrand"
-                    type="text"
-                    value={newProduct.Brand}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, Brand: e.target.value })
-                    }
-                    placeholder="ระบุยี่ห้อ (ถ้ามี)"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="addDeviceType">รุ่น/ชนิด (Type)</label>
-                  <input
-                    id="addDeviceType"
-                    type="text"
-                    value={newProduct.DeviceType}
-                    onChange={(e) =>
-                      setNewProduct({
-                        ...newProduct,
-                        DeviceType: e.target.value,
-                      })
-                    }
-                    placeholder="ระบุรุ่นหรือชนิด (ถ้ามี)"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="addProductCategory">หมวดหมู่</label>
-                  <select
-                    id="addProductCategory"
-                    value={newProduct.CategoryID}
-                    onChange={(e) =>
-                      setNewProduct({
-                        ...newProduct,
-                        CategoryID: e.target.value,
-                      })
-                    }
-                    required
-                  >
-                    <option value="">-- เลือกหมวดหมู่ --</option>
-                    {categories.map((c) => (
-                      <option key={c.CategoryID} value={c.CategoryID}>
-                        {c.CategoryName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="addProductStatus">สถานะ</label>
-                  <select
-                    id="addProductStatus"
-                    value={newProduct.StatusID}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, StatusID: e.target.value })
-                    }
-                    required
-                  >
-                    <option value="">-- เลือกสถานะ --</option>
-                    {statuses.map((s) => (
-                      <option key={s.DVStatusID} value={s.DVStatusID}>
-                        {s.StatusNameDV}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="addPrice">ราคา</label>
-                  <input
-                    id="addPrice"
-                    type="number"
-                    value={newProduct.Price}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, Price: e.target.value })
-                    }
-                    placeholder="0.00"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="addQuantity">จำนวน</label>
-                  <input
-                    id="addQuantity"
-                    type="number"
-                    value={newProduct.Quantity}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, Quantity: e.target.value })
-                    }
-                    placeholder="0"
-                  />
-                </div>
-                <div className="form-group form-group-full">
-                  <label htmlFor="addDescription">รายละเอียด</label>
-                  <textarea
-                    id="addDescription"
-                    value={newProduct.Description}
-                    onChange={(e) =>
-                      setNewProduct({
-                        ...newProduct,
-                        Description: e.target.value,
-                      })
-                    }
-                    rows="3"
-                    style={{
-                      width: "100%",
-                      padding: "10px",
-                      borderRadius: "8px",
-                      border: "1px solid #d1d5db",
-                    }}
-                  />
-                </div>
-                <div className="form-group form-group-full">
-                  <label htmlFor="addProductImage">รูปภาพ</label>
-                  <div className="image-upload-wrapper">
-                    <label
-                      htmlFor="addProductImage"
-                      className={`image-preview ${isDragging ? "dragging" : ""}`}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDropNewProduct}
-                    >
-                      {newProduct.Image ? (
-                        <div
-                          style={{
-                            position: "relative",
-                            width: "100%",
-                            height: "100%",
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                          }}
-                        >
-                          <img src={newProduct.Image} alt="Preview" />
-                          <button
-                            type="button"
-                            onClick={handleRemoveNewProductImage}
-                            className="btn-remove-image"
-                          >
-                            <Trash2 size={16} color="#ef4444" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div
-                          className="image-placeholder"
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            color: "#888",
-                          }}
-                        >
-                          <ImageIcon size={32} />
-                          <span
-                            style={{ marginTop: "8px", fontSize: "0.9rem" }}
-                          >
-                            คลิกเพื่อเพิ่มรูปภาพ
-                          </span>
-                        </div>
-                      )}
-                      {uploadProgress > 0 && (
-                        <div className="progress-overlay">
-                          <div className="progress-bar-track">
-                            <div
-                              className="progress-bar-fill"
-                              style={{ width: `${uploadProgress}%` }}
-                            ></div>
-                          </div>
-                          <span className="progress-text">
-                            {uploadProgress}%
-                          </span>
-                        </div>
-                      )}
-                    </label>
-                    <input
-                      id="addProductImage"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleNewProductImageChange}
-                      style={{ display: "none" }}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setIsAddModalOpen(false)}
-                >
-                  ยกเลิก
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  บันทึก
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-      {/* Modal แก้ไขสินค้า */}
-      {isEditModalOpen && (
-        <div
-          className="modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="edit-modal-title"
-        >
-          <div className="modal-content">
-            <h2 id="edit-modal-title">แก้ไขข้อมูลสินค้า</h2>
-            <form onSubmit={handleUpdateProduct} className="product-form">
-              <div className="form-grid">
-                <div className="form-group">
-                  <label htmlFor="editProductName">ชื่อสินค้า</label>
-                  <input
-                    id="editProductName"
-                    type="text"
-                    value={editingProduct.DeviceName}
-                    onChange={(e) =>
-                      setEditingProduct({
-                        ...editingProduct,
-                        DeviceName: e.target.value,
-                      })
-                    }
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="editProductCode">รหัสสินค้า</label>
-                  <input
-                    id="editProductCode"
-                    type="text"
-                    value={editingProduct.DeviceCode}
-                    onChange={(e) =>
-                      setEditingProduct({
-                        ...editingProduct,
-                        DeviceCode: e.target.value,
-                      })
-                    }
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="editSerialNumber">Serial Number</label>
-                  <input
-                    id="editSerialNumber"
-                    type="text"
-                    value={editingProduct.SerialNumber}
-                    onChange={(e) =>
-                      setEditingProduct({
-                        ...editingProduct,
-                        SerialNumber: e.target.value,
-                      })
-                    }
-                    placeholder="ระบุ Serial Number"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="editBrand">ยี่ห้อ (Brand)</label>
-                  <input
-                    id="editBrand"
-                    type="text"
-                    value={editingProduct.Brand}
-                    onChange={(e) =>
-                      setEditingProduct({
-                        ...editingProduct,
-                        Brand: e.target.value,
-                      })
-                    }
-                    placeholder="ระบุยี่ห้อ"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="editDeviceType">รุ่น/ชนิด (Type)</label>
-                  <input
-                    id="editDeviceType"
-                    type="text"
-                    value={editingProduct.DeviceType}
-                    onChange={(e) =>
-                      setEditingProduct({
-                        ...editingProduct,
-                        DeviceType: e.target.value,
-                      })
-                    }
-                    placeholder="ระบุรุ่นหรือชนิด"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="editProductCategory">หมวดหมู่</label>
-                  <select
-                    id="editProductCategory"
-                    value={editingProduct.CategoryID}
-                    onChange={(e) =>
-                      setEditingProduct({
-                        ...editingProduct,
-                        CategoryID: e.target.value,
-                      })
-                    }
-                    required
-                  >
-                    <option value="">-- เลือกหมวดหมู่ --</option>
-                    {categories.map((c) => (
-                      <option key={c.CategoryID} value={c.CategoryID}>
-                        {c.CategoryName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="editProductStatus">สถานะ</label>
-                  <select
-                    id="editProductStatus"
-                    value={editingProduct.StatusID}
-                    onChange={(e) =>
-                      setEditingProduct({
-                        ...editingProduct,
-                        StatusID: e.target.value,
-                      })
-                    }
-                    required
-                  >
-                    <option value="">-- เลือกสถานะ --</option>
-                    {statuses.map((s) => (
-                      <option key={s.DVStatusID} value={s.DVStatusID}>
-                        {s.StatusNameDV}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="editPrice">ราคา</label>
-                  <input
-                    id="editPrice"
-                    type="number"
-                    value={editingProduct.Price}
-                    onChange={(e) =>
-                      setEditingProduct({
-                        ...editingProduct,
-                        Price: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="editQuantity">จำนวน</label>
-                  <input
-                    id="editQuantity"
-                    type="number"
-                    value={editingProduct.Quantity}
-                    onChange={(e) =>
-                      setEditingProduct({
-                        ...editingProduct,
-                        Quantity: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="form-group form-group-full">
-                  <label htmlFor="editDescription">รายละเอียด</label>
-                  <textarea
-                    id="editDescription"
-                    value={editingProduct.Description}
-                    onChange={(e) =>
-                      setEditingProduct({
-                        ...editingProduct,
-                        Description: e.target.value,
-                      })
-                    }
-                    rows="3"
-                    style={{
-                      width: "100%",
-                      padding: "10px",
-                      borderRadius: "8px",
-                      border: "1px solid #d1d5db",
-                    }}
-                  />
-                </div>
-                <div className="form-group form-group-full">
-                  <label htmlFor="editProductImage">
-                    รูปภาพ (อัปโหลดใหม่เพื่อเปลี่ยน)
-                  </label>
-                  <div className="image-upload-wrapper">
-                    <label
-                      htmlFor="editProductImage"
-                      className={`image-preview ${isDragging ? "dragging" : ""}`}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDropEditProduct}
-                    >
-                      <div
-                        style={{
-                          position: "relative",
-                          width: "100%",
-                          height: "100%",
-                          display: "flex",
-                          justifyContent: "center",
-                          alignItems: "center",
-                        }}
-                      >
-                        <img
-                          src={
-                            editingProduct.Image ||
-                            editingProduct.currentImage ||
-                            defaultProductImage
-                          }
-                          alt="Preview"
-                        />
-                        {(editingProduct.Image ||
-                          editingProduct.currentImage) && (
-                          <button
-                            type="button"
-                            onClick={handleRemoveEditProductImage}
-                            className="btn-remove-image"
-                          >
-                            <Trash2 size={16} color="#ef4444" />
-                          </button>
-                        )}
-                      </div>
-                      {uploadProgress > 0 && (
-                        <div className="progress-overlay">
-                          <div className="progress-bar-track">
-                            <div
-                              className="progress-bar-fill"
-                              style={{ width: `${uploadProgress}%` }}
-                            ></div>
-                          </div>
-                          <span className="progress-text">
-                            {uploadProgress}%
-                          </span>
-                        </div>
-                      )}
-                    </label>
-                    <input
-                      id="editProductImage"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleEditProductImageChange}
-                      style={{ display: "none" }}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setIsEditModalOpen(false)}
-                >
-                  ยกเลิก
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  บันทึกการแก้ไข
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-      {/* Modal เพิ่มหมวดหมู่/สถานะ */}
-      {isMasterDataModalOpen && (
-        <div
-          className="modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="master-modal-title"
-        >
-          <div className="modal-content" style={{ maxWidth: "500px" }}>
             <h2 id="master-modal-title">
               {masterDataType === "category"
                 ? editingItemId
@@ -1684,44 +1380,71 @@ const ProductManagement = () => {
           </div>
         </div>
       )}
-      {/* Modal สำหรับ Crop รูปภาพ */}
-      {isCropModalOpen && (
-        <div className="modal-overlay" style={{ zIndex: 1100 }}>
-          <div className="modal-content" style={{ maxWidth: "600px" }}>
-            <h2>ปรับแต่งรูปภาพ</h2>
-            <div className="crop-container">
-              <Cropper
-                image={imageToCrop}
-                crop={crop}
-                zoom={zoom}
-                aspect={1} // อัตราส่วน 1:1 (สี่เหลี่ยมจัตุรัส)
-                onCropChange={setCrop}
-                onCropComplete={onCropComplete}
-                onZoomChange={setZoom}
-              />
+      {/* Modal รายละเอียดสต็อก (Stock Detail Modal) */}
+      {stockDetailModal.isOpen && stockDetailModal.group && (
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          onClick={() =>
+            setStockDetailModal({ ...stockDetailModal, isOpen: false })
+          }
+        >
+          <div
+            className="modal-content"
+            style={{ maxWidth: "800px", width: "90%" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header" style={{ marginBottom: "20px" }}>
+              <h2 style={{ margin: 0 }}>{stockDetailModal.group.DeviceName}</h2>
             </div>
-            <div className="crop-controls">
-              <label>Zoom</label>
-              <input
-                type="range"
-                value={zoom}
-                min={1}
-                max={3}
-                step={0.1}
-                aria-labelledby="Zoom"
-                onChange={(e) => setZoom(e.target.value)}
-                className="zoom-range"
-              />
+
+            <div
+              className="table-container"
+              style={{ maxHeight: "60vh", overflowY: "auto" }}
+            >
+              <table className="member-table">
+                <thead>
+                  <tr>
+                    <th>รูปภาพ</th>
+                    <th>รหัสทรัพย์สิน</th>
+                    <th>Serial No.</th>
+                    <th>สถานะ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stockDetailModal.items.map((item) => (
+                    <tr key={item.DVID}>
+                      <td>
+                        <img
+                          src={item.Image || defaultProductImage}
+                          alt={item.DeviceName}
+                          className="product-table-image"
+                          style={{ width: "40px", height: "40px" }}
+                        />
+                      </td>
+                      <td>{item.DeviceCode}</td>
+                      <td>{item.SerialNumber || "-"}</td>
+                      <td>
+                        <span
+                          className={`status-dot ${getDeviceStatusClass(item.StatusNameDV)}`}
+                        >
+                          {item.StatusNameDV}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div className="modal-actions">
+            <div className="modal-actions" style={{ marginTop: "20px" }}>
               <button
                 className="btn btn-secondary"
-                onClick={() => setIsCropModalOpen(false)}
+                onClick={() =>
+                  setStockDetailModal({ ...stockDetailModal, isOpen: false })
+                }
               >
-                ยกเลิก
-              </button>
-              <button className="btn btn-primary" onClick={handleCropSave}>
-                ยืนยัน
+                ปิด
               </button>
             </div>
           </div>
@@ -1731,7 +1454,436 @@ const ProductManagement = () => {
   );
 };
 
-export default ProductManagement;
+const ProductModal = React.memo(
+  ({ modal, onClose, onSave, categories, statuses }) => {
+    const { isOpen, mode, data } = modal;
+    const isEditMode = mode === "edit";
+
+    const [formData, setFormData] = useState(getInitialProductState());
+    const [isDragging, setIsDragging] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+
+    // Crop State
+    const [crop, setCrop] = useState({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+    const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+    const [imageToCrop, setImageToCrop] = useState(null);
+
+    useEffect(() => {
+      if (isOpen) {
+        if (isEditMode && data) {
+          setFormData({
+            ...getInitialProductState(),
+            ...data,
+            currentImage: data.Image || "", // Store original image
+            Image: "", // Reset new image
+            isImageDeleted: false,
+          });
+        } else {
+          setFormData(getInitialProductState());
+        }
+      } else {
+        // Reset all modal-specific states on close
+        setIsCropModalOpen(false);
+        setImageToCrop(null);
+        setUploadProgress(0);
+      }
+    }, [isOpen, mode, data, isEditMode]);
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      onSave(formData);
+    };
+
+    // --- Image & Crop Handlers (now inside the modal) ---
+
+    const validateImage = (file) => {
+      if (!file.type.startsWith("image/")) {
+        Swal.fire("ข้อผิดพลาด", "กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น", "error");
+        return false;
+      }
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        Swal.fire("ข้อผิดพลาด", "ขนาดไฟล์รูปภาพต้องไม่เกิน 5MB", "error");
+        return false;
+      }
+      return true;
+    };
+
+    const readFileWithProgress = (file, callback) => {
+      const reader = new FileReader();
+      reader.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(percent);
+        }
+      };
+      reader.onloadstart = () => setUploadProgress(1);
+      reader.onloadend = () => {
+        setUploadProgress(0);
+        callback(reader.result);
+      };
+      reader.readAsDataURL(file);
+    };
+
+    const initiateCrop = (imageSrc) => {
+      setImageToCrop(imageSrc);
+      setIsCropModalOpen(true);
+    };
+
+    const handleImageFileChange = (e) => {
+      const file = e.target.files[0];
+      if (file && validateImage(file)) {
+        readFileWithProgress(file, (result) => initiateCrop(result));
+      }
+    };
+
+    const onCropComplete = (croppedArea, croppedAreaPixels) => {
+      setCroppedAreaPixels(croppedAreaPixels);
+    };
+
+    const handleCropSave = async () => {
+      try {
+        const croppedImage = await getCroppedImg(
+          imageToCrop,
+          croppedAreaPixels,
+        );
+        setFormData({ ...formData, Image: croppedImage });
+        setIsCropModalOpen(false);
+        setImageToCrop(null);
+        setZoom(1);
+      } catch (e) {
+        console.error(e);
+        Swal.fire("Error", "เกิดข้อผิดพลาดในการตัดรูปภาพ", "error");
+      }
+    };
+
+    const handleRemoveImage = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (isEditMode) {
+        Swal.fire({
+          title: "ยืนยันการลบรูปภาพ?",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#d33",
+          confirmButtonText: "ลบเลย",
+          cancelButtonText: "ยกเลิก",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            setFormData({
+              ...formData,
+              Image: "",
+              currentImage: "",
+              isImageDeleted: true,
+            });
+          }
+        });
+      } else {
+        setFormData({ ...formData, Image: "" });
+      }
+    };
+
+    // Drag & Drop Handlers
+    const handleDragOver = (e) => {
+      e.preventDefault();
+      setIsDragging(true);
+    };
+    const handleDragLeave = (e) => {
+      e.preventDefault();
+      setIsDragging(false);
+    };
+    const handleDrop = (e) => {
+      e.preventDefault();
+      setIsDragging(false);
+      const file = e.dataTransfer.files[0];
+      if (file && validateImage(file)) {
+        readFileWithProgress(file, (result) => initiateCrop(result));
+      }
+    };
+
+    if (!isOpen) return null;
+
+    const modalId = isEditMode ? "edit" : "add";
+
+    return (
+      <>
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={`${modalId}-modal-title`}
+        >
+          <div className="modal-content">
+            <h2 id={`${modalId}-modal-title`}>
+              {isEditMode ? "แก้ไขข้อมูลสินค้า" : "เพิ่มสินค้าใหม่"}
+            </h2>
+            <form onSubmit={handleSubmit} className="product-form">
+              <div className="form-grid">
+                {/* All form fields now use formData and a generic handler */}
+                <div className="form-group">
+                  <label htmlFor={`${modalId}DeviceName`}>ชื่อสินค้า</label>
+                  <input
+                    id={`${modalId}DeviceName`}
+                    type="text"
+                    value={formData.DeviceName}
+                    onChange={(e) =>
+                      setFormData({ ...formData, DeviceName: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor={`${modalId}DeviceCode`}>รหัสสินค้า</label>
+                  <input
+                    id={`${modalId}DeviceCode`}
+                    type="text"
+                    value={formData.DeviceCode}
+                    onChange={(e) =>
+                      setFormData({ ...formData, DeviceCode: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor={`${modalId}SerialNumber`}>
+                    Serial Number
+                  </label>
+                  <input
+                    id={`${modalId}SerialNumber`}
+                    type="text"
+                    value={formData.SerialNumber}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        SerialNumber: e.target.value,
+                      })
+                    }
+                    placeholder="ระบุ Serial Number"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor={`${modalId}StickerID`}>Sticker ID</label>
+                  <input
+                    id={`${modalId}StickerID`}
+                    type="text"
+                    value={formData.StickerID}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        StickerID: e.target.value,
+                      })
+                    }
+                    placeholder="ระบุ Sticker ID"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor={`${modalId}Brand`}>ยี่ห้อ (Brand)</label>
+                  <input
+                    id={`${modalId}Brand`}
+                    type="text"
+                    value={formData.Brand}
+                    onChange={(e) =>
+                      setFormData({ ...formData, Brand: e.target.value })
+                    }
+                    placeholder="ระบุยี่ห้อ (ถ้ามี)"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor={`${modalId}DeviceType`}>
+                    รุ่น/ชนิด (Type)
+                  </label>
+                  <input
+                    id={`${modalId}DeviceType`}
+                    type="text"
+                    value={formData.DeviceType}
+                    onChange={(e) =>
+                      setFormData({ ...formData, DeviceType: e.target.value })
+                    }
+                    placeholder="ระบุรุ่นหรือชนิด (ถ้ามี)"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor={`${modalId}CategoryID`}>หมวดหมู่</label>
+                  <select
+                    id={`${modalId}CategoryID`}
+                    value={formData.CategoryID}
+                    onChange={(e) =>
+                      setFormData({ ...formData, CategoryID: e.target.value })
+                    }
+                    required
+                  >
+                    <option value="">-- เลือกหมวดหมู่ --</option>
+                    {categories.map((c) => (
+                      <option key={c.CategoryID} value={c.CategoryID}>
+                        {c.CategoryName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label htmlFor={`${modalId}StatusID`}>สถานะ</label>
+                  <select
+                    id={`${modalId}StatusID`}
+                    value={formData.StatusID}
+                    onChange={(e) =>
+                      setFormData({ ...formData, StatusID: e.target.value })
+                    }
+                    required
+                  >
+                    <option value="">-- เลือกสถานะ --</option>
+                    {statuses.map((s) => (
+                      <option key={s.DVStatusID} value={s.DVStatusID}>
+                        {s.StatusNameDV}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label htmlFor={`${modalId}Price`}>ราคา</label>
+                  <input
+                    id={`${modalId}Price`}
+                    type="number"
+                    value={formData.Price}
+                    onChange={(e) =>
+                      setFormData({ ...formData, Price: e.target.value })
+                    }
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="form-group form-group-full">
+                  <label htmlFor={`${modalId}Description`}>รายละเอียด</label>
+                  <textarea
+                    id={`${modalId}Description`}
+                    value={formData.Description}
+                    onChange={(e) =>
+                      setFormData({ ...formData, Description: e.target.value })
+                    }
+                    rows="3"
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      borderRadius: "8px",
+                      border: "1px solid #d1d5db",
+                    }}
+                  />
+                </div>
+                <div className="form-group form-group-full">
+                  <label htmlFor={`${modalId}ProductImage`}>รูปภาพ</label>
+                  <div className="image-upload-wrapper">
+                    <label
+                      htmlFor={`${modalId}ProductImage`}
+                      className={`image-preview ${isDragging ? "dragging" : ""}`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                    >
+                      <div className="image-preview-content">
+                        <img
+                          src={
+                            formData.Image ||
+                            formData.currentImage ||
+                            defaultProductImage
+                          }
+                          alt="Preview"
+                        />
+                        {(formData.Image || formData.currentImage) && (
+                          <button
+                            type="button"
+                            onClick={handleRemoveImage}
+                            className="btn-remove-image"
+                          >
+                            <Trash2 size={16} color="#ef4444" />
+                          </button>
+                        )}
+                      </div>
+                      {uploadProgress > 0 && (
+                        <div className="progress-overlay">
+                          <div className="progress-bar-track">
+                            <div
+                              className="progress-bar-fill"
+                              style={{ width: `${uploadProgress}%` }}
+                            ></div>
+                          </div>
+                          <span className="progress-text">
+                            {uploadProgress}%
+                          </span>
+                        </div>
+                      )}
+                    </label>
+                    <input
+                      id={`${modalId}ProductImage`}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageFileChange}
+                      style={{ display: "none" }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={onClose}
+                >
+                  ยกเลิก
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  {isEditMode ? "บันทึกการแก้ไข" : "บันทึก"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        {isCropModalOpen && (
+          <div className="modal-overlay" style={{ zIndex: 1100 }}>
+            <div className="modal-content" style={{ maxWidth: "600px" }}>
+              <h2>ปรับแต่งรูปภาพ</h2>
+              <div className="crop-container">
+                <Cropper
+                  image={imageToCrop}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={1}
+                  onCropChange={setCrop}
+                  onCropComplete={onCropComplete}
+                  onZoomChange={setZoom}
+                />
+              </div>
+              <div className="crop-controls">
+                <label>Zoom</label>
+                <input
+                  type="range"
+                  value={zoom}
+                  min={1}
+                  max={3}
+                  step={0.1}
+                  aria-labelledby="Zoom"
+                  onChange={(e) => setZoom(e.target.value)}
+                  className="zoom-range"
+                />
+              </div>
+              <div className="modal-actions">
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setIsCropModalOpen(false)}
+                >
+                  ยกเลิก
+                </button>
+                <button className="btn btn-primary" onClick={handleCropSave}>
+                  ยืนยัน
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  },
+);
 
 // --- Utility Functions for Cropping ---
 
@@ -1779,3 +1931,5 @@ async function getCroppedImg(imageSrc, pixelCrop) {
   // As Base64 string
   return canvas.toDataURL("image/jpeg");
 }
+
+export default ProductManagement;

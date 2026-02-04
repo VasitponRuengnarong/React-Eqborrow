@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { User, Mail, Phone, Lock, Save, Camera, X } from "lucide-react";
-import "./UserProfile.css";
+import {
+  User,
+  Mail,
+  Phone,
+  Building,
+  Camera,
+  Save,
+  MapPin,
+  Lock,
+  Key,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import Swal from "sweetalert2";
-import "./Management.css"; // Import Management.css for consistent button styles
 import { apiFetch } from "./api";
-import ImageDisplay from "./ImageDisplay";
-
-const defaultProfileImage = "/images/logo.png";
+import "./UserProfile.css";
 
 const UserProfile = () => {
   const [user, setUser] = useState(null);
@@ -17,64 +25,34 @@ const UserProfile = () => {
     phone: "",
     profileImage: "",
   });
+  const [loading, setLoading] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
-  const [loading, setLoading] = useState(false);
-  const [isProfileDirty, setIsProfileDirty] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
+    const storedUser = JSON.parse(localStorage.getItem("user"));
     if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
+      setUser(storedUser);
       setFormData({
-        firstName: parsedUser.firstName || "",
-        lastName: parsedUser.lastName || "",
-        email: parsedUser.email || "",
-        phone: parsedUser.phone || "",
-        profileImage: parsedUser.profileImage || "",
+        firstName: storedUser.firstName || "",
+        lastName: storedUser.lastName || "",
+        email: storedUser.email || "",
+        phone: storedUser.phone || "",
+        profileImage: storedUser.profileImage || "",
       });
     }
   }, []);
 
-  // Check for unsaved changes in the profile form
-  useEffect(() => {
-    if (user) {
-      const isDirty =
-        formData.firstName !== (user.firstName || "") ||
-        formData.lastName !== (user.lastName || "") ||
-        formData.email !== (user.email || "") ||
-        formData.phone !== (user.phone || "") ||
-        formData.profileImage !== (user.profileImage || "");
-      setIsProfileDirty(isDirty);
-    }
-  }, [formData, user]);
-
-  // Warn user before leaving the page with unsaved changes
-  useEffect(() => {
-    const handleBeforeUnload = (e) => {
-      if (isProfileDirty) {
-        e.preventDefault();
-        e.returnValue = ""; // Required for modern browsers
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isProfileDirty]);
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handlePasswordChange = (e) => {
-    const { name, value } = e.target;
-    setPasswordData({ ...passwordData, [name]: value });
+    setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
   };
 
   const handleImageChange = (e) => {
@@ -82,141 +60,113 @@ const UserProfile = () => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData({ ...formData, profileImage: reader.result });
+        setFormData((prev) => ({ ...prev, profileImage: reader.result }));
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleCancel = () => {
-    if (user) {
-      setFormData({
-        firstName: user.firstName || "",
-        lastName: user.lastName || "",
-        email: user.email || "",
-        phone: user.phone || "",
-        profileImage: user.profileImage || "",
-      });
-    }
-  };
-
-  const handleProfileSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      // ใช้ user.id เป็นหลัก ถ้าไม่มีให้ใช้ EMPID (เพื่อรองรับโครงสร้างข้อมูลที่แตกต่างกัน)
-      const userId = user.id || user.EMPID;
-      const response = await apiFetch(`/api/profile/${userId}`, {
+      // จำลองการส่งข้อมูล (ปรับ Endpoint ตาม Backend จริง)
+      const response = await apiFetch(`/api/users/${user.id}`, {
         method: "PUT",
         body: JSON.stringify(formData),
       });
-      const data = await response.json();
+
       if (response.ok) {
-        Swal.fire("สำเร็จ!", "อัปเดตข้อมูลส่วนตัวสำเร็จ", "success");
-        localStorage.setItem("user", JSON.stringify(data.user));
-        setUser(data.user);
-        // Notify other components (like Sidebar/Header) to update the user info without a full reload
+        const updatedUser = await response.json();
+        // อัปเดต LocalStorage
+        const newUserState = { ...user, ...updatedUser };
+        localStorage.setItem("user", JSON.stringify(newUserState));
+        setUser(newUserState);
+
+        // แจ้งเตือน Sidebar ให้อัปเดตข้อมูล
         window.dispatchEvent(new Event("user-updated"));
+
+        Swal.fire("สำเร็จ", "อัปเดตข้อมูลโปรไฟล์เรียบร้อยแล้ว", "success");
       } else {
-        Swal.fire(
-          "เกิดข้อผิดพลาด!",
-          data.message || "เกิดข้อผิดพลาดในการอัปเดตข้อมูล",
-          "error",
-        );
+        throw new Error("Failed to update");
       }
     } catch (error) {
-      console.error("Error updating profile:", error);
-      Swal.fire(
-        "เกิดข้อผิดพลาด!",
-        "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้",
-        "error",
-      );
+      console.error(error);
+      Swal.fire("ข้อผิดพลาด", "ไม่สามารถอัปเดตข้อมูลได้", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePasswordSubmit = async (e) => {
+  const handleUpdatePassword = async (e) => {
     e.preventDefault();
+    if (
+      !passwordData.currentPassword ||
+      !passwordData.newPassword ||
+      !passwordData.confirmPassword
+    ) {
+      Swal.fire("แจ้งเตือน", "กรุณากรอกข้อมูลให้ครบถ้วน", "warning");
+      return;
+    }
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      Swal.fire("ข้อผิดพลาด!", "รหัสผ่านใหม่ไม่ตรงกัน", "warning");
+      Swal.fire("ข้อผิดพลาด", "รหัสผ่านใหม่ไม่ตรงกัน", "error");
       return;
     }
     if (passwordData.newPassword.length < 6) {
-      Swal.fire(
-        "ข้อผิดพลาด!",
-        "รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร",
-        "warning",
-      );
+      Swal.fire("ข้อผิดพลาด", "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร", "error");
       return;
     }
 
     setLoading(true);
     try {
-      // ใช้ user.id เป็นหลัก ถ้าไม่มีให้ใช้ EMPID
-      const userId = user.id || user.EMPID;
-      const response = await apiFetch(`/api/profile/${userId}/password`, {
+      const response = await apiFetch(`/api/users/${user.id}/change-password`, {
         method: "PUT",
         body: JSON.stringify({
           currentPassword: passwordData.currentPassword,
           newPassword: passwordData.newPassword,
         }),
       });
-      const data = await response.json();
+
       if (response.ok) {
-        Swal.fire("สำเร็จ!", "เปลี่ยนรหัสผ่านสำเร็จ", "success");
+        Swal.fire("สำเร็จ", "เปลี่ยนรหัสผ่านเรียบร้อยแล้ว", "success");
         setPasswordData({
           currentPassword: "",
           newPassword: "",
           confirmPassword: "",
         });
+        setShowPasswordForm(false);
       } else {
-        Swal.fire(
-          "เกิดข้อผิดพลาด!",
-          data.message || "เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน",
-          "error",
-        );
+        const data = await response.json();
+        throw new Error(data.message || "เปลี่ยนรหัสผ่านไม่สำเร็จ");
       }
     } catch (error) {
-      console.error("Error changing password:", error);
-      Swal.fire(
-        "เกิดข้อผิดพลาด!",
-        "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้",
-        "error",
-      );
+      Swal.fire("ข้อผิดพลาด", error.message, "error");
     } finally {
       setLoading(false);
     }
   };
 
-  if (!user) return <div>Loading...</div>;
+  if (!user) return <div className="p-8 text-center">กำลังโหลดข้อมูล...</div>;
 
   return (
-    <div className="user-profile-container">
+    <div className="profile-container">
       <div className="page-header">
         <h2>โปรไฟล์ของฉัน</h2>
-        <p>จัดการข้อมูลส่วนตัวและรหัสผ่าน</p>
+        <p>จัดการข้อมูลส่วนตัวและบัญชีผู้ใช้</p>
       </div>
 
       <div className="profile-content">
-        {/* ส่วนแก้ไขข้อมูลส่วนตัว */}
         <div className="profile-card">
-          <h3>
-            <User size={20} /> ข้อมูลส่วนตัว
-          </h3>
-          <form onSubmit={handleProfileSubmit}>
-            <div className="profile-image-section">
-              <div className="profile-avatar">
-                <ImageDisplay
-                  data={formData.profileImage || defaultProfileImage}
+          <form onSubmit={handleSubmit}>
+            <div className="profile-header-section">
+              <div className="profile-avatar-large-wrapper">
+                <img
+                  src={formData.profileImage || "/images/logo.png"}
                   alt="Profile"
+                  className="profile-avatar-large"
                 />
-                <label
-                  htmlFor="profile-upload"
-                  className="camera-icon"
-                  aria-label="เปลี่ยนรูปโปรไฟล์"
-                >
-                  <Camera size={16} />
+                <label htmlFor="profile-upload" className="camera-btn-large">
+                  <Camera size={20} />
                 </label>
                 <input
                   type="file"
@@ -226,125 +176,158 @@ const UserProfile = () => {
                   hidden
                 />
               </div>
+              <div className="profile-title-info">
+                <h3>
+                  {user.firstName} {user.lastName}
+                </h3>
+                <span className="role-badge">{user.role}</span>
+              </div>
             </div>
-            <div className="form-grid">
+
+            <div className="form-grid-profile">
               <div className="form-group">
-                <label htmlFor="firstName">ชื่อจริง</label>
+                <label>
+                  <User size={16} /> ชื่อจริง
+                </label>
                 <input
-                  id="firstName"
                   type="text"
                   name="firstName"
                   value={formData.firstName}
-                  onChange={handleInputChange}
-                  required
+                  onChange={handleChange}
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="lastName">นามสกุล</label>
+                <label>
+                  <User size={16} /> นามสกุล
+                </label>
                 <input
-                  id="lastName"
                   type="text"
                   name="lastName"
                   value={formData.lastName}
-                  onChange={handleInputChange}
-                  required
+                  onChange={handleChange}
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="email">
+                <label>
                   <Mail size={16} /> อีเมล
                 </label>
                 <input
-                  id="email"
                   type="email"
                   name="email"
                   value={formData.email}
-                  onChange={handleInputChange}
-                  required
+                  onChange={handleChange}
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="phone">
+                <label>
                   <Phone size={16} /> เบอร์โทรศัพท์
                 </label>
                 <input
-                  id="phone"
                   type="tel"
                   name="phone"
                   value={formData.phone}
-                  onChange={handleInputChange}
+                  onChange={handleChange}
                 />
               </div>
+              <div className="form-group disabled">
+                <label>
+                  <Building size={16} /> สังกัด (แก้ไขไม่ได้)
+                </label>
+                <input
+                  type="text"
+                  value={`${user.InstitutionName || "-"} / ${user.DepartmentName || "-"}`}
+                  disabled
+                />
+              </div>
+              <div className="form-group disabled">
+                <label>
+                  <MapPin size={16} /> รหัสพนักงาน (แก้ไขไม่ได้)
+                </label>
+                <input type="text" value={user.employeeId} disabled />
+              </div>
             </div>
-            <div className="form-actions">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handleCancel}
-                disabled={loading}
-              >
-                <X size={18} /> ยกเลิก
-              </button>
+
+            <div className="form-actions-profile">
               <button
                 type="submit"
-                className="btn btn-primary"
+                className="btn-save-profile"
                 disabled={loading}
               >
-                <Save size={18} /> บันทึกการเปลี่ยนแปลง
+                <Save size={18} />
+                {loading ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
               </button>
             </div>
           </form>
         </div>
 
-        {/* ส่วนเปลี่ยนรหัสผ่าน */}
-        <div className="profile-card">
-          <h3>
-            <Lock size={20} /> เปลี่ยนรหัสผ่าน
-          </h3>
-          <form onSubmit={handlePasswordSubmit}>
-            <div className="form-group">
-              <label htmlFor="currentPassword">รหัสผ่านปัจจุบัน</label>
-              <input
-                id="currentPassword"
-                type="password"
-                name="currentPassword"
-                value={passwordData.currentPassword}
-                onChange={handlePasswordChange}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="newPassword">รหัสผ่านใหม่</label>
-              <input
-                id="newPassword"
-                type="password"
-                name="newPassword"
-                value={passwordData.newPassword}
-                onChange={handlePasswordChange}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="confirmPassword">ยืนยันรหัสผ่านใหม่</label>
-              <input
-                id="confirmPassword"
-                type="password"
-                name="confirmPassword"
-                value={passwordData.confirmPassword}
-                onChange={handlePasswordChange}
-                required
-              />
-            </div>
-            <div className="form-actions">
-              <button
-                type="submit"
-                className="btn btn-secondary"
-                disabled={loading}
-              >
-                เปลี่ยนรหัสผ่าน
-              </button>
-            </div>
-          </form>
+        {/* Password Change Section */}
+        <div className="profile-card password-section">
+          <div
+            className="password-header"
+            onClick={() => setShowPasswordForm(!showPasswordForm)}
+          >
+            <h3>
+              <Lock size={20} /> เปลี่ยนรหัสผ่าน
+            </h3>
+            {showPasswordForm ? (
+              <ChevronUp size={20} />
+            ) : (
+              <ChevronDown size={20} />
+            )}
+          </div>
+
+          {showPasswordForm && (
+            <form onSubmit={handleUpdatePassword} className="password-form">
+              <div className="form-grid-profile">
+                <div className="form-group">
+                  <label>
+                    <Key size={16} /> รหัสผ่านปัจจุบัน
+                  </label>
+                  <input
+                    type="password"
+                    name="currentPassword"
+                    value={passwordData.currentPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="ระบุรหัสผ่านเดิม"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>
+                    <Lock size={16} /> รหัสผ่านใหม่
+                  </label>
+                  <input
+                    type="password"
+                    name="newPassword"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="อย่างน้อย 6 ตัวอักษร"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>
+                    <Lock size={16} /> ยืนยันรหัสผ่านใหม่
+                  </label>
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    value={passwordData.confirmPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="ยืนยันรหัสผ่านอีกครั้ง"
+                  />
+                </div>
+              </div>
+              <div className="form-actions-profile">
+                <button
+                  type="submit"
+                  className="btn-save-profile btn-password"
+                  disabled={loading}
+                >
+                  <Save size={18} />
+                  {loading ? "กำลังบันทึก..." : "อัปเดตรหัสผ่าน"}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       </div>
     </div>

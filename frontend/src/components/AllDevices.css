@@ -1,0 +1,55 @@
+.user-profile-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  background: linear-gradient(to bottom right, #ffffff, #f9fafb);
+  border: 1px solid #e5e7eb;
+  border-radius: 50px; /* ทรงแคปซูล */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  width: fit-content;
+  transition: all 0.2s ease-in-out;
+  cursor: default;
+  gap: 8px;
+}
+
+.user-profile-section:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border-color: #d1d5db;
+}
+
+.user-name {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #9ca3af;
+}
+
+.status-dot.status-available,
+.status-dot.status-active {
+  background-color: #10b981; /* Green (ว่าง / Active) */
+}
+
+.status-dot.status-borrowed {
+  background-color: #f59e0b; /* Yellow/Orange (ถูกยืม) */
+}
+
+.status-dot.status-repair,
+.status-dot.status-broken,
+.status-dot.status-inactive {
+  background-color: #ef4444; /* Red (ส่งซ่อม / ชำรุด / Inactive) */
+}
+
+.status-dot.status-lost {
+  background-color: #6b7280; /* Gray (สูญหาย) */
+}

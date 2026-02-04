@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
-  Bell,
   X,
   Calendar,
   Info,
@@ -21,8 +20,7 @@ const UserDashboard = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [myBorrows, setMyBorrows] = useState([]);
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")));
+  const [user] = useState(JSON.parse(localStorage.getItem("user")));
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [favorites, setFavorites] = useState([]); // Array of ProductIDs
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -219,15 +217,15 @@ const UserDashboard = () => {
           gap: 24px;
           margin-bottom: 32px;
         }
-        .stat-card-user {
-          background: #ffffff;
+        .stat-card-user { /* Add transitions for theme change */
+          background: var(--bg-card); 
           border-radius: 24px;
           padding: 28px;
           display: flex;
           align-items: center;
           gap: 24px;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
-          border: 1px solid #f1f5f9;
+          box-shadow: var(--shadow-sm); 
+          border: 1px solid var(--border-color); 
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           cursor: pointer;
           position: relative;
@@ -271,10 +269,51 @@ const UserDashboard = () => {
           margin: 0;
           font-size: 2.5rem;
           font-weight: 800;
-          color: #0f172a;
+          color: var(--text-primary); /* Add transition for color */
           line-height: 1;
           letter-spacing: -0.03em;
         }
+        
+        /* Styles for chart-card and alert-card-container */
+        .dashboard-widgets {
+          display: grid; /* Add transitions for theme change */
+          grid-template-columns: 1fr 1fr;
+          gap: 24px;
+          margin-bottom: 32px;
+        }
+        @media (max-width: 768px) {
+          .dashboard-widgets { grid-template-columns: 1fr; }
+        }
+        .chart-card, .alert-card-container { /* Add transitions for theme change */
+          background: var(--bg-card); 
+          border-radius: 24px;
+          padding: 24px;
+          box-shadow: var(--shadow-sm); 
+          border: 1px solid var(--border-color); 
+        }
+        .alert-card-container {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          max-height: 300px;
+          overflow-y: auto;
+        }
+        .alert-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          background: #fef2f2;
+          border-radius: 12px;
+          border-left: 4px solid #ef4444;
+        }
+        .alert-content h4 { margin: 0; font-size: 0.9rem; color: #991b1b; }
+        .alert-content p { margin: 0; font-size: 0.8rem; color: #b91c1c; }
+        
+        .stat-bar-row { margin-bottom: 12px; } /* Add transitions for theme change */
+        .stat-bar-label { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px; color: #64748b; }
+        .stat-bar-bg { height: 8px; background: var(--border-color); border-radius: 4px; overflow: hidden; transition: background-color 0.3s ease; }
+        .stat-bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
       `}</style>
       {/* 1. Welcome Section */}
       <div className="welcome-section">
@@ -322,6 +361,121 @@ const UserDashboard = () => {
             <h3>Pending Approval</h3>
             <p className="stat-value">{userStats.pendingRequests}</p>
           </div>
+        </div>
+      </div>
+
+      {/* New Dashboard Widgets: Chart & Alerts */}
+      <div className="dashboard-widgets">
+        <div className="chart-card">
+          <h3
+            style={{
+              margin: "0 0 20px 0",
+              color: "var(--text-primary)",
+              transition: "color 0.3s ease",
+            }}
+          >
+            ภาพรวมอุปกรณ์ (Overview)
+          </h3>
+          <div className="stat-bar-row">
+            <div className="stat-bar-label">
+              <span>ว่าง (Available)</span>
+              <span>
+                {products.filter((p) => p.StatusNameDV === "ว่าง").length}
+              </span>
+            </div>
+            <div className="stat-bar-bg">
+              <div
+                className="stat-bar-fill"
+                style={{
+                  width: `${(products.filter((p) => p.StatusNameDV === "ว่าง").length / (products.length || 1)) * 100}%`,
+                  background: "#22c55e",
+                }}
+              ></div>
+            </div>
+          </div>
+          <div className="stat-bar-row">
+            <div className="stat-bar-label">
+              <span>ถูกยืม (Borrowed)</span>
+              <span>
+                {products.filter((p) => p.StatusNameDV === "ถูกยืม").length}
+              </span>
+            </div>
+            <div className="stat-bar-bg">
+              <div
+                className="stat-bar-fill"
+                style={{
+                  width: `${(products.filter((p) => p.StatusNameDV === "ถูกยืม").length / (products.length || 1)) * 100}%`,
+                  background: "#3b82f6",
+                }}
+              ></div>
+            </div>
+          </div>
+          <div className="stat-bar-row">
+            <div className="stat-bar-label">
+              <span>ส่งซ่อม/ชำรุด (Maintenance)</span>
+              <span>
+                {
+                  products.filter((p) =>
+                    ["ส่งซ่อม", "ชำรุด"].includes(p.StatusNameDV),
+                  ).length
+                }
+              </span>
+            </div>
+            <div className="stat-bar-bg">
+              <div
+                className="stat-bar-fill"
+                style={{
+                  width: `${(products.filter((p) => ["ส่งซ่อม", "ชำรุด"].includes(p.StatusNameDV)).length / (products.length || 1)) * 100}%`,
+                  background: "#f97316",
+                }}
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="alert-card-container">
+          <h3
+            style={{
+              margin: "0 0 12px 0",
+              color: "var(--text-primary)",
+              transition: "color 0.3s ease",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <AlertCircle size={20} color="#ef4444" /> แจ้งเตือน (Notifications)
+          </h3>
+          {userStats.currentLoans.filter(
+            (l) => getDaysRemaining(l.ReturnDate) <= 3,
+          ).length === 0 ? (
+            <p
+              style={{
+                color: "#64748b",
+                fontSize: "0.9rem",
+                textAlign: "center",
+                marginTop: "20px",
+              }}
+            >
+              ไม่มีรายการแจ้งเตือน
+            </p>
+          ) : (
+            userStats.currentLoans
+              .filter((l) => getDaysRemaining(l.ReturnDate) <= 3)
+              .map((loan) => (
+                <div key={loan.BorrowID + loan.ItemName} className="alert-item">
+                  <AlertCircle size={20} color="#ef4444" />
+                  <div className="alert-content">
+                    <h4>{loan.ItemName}</h4>
+                    <p>
+                      {getDaysRemaining(loan.ReturnDate) < 0
+                        ? `เกินกำหนด ${Math.abs(getDaysRemaining(loan.ReturnDate))} วัน`
+                        : `ครบกำหนดใน ${getDaysRemaining(loan.ReturnDate)} วัน`}
+                    </p>
+                  </div>
+                </div>
+              ))
+          )}
         </div>
       </div>
 

@@ -6,14 +6,11 @@ import {
   CheckSquare,
   Activity,
   PieChart,
-  Plus,
-  Scan,
   Bell,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./AdminDashboard.css";
 import { apiFetch } from "./api";
-import LatestActivityWidget from "./LatestActivityWidget";
 
 const COLORS = [
   "#0088FE",
@@ -122,6 +119,39 @@ const AdminDashboard = () => {
 
   return (
     <div className="admin-dashboard">
+      <style>{`
+        .dashboard-header {
+          background: var(--bg-card);
+          padding: 24px 32px;
+          border-radius: 16px;
+          box-shadow: var(--shadow-sm);
+          margin-bottom: 24px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-left: 5px solid #ff8000;
+          transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .dashboard-header h1 {
+          color: var(--text-primary);
+          margin: 0 0 8px 0;
+          font-family: "Poppins", sans-serif;
+          font-weight: 600;
+          font-size: 1.5rem;
+          transition: color 0.3s ease;
+        }
+        .dashboard-header p {
+          color: var(--text-secondary);
+          margin: 0;
+          font-family: "Poppins", sans-serif;
+          transition: color 0.3s ease;
+        }
+        .date-display {
+          color: #64748b;
+          font-family: "Poppins", sans-serif;
+          font-weight: 500;
+        }
+      `}</style>
       <div className="dashboard-header">
         <div>
           <h1>Dashboard</h1>
@@ -271,7 +301,7 @@ const AdminDashboard = () => {
               <div className="alert-list">
                 {lowStockItems.slice(0, 5).map((item, idx) => (
                   <div key={idx} className="alert-item">
-                    <span className="alert-name">{item.ProductName}</span>
+                    <span className="alert-name">{item.DeviceName}</span>
                     <span className="alert-count">
                       เหลือ {item.AvailableCount}
                     </span>
@@ -285,29 +315,6 @@ const AdminDashboard = () => {
               </div>
             </div>
           )}
-
-          {/* Quick Actions */}
-          <div className="chart-card" style={{ minHeight: "auto" }}>
-            <div className="chart-header">
-              <h2>Quick Actions</h2>
-            </div>
-            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-              <button
-                className="btn btn-primary"
-                style={{ flex: 1, justifyContent: "center" }}
-                onClick={() => navigate("/products")}
-              >
-                <Plus size={18} /> Add New Asset
-              </button>
-              <button
-                className="btn btn-secondary"
-                style={{ flex: 1, justifyContent: "center" }}
-                onClick={() => alert("Barcode Scanner feature coming soon!")}
-              >
-                <Scan size={18} /> Scan Barcode
-              </button>
-            </div>
-          </div>
 
           <div className="chart-card">
             <div className="chart-header">

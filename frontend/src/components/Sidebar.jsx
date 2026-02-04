@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowRightLeft,
@@ -8,7 +8,6 @@ import {
   ShoppingBag,
   CheckSquare,
   Users,
-  BarChart2,
   FileText,
   UserCircle,
   ChevronRight,
@@ -85,46 +84,54 @@ const Sidebar = ({
 
   const isAdmin = user?.role === "Admin" || user?.role === "admin";
 
-  const menuItems = [
-    ...(isAdmin
-      ? [
-          {
-            id: "admin",
-            label: "Admin Dashboard",
-            icon: Shield,
-            path: "/dashboard",
-          },
-        ]
-      : [{ id: "home", label: "หน้าหลัก", icon: Home, path: "/dashboard" }]),
-    // Admin-only menus
-    ...(isAdmin
-      ? [
-          {
-            id: "products",
-            label: "สินค้า",
-            icon: ShoppingBag,
-            path: "/products",
-          },
-          {
-            id: "approvals",
-            label: "อนุมัติการยืม",
-            icon: CheckSquare,
-            path: "/approvals",
-          },
-          {
-            id: "logs",
-            label: "ประวัติการทำงาน",
-            icon: History,
-            path: "/logs",
-          },
-          { id: "members", label: "สมาชิก", icon: Users, path: "/members" }, // Corrected path
-        ]
-      : []),
-    // General user menus (also visible to Admin)
-    { id: "borrow", label: "ยืม-คืน", icon: ArrowRightLeft, path: "/borrow" }, // Corrected ID
-    { id: "history", label: "รายการยืม-คืน", icon: FileText, path: "/history" }, // Corrected ID
-    { id: "profile", label: "โปรไฟล์", icon: UserCircle, path: "/profile" }, // Corrected ID
-  ];
+  const menuItems = useMemo(
+    () => [
+      ...(isAdmin
+        ? [
+            {
+              id: "admin",
+              label: "Admin Dashboard",
+              icon: Shield,
+              path: "/dashboard",
+            },
+          ]
+        : [{ id: "home", label: "หน้าหลัก", icon: Home, path: "/dashboard" }]),
+      // Admin-only menus
+      ...(isAdmin
+        ? [
+            {
+              id: "products",
+              label: "สินค้า",
+              icon: ShoppingBag,
+              path: "/products",
+            },
+            {
+              id: "approvals",
+              label: "อนุมัติการยืม",
+              icon: CheckSquare,
+              path: "/approvals",
+            },
+            {
+              id: "logs",
+              label: "ประวัติการทำงาน",
+              icon: History,
+              path: "/logs",
+            },
+            { id: "members", label: "สมาชิก", icon: Users, path: "/members" }, // Corrected path
+          ]
+        : []),
+      // General user menus (also visible to Admin)
+      { id: "borrow", label: "ยืม-คืน", icon: ArrowRightLeft, path: "/borrow" }, // Corrected ID
+      {
+        id: "history",
+        label: "รายการยืม-คืน",
+        icon: FileText,
+        path: "/history",
+      }, // Corrected ID
+      { id: "profile", label: "โปรไฟล์", icon: UserCircle, path: "/profile" }, // Corrected ID
+    ],
+    [isAdmin],
+  );
 
   // คำนวณสถานะการแสดงผล: เปิดอยู่จริง หรือ แค่ Hover บน Desktop
   const isExpanded = isSidebarOpen || (isHovered && !isMobile);
@@ -136,7 +143,7 @@ const Sidebar = ({
     if (activeItem) {
       setActiveMenu(activeItem.id);
     }
-  }, [location.pathname, isAdmin]);
+  }, [location.pathname, menuItems, setActiveMenu]);
 
   return (
     <div
@@ -189,9 +196,14 @@ const Sidebar = ({
       {/* User Profile */}
       {user && (
         <div className="user-profile-section">
-          <div className="user-info">
-            <div style={{ position: "relative" }}>
-              <img
+          <div
+            className="user-info"
+            onClick={() => navigate("/profile")}
+            style={{ cursor: "pointer" }}
+            title="ไปที่หน้าโปรไฟล์"
+          >
+            <div className="avatar-container">
+              <img /* Add transition for background-color, border-color */
                 src={user.profileImage || defaultProfileImage} // Use local default profile image
                 alt="Profile"
                 className="user-avatar"
@@ -218,4 +230,4 @@ const Sidebar = ({
   );
 };
 
-export default Sidebar;
+export default React.memo(Sidebar);

@@ -165,7 +165,7 @@ const LoginPage = () => {
               <label htmlFor="password" className="input-label">
                 รหัสผ่าน
               </label>
-              <div className="password-input-wrapper">
+              <div className="input-wrapper password-input-wrapper">
                 <Lock className="input-icon" size={20} />
                 <input
                   type={showPassword ? "text" : "password"}

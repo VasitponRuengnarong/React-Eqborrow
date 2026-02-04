@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Menu, Moon, Sun } from "lucide-react";
 import "./Header.css";
-import { useTheme } from "../ThemeContext";
+import { useTheme } from "./ThemeContext";
 const defaultProfileImage = "/logo.png"; // Placeholder for profile image
 
 const Header = ({ toggleSidebar }) => {

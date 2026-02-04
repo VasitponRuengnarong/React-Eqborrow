@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Plus,
   Trash2,
@@ -8,8 +8,10 @@ import {
   Briefcase,
   Repeat,
   CheckCircle,
+  Search,
 } from "lucide-react";
 import "./BorrowReturn.css";
+import { apiFetch } from "./api";
 
 const BorrowReturn = () => {
   const [user, setUser] = useState(null);
@@ -19,6 +21,9 @@ const BorrowReturn = () => {
     institutions: [],
     departments: [],
   });
+  const [products, setProducts] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [formData, setFormData] = useState({
     borrowDate: new Date().toISOString().split("T")[0],
@@ -37,14 +42,19 @@ const BorrowReturn = () => {
 
     const fetchMasterData = async () => {
       try {
-        const [instRes, deptRes] = await Promise.all([
-          fetch("/api/institutions"),
-          fetch("/api/departments"),
+        const [instRes, deptRes, prodRes] = await Promise.all([
+          apiFetch("/api/institutions"),
+          apiFetch("/api/departments"),
+          apiFetch("/api/products"),
         ]);
         if (instRes.ok && deptRes.ok) {
           const institutions = await instRes.json();
           const departments = await deptRes.json();
           setMasterData({ institutions, departments });
+        }
+        if (prodRes.ok) {
+          const prods = await prodRes.json();
+          setProducts(prods);
         }
       } catch (error) {
         console.error("Error fetching master data", error);
@@ -53,16 +63,9 @@ const BorrowReturn = () => {
     fetchMasterData();
   }, []);
 
-  // Fetch active borrows when switching to 'return' tab
-  useEffect(() => {
-    if (activeTab === "return" && user?.id) {
-      fetchActiveBorrows();
-    }
-  }, [activeTab, user]);
-
-  const fetchActiveBorrows = async () => {
+  const fetchActiveBorrows = useCallback(async () => {
     try {
-      const response = await fetch(`/api/borrows/user/${user.id}`);
+      const response = await apiFetch(`/api/borrows/user/${user.id}`);
       if (response.ok) {
         const data = await response.json();
         // Filter only Approved items that can be returned
@@ -72,7 +75,14 @@ const BorrowReturn = () => {
     } catch (error) {
       console.error("Error fetching active borrows:", error);
     }
-  };
+  }, [user]);
+
+  // Fetch active borrows when switching to 'return' tab
+  useEffect(() => {
+    if (activeTab === "return" && user?.id) {
+      fetchActiveBorrows();
+    }
+  }, [activeTab, user, fetchActiveBorrows]);
 
   const getDepartmentName = (id) => {
     const dept = masterData.departments.find((d) => d.DepartmentID === id);
@@ -89,6 +99,29 @@ const BorrowReturn = () => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const handleNameChange = (e) => {
+    const value = e.target.value;
+    setNewItem({ ...newItem, name: value });
+
+    if (value.trim().length > 0) {
+      const lowerVal = value.toLowerCase();
+      const filtered = products.filter(
+        (p) =>
+          (p.DeviceName && p.DeviceName.toLowerCase().includes(lowerVal)) ||
+          (p.DeviceCode && p.DeviceCode.toLowerCase().includes(lowerVal)),
+      );
+      setSuggestions(filtered.slice(0, 10)); // Limit suggestions
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSelectSuggestion = (product) => {
+    setNewItem({ ...newItem, name: product.DeviceName });
+    setShowSuggestions(false);
+  };
+
   const handleItemChange = (e) => {
     const { name, value } = e.target;
     setNewItem({ ...newItem, [name]: value });
@@ -96,6 +129,35 @@ const BorrowReturn = () => {
 
   const addItem = () => {
     if (newItem.name.trim() === "") return;
+
+    // Check stock availability
+    const targetName = newItem.name.trim().toLowerCase();
+    const matchingProducts = products.filter(
+      (p) => p.DeviceName && p.DeviceName.toLowerCase() === targetName,
+    );
+
+    if (matchingProducts.length > 0) {
+      const totalAvailable = matchingProducts.reduce((sum, p) => {
+        return p.StatusNameDV === "ว่าง" ? sum + (p.Quantity || 0) : sum;
+      }, 0);
+
+      const inCartQty = formData.items.reduce((sum, item) => {
+        return item.name.toLowerCase() === targetName
+          ? sum + parseInt(item.quantity || 0)
+          : sum;
+      }, 0);
+
+      const requestQty = parseInt(newItem.quantity || 0);
+
+      if (inCartQty + requestQty > totalAvailable) {
+        alert(`จำนวนอุปกรณ์ไม่เพียงพอ (คงเหลือ: ${totalAvailable})`);
+        return;
+      }
+    } else {
+      alert("ไม่พบข้อมูลอุปกรณ์นี้ในระบบ กรุณาเลือกจากรายการแนะนำ");
+      return;
+    }
+
     setFormData({
       ...formData,
       items: [...formData.items, { ...newItem, id: Date.now() }],
@@ -123,11 +185,8 @@ const BorrowReturn = () => {
     }
 
     try {
-      const response = await fetch("/api/borrow", {
+      const response = await apiFetch("/api/borrow", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           userId: user.id,
           borrowDate: formData.borrowDate,
@@ -156,9 +215,8 @@ const BorrowReturn = () => {
     if (!window.confirm("คุณต้องการแจ้งคืนอุปกรณ์รายการนี้ใช่หรือไม่?")) return;
 
     try {
-      const response = await fetch(`/api/borrows/${borrowId}/status`, {
+      const response = await apiFetch(`/api/borrows/${borrowId}/status`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "Returned" }),
       });
 
@@ -177,8 +235,68 @@ const BorrowReturn = () => {
 
   return (
     <div className="borrow-return-container">
+      <style>{`
+        .modern-select-wrapper {
+          position: relative;
+          flex: 2;
+          min-width: 250px;
+        }
+        .modern-input-group {
+          position: relative;
+          display: flex;
+          align-items: center;
+          width: 100%;
+        }
+        .modern-input {
+          width: 100%;
+          padding: 10px 12px 10px 40px;
+          border: 1px solid var(--border-color); /* Add transition for border-color */
+          border-radius: 8px;
+          font-size: 0.95rem;
+          transition: all 0.2s;
+          background: var(--input-bg); /* Add transition for background-color */
+          color: var(--text-primary); /* Add transition for color */
+        }
+        .modern-input:focus {
+          border-color: #ff8000;
+          box-shadow: 0 0 0 3px rgba(255, 128, 0, 0.1);
+          outline: none;
+        }
+        .input-icon {
+          position: absolute;
+          left: 12px;
+          color: var(--text-secondary); /* Add transition for color */
+          pointer-events: none;
+        }
+        .suggestions-list {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          background: var(--bg-card); /* Add transition for background-color */
+          border: 1px solid var(--border-color); /* Add transition for border-color */
+          border-radius: 8px;
+          margin-top: 4px;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          z-index: 50;
+          max-height: 250px;
+          overflow-y: auto;
+          list-style: none;
+          padding: 0;
+        }
+        .suggestion-item {
+          padding: 10px 16px;
+          cursor: pointer;
+          border-bottom: 1px solid var(--border-color); /* Add transition for border-color */
+          transition: background 0.1s;
+        }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover { background: var(--hover-bg); color: #ff8000; } /* Add transition for background-color, color */
+        .suggestion-name { font-weight: 500; font-size: 0.9rem; color: var(--text-primary); } /* Add transition for color */
+        .suggestion-code { font-size: 0.8rem; color: var(--text-secondary); } /* Add transition for color */
+      `}</style>
       <div className="page-header">
-        <h2>ระบบยืม-คืนครุภัณฑ์</h2>
+        <h2>ระบบยืม-คืนสินค้า</h2>
         <p>จัดการการเบิกจ่ายและส่งคืนอุปกรณ์สำนักงาน</p>
       </div>
 
@@ -275,14 +393,38 @@ const BorrowReturn = () => {
               </h3>
 
               <div className="add-item-row">
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="ชื่ออุปกรณ์ / รหัสครุภัณฑ์"
-                  value={newItem.name}
-                  onChange={handleItemChange}
-                  className="item-input-name"
-                />
+                <div className="modern-select-wrapper">
+                  <div className="modern-input-group">
+                    <Search className="input-icon" size={18} />
+                    <input
+                      type="text"
+                      name="name"
+                      placeholder="ค้นหาชื่ออุปกรณ์..."
+                      value={newItem.name}
+                      onChange={handleNameChange}
+                      className="modern-input"
+                      autoComplete="off"
+                      onBlur={() =>
+                        setTimeout(() => setShowSuggestions(false), 200)
+                      }
+                      onFocus={() => newItem.name && setShowSuggestions(true)}
+                    />
+                  </div>
+                  {showSuggestions && suggestions.length > 0 && (
+                    <ul className="suggestions-list">
+                      {suggestions.map((p) => (
+                        <li
+                          key={p.DVID}
+                          className="suggestion-item"
+                          onClick={() => handleSelectSuggestion(p)}
+                        >
+                          <div className="suggestion-name">{p.DeviceName}</div>
+                          <div className="suggestion-code">{p.DeviceCode}</div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
                 <input
                   type="number"
                   name="quantity"

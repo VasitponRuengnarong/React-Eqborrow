@@ -157,6 +157,12 @@ app.delete("/api/institutions/:id", async (req, res) => {
     ]);
     res.json({ message: "Deleted successfully" });
   } catch (err) {
+    if (err.code === "ER_ROW_IS_REFERENCED_2") {
+      return res.status(409).json({
+        error:
+          "ไม่สามารถลบได้ เนื่องจากมีข้อมูล (เช่น พนักงาน) อ้างอิงถึงหน่วยงานนี้อยู่",
+      });
+    }
     res.status(500).json({ error: err.message });
   }
 });
@@ -173,6 +179,11 @@ app.post("/api/departments", async (req, res) => {
       .status(201)
       .json({ DepartmentID: result.insertId, DepartmentName, InstitutionID });
   } catch (err) {
+    if (err.code === "ER_NO_REFERENCED_ROW_2") {
+      return res
+        .status(400)
+        .json({ error: "ไม่พบข้อมูลหน่วยงานหลัก (Institution) ที่ระบุ" });
+    }
     res.status(500).json({ error: err.message });
   }
 });
@@ -187,6 +198,11 @@ app.put("/api/departments/:id", async (req, res) => {
     );
     res.json({ message: "Updated successfully" });
   } catch (err) {
+    if (err.code === "ER_NO_REFERENCED_ROW_2") {
+      return res
+        .status(400)
+        .json({ error: "ไม่พบข้อมูลหน่วยงานหลัก (Institution) ที่ระบุ" });
+    }
     res.status(500).json({ error: err.message });
   }
 });
@@ -285,7 +301,6 @@ app.post("/api/register", async (req, res) => {
     username,
     email,
     phone,
-    roleId,
     institutionId,
     departmentId,
     empStatusId,
@@ -295,13 +310,22 @@ app.post("/api/register", async (req, res) => {
 
   try {
     const [existing] = await db.query(
-      "SELECT * FROM TB_T_Employee WHERE username = ? OR email = ?",
-      [username, email],
+      "SELECT * FROM TB_T_Employee WHERE username = ? OR email = ? OR EMP_NUM = ?",
+      [username, email, employeeId],
     );
     if (existing.length > 0) {
-      return res
-        .status(400)
-        .json({ message: "Username or Email already exists" });
+      if (existing.some((emp) => emp.username === username)) {
+        return res.status(409).json({ message: "ชื่อผู้ใช้นี้ถูกใช้งานแล้ว" });
+      }
+      if (existing.some((emp) => emp.email === email)) {
+        return res.status(409).json({ message: "อีเมลนี้ถูกใช้งานแล้ว" });
+      }
+      if (existing.some((emp) => emp.EMP_NUM === employeeId)) {
+        return res.status(409).json({ message: "รหัสพนักงานนี้ถูกใช้งานแล้ว" });
+      }
+      return res.status(409).json({
+        message: "ข้อมูลบางส่วน (ชื่อผู้ใช้, อีเมล, รหัสพนักงาน) ถูกใช้งานแล้ว",
+      });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -316,7 +340,7 @@ app.post("/api/register", async (req, res) => {
         username,
         email,
         phone,
-        roleId,
+        2, // Force RoleID to 2 (User)
         institutionId,
         departmentId,
         empStatusId,
