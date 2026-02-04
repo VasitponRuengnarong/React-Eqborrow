@@ -284,6 +284,10 @@ input[type="file"] {
     gap: 1rem;
   }
 }
+.user-name {
+  font-weight: 500;
+  color: #000000;
+}
 
 /* Crop Modal Styles */
 .crop-container {

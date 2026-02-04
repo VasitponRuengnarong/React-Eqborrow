@@ -30,7 +30,8 @@
 .form-section {
   margin-bottom: 30px;
   padding-bottom: 20px;
-  border-bottom: 1px solid #eee;
+  border-radius: 4px;
+  border-bottom: 1px solid #e7e7e7;
 }
 
 .form-section:last-child {

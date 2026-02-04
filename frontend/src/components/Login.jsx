@@ -92,10 +92,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div
-      className="login-page"
-      style={{ position: "relative", overflow: "hidden" }}
-    >
+    <div className="login-page" style={{ position: "relative" }}>
       <div
         style={{
           position: "absolute",
@@ -122,7 +119,7 @@ const LoginPage = () => {
           <div className="brand-content">
             <div className="thai-pbs-logo">
               <img
-                src="/images/logo.png" // Placeholder for logo
+                src="/images/logo.png"
                 alt="Eqborrow Logo" // More specific alt text
                 style={{ height: "200px", width: "auto" }} // Consistent height, auto width
               />
@@ -145,15 +142,19 @@ const LoginPage = () => {
           <form onSubmit={handleSubmit} className="login-form" noValidate>
             {/* Username Field */}
             <div className={`form-group ${errors.username ? "has-error" : ""}`}>
-              <User className="input-icon" size={20} />
-              <input
-                type="text"
-                id="username"
-                placeholder=" "
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-              <label htmlFor="username">ชื่อผู้ใช้</label>
+              <label htmlFor="username" className="input-label">
+                ชื่อผู้ใช้
+              </label>
+              <div className="input-wrapper">
+                <User className="input-icon" size={20} />
+                <input
+                  type="text"
+                  id="username"
+                  placeholder="กรอกชื่อผู้ใช้"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
               {errors.username && (
                 <span className="error-message">{errors.username}</span>
               )}
@@ -161,16 +162,18 @@ const LoginPage = () => {
 
             {/* Password Field */}
             <div className={`form-group ${errors.password ? "has-error" : ""}`}>
+              <label htmlFor="password" className="input-label">
+                รหัสผ่าน
+              </label>
               <div className="password-input-wrapper">
                 <Lock className="input-icon" size={20} />
                 <input
                   type={showPassword ? "text" : "password"}
                   id="password"
-                  placeholder=" "
+                  placeholder="กรอกรหัสผ่าน"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
-                <label htmlFor="password">รหัสผ่าน</label>
                 <button
                   type="button"
                   className="password-toggle"

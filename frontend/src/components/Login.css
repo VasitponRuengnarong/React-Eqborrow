@@ -5,30 +5,34 @@
   align-items: center;
   justify-content: center;
   font-family: "Poppins", sans-serif;
-  background: linear-gradient(-45deg, #f5f7fa, #e4e8eb, #fff8f0, #fff3e0);
-  background-size: 400% 400%;
-  animation: gradientBG 15s ease infinite;
+  background: transparent;
   padding: 20px;
 }
 
 .login-container {
   display: flex;
   width: 100%;
-  max-width: 900px;
-  height: 600px;
-  background: #ffffff;
-  border-radius: 20px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
+  max-width: 1000px;
+  min-height: 600px;
+  height: auto;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+  overflow: visible;
   animation: fadeIn 0.8s ease-out forwards;
 }
 
 /* Left Side - Brand */
 .login-brand {
-  flex: 1;
-  background: linear-gradient(135deg, #ff8000, #ff6a00, #ff9e40);
-  background-size: 200% 200%;
-  animation: gradientBG 10s ease infinite;
+  flex: 0 0 35%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 128, 0, 0.9),
+    rgba(255, 100, 0, 0.95)
+  );
   display: flex;
   align-items: center;
   justify-content: center;
@@ -36,6 +40,8 @@
   color: white;
   position: relative;
   overflow: hidden;
+  border-top-left-radius: 24px;
+  border-bottom-left-radius: 24px;
 }
 
 /* Decorative circle for brand background */
@@ -58,7 +64,7 @@
 .brand-content {
   text-align: center;
   z-index: 1;
-  /* Removed float from container to animate children individually */
+  animation: float 6s ease-in-out infinite;
 }
 
 .thai-pbs-logo {
@@ -72,10 +78,7 @@
   justify-content: center;
   margin: 0 auto 30px;
   box-shadow: none;
-  opacity: 0;
-  animation:
-    float 6s ease-in-out infinite,
-    fadeInUp 0.8s ease-out forwards;
+  animation: pulse 3s infinite ease-in-out;
 }
 
 .thai-pbs-logo .logo-text {
@@ -89,29 +92,27 @@
   font-weight: 700;
   margin: 0 0 10px 0;
   line-height: 1.2;
-  text-shadow: none;
-  opacity: 0;
-  animation: fadeInUp 0.8s ease-out 0.2s forwards;
 }
 
 .brand-subtitle {
   font-size: 14px;
-  opacity: 0; /* Start hidden for animation */
+  opacity: 0.9;
   margin: 0;
   letter-spacing: 2px;
   font-weight: 500;
   text-transform: uppercase;
-  animation: fadeInUp 0.8s ease-out 0.4s forwards;
 }
 
 /* Right Side - Login Form */
 .login-form-section {
   flex: 1;
-  padding: 50px;
+  padding: 40px 60px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  background: #ffffff;
+  background: transparent;
+  border-top-right-radius: 24px;
+  border-bottom-right-radius: 24px;
 }
 
 .login-header {
@@ -120,15 +121,15 @@
 }
 
 .login-header h2 {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
-  color: #333;
-  margin: 0 0 8px 0;
+  color: #1a202c;
+  margin: 0 0 10px 0;
 }
 
 .login-header p {
-  font-size: 14px;
-  color: #888;
+  font-size: 15px;
+  color: #718096;
   margin: 0;
 }
 
@@ -144,74 +145,43 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  margin-top: 10px;
+  margin-bottom: 24px;
 }
 
-.form-group label {
-  position: absolute;
-  top: 12px;
-  left: 0;
+.input-label {
+  display: block;
   font-size: 14px;
-  color: #aaa;
-  pointer-events: none;
-  transition: all 0.2s ease;
+  font-weight: 500;
+  color: #4a5568;
+  margin-bottom: 8px;
+  transition: color 0.2s;
 }
 
-.form-group input {
-  padding: 12px 0 12px 35px;
-  border: none;
-  border-bottom: 1px solid #e0e0e0;
-  background-color: transparent;
-  border-radius: 0;
-  font-size: 15px;
-  color: #333;
-  font-family: "Poppins", sans-serif;
-  transition: all 0.2s ease;
+.input-wrapper {
+  position: relative;
+  width: 100%;
 }
 
 .input-icon {
   position: absolute;
-  top: 12px;
-  left: 0;
-  color: #aaa;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 16px;
+  color: #a0aec0;
   pointer-events: none;
+  transition: color 0.2s;
+  z-index: 2;
 }
 
-.form-group input:focus {
-  outline: none;
-  background-color: transparent;
-  border-bottom-color: #ff8000;
-  box-shadow: 0 1px 0 0 #ff8000;
-}
-
-/* Floating Label Logic */
-.form-group input:focus ~ label,
-.form-group input:not(:placeholder-shown) ~ label {
-  top: -10px;
-  left: 0;
-  font-size: 12px;
+/* Focus within state for label and icon */
+.form-group:focus-within .input-label,
+.form-group:focus-within .input-icon {
   color: #ff8000;
 }
 
-.form-group input::placeholder {
-  color: transparent;
-}
-
-.form-group label {
-  left: 35px;
-}
-
 /* Error State */
-.form-group.has-error input {
-  border-bottom-color: #ff3333;
-}
-
 .form-group.has-error .input-icon {
-  color: #ff3333;
-}
-
-.form-group.has-error label {
-  color: #ff3333;
+  color: #fc8181;
 }
 
 .error-message {
@@ -270,6 +240,7 @@
   justify-content: space-between;
   align-items: center;
   margin-top: 10px;
+  margin-bottom: 15px;
   font-size: 13px;
 }
 
@@ -329,47 +300,21 @@
 
 /* Login Button */
 .login-btn {
-  padding: 14px;
-  background: #ff8000;
+  width: 100%; /* ขยายเต็มความกว้าง */
+  background-color: #ff8c00; /* สีส้ม */
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 12px;
+  border-radius: 8px; /* ความมนของขอบ */
+  font-size: 16px;
+  font-weight: bold;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-family: "Poppins", sans-serif;
-  margin-top: 20px;
-  box-shadow: 0 4px 10px rgba(255, 128, 0, 0.2);
-  position: relative;
-  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(255, 140, 0, 0.2); /* เงาฟุ้งๆ สีส้ม */
+  transition: background 0.3s;
 }
 
-.login-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 15px rgba(255, 128, 0, 0.3);
-}
-
-.login-btn:disabled {
-  opacity: 0.8;
-  cursor: not-allowed;
-}
-
-/* Ripple Effect */
-.ripple {
-  position: absolute;
-  border-radius: 50%;
-  transform: scale(0);
-  animation: ripple 0.6s linear;
-  background-color: rgba(255, 255, 255, 0.7);
-  pointer-events: none;
-}
-
-@keyframes ripple {
-  to {
-    transform: scale(4);
-    opacity: 0;
-  }
+.login-btn:hover {
+  background-color: #e65100;
 }
 
 /* Social Login */
@@ -452,23 +397,6 @@
 .login-footer a:hover {
   color: #e65100;
   text-decoration: underline;
-}
-
-/* Loading Spinner */
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.spinner {
-  width: 20px;
-  height: 20px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  border-top-color: #fff;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto;
 }
 
 /* Fade In Animation */
@@ -570,10 +498,13 @@
   }
 
   .login-container {
-    border-radius: 12px;
+    border-radius: 24px;
   }
 
   .login-brand {
-    border-radius: 12px 12px 0 0;
+    border-radius: 24px 24px 0 0;
+  }
+  .login-form-section {
+    border-radius: 0 0 24px 24px;
   }
 }

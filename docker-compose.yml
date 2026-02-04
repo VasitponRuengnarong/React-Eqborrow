@@ -43,6 +43,9 @@ services:
     build: ./frontend
     ports:
       - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true # ตั้งค่าเพื่อให้ระบบ Hot Reload ทำงานได้ถูกต้องบน Windows
       - WDS_SOCKET_PORT=0

@@ -106,10 +106,10 @@
 .user-name {
   font-weight: 600;
   margin: 0;
-  color: #000000;
+  color: #ffffff;
 }
 .dark-mode .user-name {
-  color: #ffffff;
+  color: hsl(0, 0%, 100%);
 }
 
 .user-department {

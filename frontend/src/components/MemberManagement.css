@@ -27,6 +27,19 @@
   color: #000000;
 }
 
+.add-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.add-row input {
+  padding: 0.6rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  min-width: 250px;
+  font-size: 0.95rem;
+}
+
 .role-badge {
   padding: 4px 8px;
   border-radius: 12px;
