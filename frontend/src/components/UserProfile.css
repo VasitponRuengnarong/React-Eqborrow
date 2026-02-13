@@ -328,3 +328,37 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+@media (max-width: 768px) {
+  .profile-container {
+    padding: 16px;
+  }
+  
+  .page-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .profile-avatar-section {
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .avatar-wrapper {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .btn-primary, .btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -7,6 +7,95 @@
   }
 }
 
+
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dashboard-header-premium {
+  margin-bottom: 32px;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 24px;
+  padding: 24px 32px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.171);
+}
+
+.welcome-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.welcome-header-content h1 {
+  font-size: 2.4rem;
+  font-weight: 800;
+  margin: 0;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #64748b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));
+}
+
+.welcome-header-content p {
+  color: #64748b;
+  margin: 6px 0 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.date-badge-premium {
+  background: white;
+  padding: 10px 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  font-weight: 600;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.export-btn-premium {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2);
+}
+
+.export-btn-premium:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.3);
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+}
+
+.export-btn-premium svg {
+  transition: transform 0.3s ease;
+}
+
+.export-btn-premium:hover svg {
+  transform: translateY(1px);
+}
+
 .admin-dashboard {
   padding: 30px;
   font-family: "Kanit", sans-serif;
@@ -444,16 +533,28 @@
     padding: 15px;
   }
 
-  .dashboard-header {
+  .dashboard-header-premium .welcome-section {
     flex-direction: column;
     align-items: flex-start;
-    gap: 15px;
+    gap: 20px;
   }
 
-  .date-display {
+  .header-actions {
     width: 100%;
-    text-align: center;
-    margin-top: 5px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .date-badge-premium {
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .export-btn-premium {
+    width: 100%;
+    justify-content: center;
   }
 
   .stats-grid, .charts-grid, .operations-grid {
@@ -465,7 +566,26 @@
     padding: 15px;
   }
 
-  .bar-chart {
-    height: 200px;
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 600px;
+  }
+}
+
+@media (max-width: 640px) {
+  .welcome-header-content h1 {
+    font-size: 1.8rem;
+  }
+  
+  .stat-card {
+    padding: 16px;
+  }
+  
+  .stat-value {
+    font-size: 24px;
   }
 }

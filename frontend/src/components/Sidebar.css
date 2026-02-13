@@ -32,12 +32,26 @@
     position: fixed;
     left: -280px;
     box-shadow: none;
+    height: 100dvh; /* Use dynamic viewport height */
   }
   .sidebar.mobile.open {
     left: 0;
-    box-shadow: 10px 0 40px rgba(0, 0, 0, 0.15); /* Stronger shadow on mobile overlay */
+    box-shadow: 20px 0 60px rgba(0, 0, 0, 0.2);
   }
   .sidebar.mobile .sidebar-toggle { display: none; }
+  
+  .sidebar-menu {
+    padding: 10px 16px;
+  }
+  
+  .menu-item {
+    padding: 16px 20px; /* Larger touch area on mobile */
+    border-radius: 12px;
+  }
+  
+  .user-profile-section {
+    padding: 16px;
+  }
 }
 
 /* --- Sidebar States (Desktop) --- */

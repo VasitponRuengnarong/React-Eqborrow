@@ -95,29 +95,6 @@ const Header = ({ toggleSidebar }) => {
         </div>
       </div>
 
-      {/* Center Section: Search Bar */}
-      <div className="header-center">
-        <div className={`search-bar-container ${searchText ? "active" : ""}`}>
-          <Search size={18} className="search-icon" />
-          <input
-            type="text"
-            placeholder="Search for equipment, status..."
-            className="search-input"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch(e)}
-          />
-          {searchText && (
-            <button 
-              className="search-clear-btn" 
-              onClick={() => setSearchText("")}
-              title="Clear search"
-            >
-              ×
-            </button>
-          )}
-        </div>
-      </div>
 
       {/* Right Section: Time, Notifications, Profile */}
       <div className="header-right">

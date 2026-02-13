@@ -605,25 +605,64 @@
 }
 
 @media (max-width: 768px) {
-  .register-container,
-  .login-container {
-    flex-direction: column;
-    height: auto;
-    max-width: 500px;
-    max-height: none;
+  .register-page {
+    padding: 0;
   }
+  
+  .register-container {
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    min-height: 100vh;
+    border-radius: 0;
+    border: none;
+  }
+
+  .register-brand {
+    padding: 40px 20px;
+    flex: 0 0 auto;
+  }
+
+  .brand-title {
+    font-size: 30px;
+  }
+
+  .register-form-section {
+    padding: 32px 20px;
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  .stepper-wrapper {
+    margin-bottom: 30px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    justify-content: flex-start;
+    gap: 10px;
+  }
+  
+  .stepper-track {
+    display: none; /* Hide track on mobile as it breaks scrolling */
+  }
+
+  .step-item {
+    width: 70px;
+    flex-shrink: 0;
+  }
+
   .form-row {
     flex-direction: column;
     gap: 0;
   }
-  .register-brand {
-    padding: 30px;
-    flex: 0 0 auto;
+  
+  .form-navigation {
+    flex-direction: column-reverse; /* Put primary action on top */
+    gap: 12px;
   }
-  .register-form-section {
-    padding: 30px;
-    max-height: none;
-    overflow-y: visible;
+  
+  .btn-next, .register-btn, .btn-back {
+    width: 100%;
+    padding: 14px;
   }
 }
 

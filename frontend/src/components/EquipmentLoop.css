@@ -33,7 +33,7 @@
   display: flex;
   width: max-content;
   gap: 20px;
-  animation: scroll 40s linear infinite;
+  animation: scroll 90s linear infinite;
 }
 
 .loop-track:hover {
@@ -141,4 +141,46 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .equipment-loop-container {
+    margin: 16px 0 30px;
+  }
+  
+  .loop-title {
+    font-size: 1.1rem;
+    gap: 8px;
+  }
+  
+  .loop-track {
+    gap: 16px;
+    animation-duration: 30s; /* Faster scroll since visible area is smaller */
+  }
+  
+  .equipment-card-mini {
+    width: 170px; /* Slightly smaller cards */
+  }
+  
+  .card-image {
+    height: 120px;
+  }
+  
+  .card-info h4 {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .loop-title {
+    font-size: 1rem;
+  }
+  
+  .equipment-card-mini {
+    width: 150px;
+  }
+  
+  .card-image {
+    height: 110px;
+  }
 }

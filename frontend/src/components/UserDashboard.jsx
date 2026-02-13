@@ -113,11 +113,16 @@ const UserDashboard = () => {
 
   return (
     <div className="user-dashboard fade-in">
+      {/* Background Decorative Blobs */}
+      <div className="bg-blob blob-1"></div>
+      <div className="bg-blob blob-2"></div>
+      <div className="bg-blob blob-3"></div>
+
       {/* 1. Header Section */}
-      <div className="dashboard-header-premium">
+      <div className="dashboard-header-premium stagger-1">
         <div className="welcome-section">
           <div className="welcome-text">
-            <h1>สวัสดี, {user?.firstName || "User"} 👋</h1>
+            <h1>สวัสดี, {user?.firstName || "User"} </h1>
             <p>ยินดีต้อนรับสู่ระบบจัดการอุปกรณ์</p>
           </div>
           <div className="date-badge-premium">
@@ -134,12 +139,12 @@ const UserDashboard = () => {
         </div>
       </div>
 
-      <div className="showcase-section">
+      <div className="showcase-section stagger-2">
         <EquipmentLoop />
       </div>
 
       {/* 2. Key Metrics Grid */}
-      <div className="stats-grid-premium">
+      <div className="stats-grid-premium stagger-3">
         <div className="stat-card-premium primary">
           <Package className="stat-card-icon" />
           <h3>อุปกรณ์ที่ยืมอยู่</h3>
@@ -167,7 +172,7 @@ const UserDashboard = () => {
       </div>
 
       {/* 3. Main Content Layout */}
-      <div className="dashboard-main-layout">
+      <div className="dashboard-main-layout stagger-4">
         {/* Left Column: Active Loans */}
         <div className="active-loans-section">
           <div className="section-header">
@@ -239,42 +244,71 @@ const UserDashboard = () => {
         </div>
 
         {/* Right Column: Charts & Quick Status */}
-        <div className="charts-column">
-          <div className="chart-container-premium glass-panel">
-            <h3 className="text-lg font-semibold mb-6">ภาพรวมสถานะคำขอ</h3>
-            <div style={{ width: "100%", height: 250 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={userStats.statusDistribution}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {userStats.statusDistribution.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={COLORS[entry.name] || "#cbd5e1"} 
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex gap-4 justify-center mt-4 flex-wrap">
-              {userStats.statusDistribution.map((entry) => (
-                <div key={entry.name} className="flex items-center gap-2 text-sm">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: COLORS[entry.name] || "#cbd5e1" }}
-                  ></div>
-                  <span>{entry.name} ({entry.value})</span>
+        <div className="charts-column glass-panel">
+          <div className="chart-container-premium">
+            <h3 className="chart-header-title">ภาพรวมสถานะคำขอ</h3>
+            
+            <div className="chart-visual-wrapper">
+              <div style={{ width: "100%", height: 250, position: "relative" }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={userStats.statusDistribution}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={75}
+                      outerRadius={95}
+                      paddingAngle={8}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {userStats.statusDistribution.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={COLORS[entry.name] || "#cbd5e1"} 
+                          style={{ filter: `drop-shadow(0px 4px 10px ${COLORS[entry.name]}44)` }}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ 
+                        borderRadius: '12px', 
+                        border: 'none', 
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.1)' 
+                      }} 
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                
+                {/* Center Label inside Donut */}
+                <div className="chart-center-label">
+                  <span className="label-total">{userStats.totalHistory + userStats.pendingRequests + userStats.itemsOnHand}</span>
+                  <span className="label-text">คำขอทั้งหมด</span>
                 </div>
-              ))}
+              </div>
+            </div>
+
+            <div className="custom-legend-pro">
+              {userStats.statusDistribution.map((entry) => {
+                const total = userStats.totalHistory + userStats.pendingRequests + userStats.itemsOnHand;
+                const percentage = total > 0 ? ((entry.value / total) * 100).toFixed(0) : 0;
+                
+                return (
+                  <div key={entry.name} className="legend-row">
+                    <div className="legend-info">
+                      <div 
+                        className="legend-dot" 
+                        style={{ backgroundColor: COLORS[entry.name] || "#cbd5e1" }}
+                      ></div>
+                      <span className="legend-name">{entry.name}</span>
+                    </div>
+                    <div className="legend-values">
+                      <span className="legend-count">{entry.value}</span>
+                      <span className="legend-percent">{percentage}%</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
