@@ -1,7 +1,6 @@
-import { Renderer, Program, Mesh, Color, Triangle } from "ogl";
-import { useEffect, useRef } from "react";
-
-import "./Aurora.css";
+import { Renderer, Program, Mesh, Color, Triangle } from 'ogl';
+import { useEffect, useRef } from 'react';
+import './Aurora.css';
 
 const VERT = `#version 300 es
 in vec2 position;
@@ -100,6 +99,9 @@ void main() {
   height = (uv.y * 2.0 - height + 0.2);
   float intensity = 0.6 * height;
   
+  // Auroras are typically top-heavy or bottom-heavy. 
+  // Let's fade out at the bottom to look more like the React Bits demo where it floats nicely.
+  
   float midPoint = 0.20;
   float auroraAlpha = smoothstep(midPoint - uBlend * 0.5, midPoint + uBlend * 0.5, intensity);
   
@@ -111,10 +113,13 @@ void main() {
 
 export default function Aurora(props) {
   const {
-    colorStops = ["#5227FF", "#7cff67", "#5227FF"],
+    colorStops = ["#00d2ff", "#3a7bd5", "#00d2ff"], // React Bits default Cool tones
     amplitude = 1.0,
     blend = 0.5,
+    time = 0,
+    speed = 1.0
   } = props;
+  
   const propsRef = useRef(props);
   propsRef.current = props;
 
@@ -134,6 +139,8 @@ export default function Aurora(props) {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.canvas.style.backgroundColor = "transparent";
+    gl.canvas.style.width = "100%";
+    gl.canvas.style.height = "100%";
 
     let program;
 
@@ -141,11 +148,15 @@ export default function Aurora(props) {
       if (!ctn) return;
       const width = ctn.offsetWidth;
       const height = ctn.offsetHeight;
+      if (width === 0 || height === 0) return;
       renderer.setSize(width, height);
       if (program) {
         program.uniforms.uResolution.value = [width, height];
       }
     }
+    
+    // Initial resize inside requestAnimationFrame to ensure container has size
+    requestAnimationFrame(resize);
     window.addEventListener("resize", resize);
 
     const geometry = new Triangle(gl);
@@ -165,7 +176,7 @@ export default function Aurora(props) {
         uTime: { value: 0 },
         uAmplitude: { value: amplitude },
         uColorStops: { value: colorStopsArray },
-        uResolution: { value: [ctn.offsetWidth, ctn.offsetHeight] },
+        uResolution: { value: [ctn.offsetWidth || 1, ctn.offsetHeight || 1] },
         uBlend: { value: blend },
       },
     });
@@ -189,8 +200,6 @@ export default function Aurora(props) {
     };
     animateId = requestAnimationFrame(update);
 
-    resize();
-
     return () => {
       cancelAnimationFrame(animateId);
       window.removeEventListener("resize", resize);
@@ -199,8 +208,7 @@ export default function Aurora(props) {
       }
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [amplitude]);
+  }, [amplitude, blend, colorStops]); // Added blend and colorStops to dependencies
 
   return <div ref={ctnDom} className="aurora-container" />;
 }

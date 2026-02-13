@@ -11,6 +11,9 @@ import {
   ClipboardList,
   Info,
   Search,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import "./ApprovalPage.css"; // สร้างไฟล์ CSS ใหม่สำหรับหน้านี้
 
@@ -24,6 +27,8 @@ const ApprovalPage = () => {
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
   const [borrowToReturn, setBorrowToReturn] = useState(null);
   const [returnQuantities, setReturnQuantities] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 9; // Number of items to show per page
 
   const fetchBorrows = useCallback(async () => {
     setLoading(true);
@@ -32,7 +37,24 @@ const ApprovalPage = () => {
       const response = await apiFetch("/api/borrows");
       if (response.ok) {
         const data = await response.json();
-        const filteredData = data.filter((item) => item.Status === filter);
+
+        // กรองรายการอุปกรณ์ซ้ำ (Deduplicate items) โดยใช้ BorrowDetailID
+        // เพื่อป้องกันปัญหาที่เกิดจากการ JOIN ตารางฝั่ง Backend (เช่น JOIN กับ Log หรือ Image)
+        const cleanedData = data.map((borrow) => {
+          if (borrow.items && Array.isArray(borrow.items)) {
+            const uniqueItems = Array.from(
+              new Map(
+                borrow.items.map((item) => [item.BorrowDetailID, item]),
+              ).values(),
+            );
+            return { ...borrow, items: uniqueItems };
+          }
+          return borrow;
+        });
+
+        const filteredData = cleanedData.filter(
+          (item) => item.Status === filter,
+        );
         setBorrows(filteredData);
       }
     } catch (error) {
@@ -56,6 +78,11 @@ const ApprovalPage = () => {
       setReturnQuantities(initialQuantities);
     }
   }, [borrowToReturn]);
+
+  // Reset to first page when filter or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, searchQuery]);
 
   const handleStatusChange = async (borrowId, newStatus) => {
     const actionText = {
@@ -157,6 +184,17 @@ const ApprovalPage = () => {
     );
   }, [borrows, searchQuery]);
 
+  // Pagination Logic
+  const totalPages = Math.ceil(displayedBorrows.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = displayedBorrows.slice(indexOfFirstItem, indexOfLastItem);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const renderCard = (borrow) => (
     <div key={borrow.BorrowID} className="approval-card">
       <div className="card-header">
@@ -171,15 +209,15 @@ const ApprovalPage = () => {
             <p className="user-department">{borrow.DepartmentName}</p>
           </div>
         </div>
-        <div className="borrow-date">
-          <Calendar size={16} />
-          <span>
-            {new Date(borrow.BorrowDate).toLocaleDateString("th-TH")} -{" "}
-            {new Date(borrow.ReturnDate).toLocaleDateString("th-TH")}
-          </span>
-        </div>
       </div>
       <div className="card-body">
+        <div className="borrow-date">
+          <Calendar size={14} />
+          <span>
+            {new Date(borrow.BorrowDate).toLocaleDateString("th-TH", { day: 'numeric', month: 'short' })} -{" "}
+            {new Date(borrow.ReturnDate).toLocaleDateString("th-TH", { day: 'numeric', month: 'short', year: '2-digit' })}
+          </span>
+        </div>
         <div className="info-item">
           <Info size={16} />
           <strong>วัตถุประสงค์:</strong> {borrow.Purpose}
@@ -190,7 +228,7 @@ const ApprovalPage = () => {
           <ul className="item-list">
             {borrow.items.map((item, idx) => (
               <li key={idx} onClick={() => handleItemClick(item)}>
-                <span className="item-name-clickable">{item.ItemName}</span>{" "}
+                <span className="item-name-clickable">{item.ItemName}</span>
                 <span>(x{item.Quantity})</span>
               </li>
             ))}
@@ -268,8 +306,8 @@ const ApprovalPage = () => {
         <div className="loading-container">กำลังโหลดข้อมูล...</div>
       ) : (
         <div className="approval-grid">
-          {displayedBorrows.length > 0 ? (
-            displayedBorrows.map(renderCard)
+          {currentItems.length > 0 ? (
+            currentItems.map(renderCard)
           ) : (
             <div className="no-data-card">
               <ClipboardList size={48} />
@@ -283,26 +321,85 @@ const ApprovalPage = () => {
         </div>
       )}
 
+      {/* Pagination Controls */}
+      {!loading && totalPages > 1 && (
+        <div className="pagination-container">
+          <button
+            className="pagination-btn"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft size={18} />
+          </button>
+
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter(
+              (page) =>
+                page === 1 ||
+                page === totalPages ||
+                Math.abs(page - currentPage) <= 1,
+            )
+            .map((page, index, array) => (
+              <React.Fragment key={page}>
+                {index > 0 && array[index - 1] !== page - 1 && (
+                  <span className="pagination-ellipsis">...</span>
+                )}
+                <button
+                  className={`pagination-btn ${currentPage === page ? "active" : ""}`}
+                  onClick={() => handlePageChange(page)}
+                >
+                  {page}
+                </button>
+              </React.Fragment>
+            ))}
+
+          <button
+            className="pagination-btn"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      )}
+
       {isModalOpen && selectedItem && (
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
           <div
             className="modal-content item-detail-modal" /* Add transition for background-color, color, box-shadow */
             onClick={(e) => e.stopPropagation()}
           >
-            <h2>รายละเอียดอุปกรณ์</h2>
+            <div className="modal-header">
+              <h2>รายละเอียดอุปกรณ์</h2>
+              <button className="close-modal-btn" onClick={() => setIsModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
             <div className="item-detail-content">
-              <ImageDisplay
-                data={selectedItem.Image}
-                alt={selectedItem.ItemName}
-                className="item-detail-image"
-              />
+              <div className="item-detail-image-wrapper">
+                <ImageDisplay
+                  data={selectedItem.Image}
+                  alt={selectedItem.ItemName}
+                  className="item-detail-image"
+                />
+              </div>
               <div className="item-detail-info">
-                <p>
-                  <strong>ชื่ออุปกรณ์:</strong> {selectedItem.ItemName}
-                </p>
-                <p>
-                  <strong>Serial No.:</strong> {selectedItem.ProductCode || "-"}
-                </p>
+                <div className="detail-row">
+                  <span className="detail-label">ชื่ออุปกรณ์</span>
+                  <span className="detail-value">{selectedItem.ItemName}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">รหัสอุปกรณ์</span>
+                  <span className="detail-value">{selectedItem.DeviceCode || "-"}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">จำนวน</span>
+                  <span className="detail-value">{selectedItem.Quantity} หน่วย</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">หมายเหตุ</span>
+                  <span className="detail-value">{selectedItem.Remark || "-"}</span>
+                </div>
               </div>
             </div>
           </div>

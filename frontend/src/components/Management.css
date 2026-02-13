@@ -4,7 +4,7 @@
 .category-management-container,
 .member-management {
   padding: 2rem;
-  background-color: #f9fafb;
+  background-color: var(--bg-body);
   height: 100%;
   box-sizing: border-box;
   overflow-y: auto;
@@ -19,7 +19,7 @@
   align-items: center;
   margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color);
   transition: border-bottom-color 0.3s ease;
 }
 
@@ -27,7 +27,7 @@
 .page-header h2 {
   font-size: 1.75rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
   margin: 0;
   transition: color 0.3s ease;
 }
@@ -47,21 +47,22 @@
 }
 
 .btn-primary {
-  background-color: #ff8000;
+  background-color: var(--primary);
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: #e67300;
+  background-color: var(--primary-dark);
+  filter: brightness(1.1);
 }
 
 .btn-secondary {
-  background-color: #e5e7eb;
-  color: #374151;
+  background-color: var(--border-color);
+  color: var(--text-primary);
 }
 
 .btn-secondary:hover {
-  background-color: #d1d5db;
+  background-color: #d1d5db; /* Slightly darker than border-color */
 }
 
 .action-buttons {
@@ -82,31 +83,32 @@
 }
 
 .btn-edit {
-  color: #3b82f6;
+  color: #3b82f6; /* Keep blue for edit */
 }
 .btn-edit:hover {
   background-color: #dbeafe;
 }
 
 .btn-delete {
-  color: #ef4444;
+  color: var(--danger);
 }
 .btn-delete:hover {
-  background-color: #fee2e2;
+  background-color: rgba(239, 68, 68, 0.1);
 }
 
 .btn-save {
-  color: #2ecc71;
-  background-color: #eafaf1;
+  color: var(--success);
+  background-color: rgba(16, 185, 129, 0.1);
 }
 .btn-cancel {
-  color: #7f8c8d;
-  background-color: #f2f3f4;
+  color: var(--text-secondary);
+  background-color: var(--border-color);
+  opacity: 0.7;
 }
 
 /* Tables */
 .table-container {
-  background-color: #fff;
+  background-color: var(--bg-card);
   border-radius: 8px;
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.1),
@@ -127,7 +129,7 @@ table {
 th,
 td {
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color);
   vertical-align: middle;
   transition:
     background-color 0.3s ease,
@@ -136,19 +138,19 @@ td {
 }
 
 thead {
-  background-color: #f9fafb;
+  background-color: var(--bg-body);
 }
 
 th {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 td {
-  color: #374151;
+  color: var(--text-primary);
 }
 
 tbody tr:last-child td {
@@ -158,7 +160,7 @@ tbody tr:last-child td {
 .no-data {
   text-align: center;
   padding: 2rem;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 /* Modals */
@@ -177,7 +179,7 @@ tbody tr:last-child td {
 }
 
 .modal-content {
-  background-color: white;
+  background-color: var(--bg-card);
   padding: 2rem;
   border-radius: 8px;
   width: 100%;
@@ -204,7 +206,7 @@ tbody tr:last-child td {
   gap: 0.75rem;
   margin-top: 2rem;
   padding-top: 1.5rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border-color);
 }
 
 /* Forms */
@@ -217,7 +219,7 @@ tbody tr:last-child td {
 .form-group label {
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-primary);
   font-size: 0.875rem;
 }
 
@@ -226,13 +228,13 @@ tbody tr:last-child td {
 .form-group textarea,
 .form-input {
   width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
+  padding: 0.75rem 2.4rem;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   box-sizing: border-box;
   font-family: inherit;
   font-size: 0.95rem;
-  background-color: #fff;
+  background-color: var(--bg-card);
   transition: all 0.2s ease;
 }
 
@@ -241,13 +243,14 @@ tbody tr:last-child td {
 .form-group textarea:focus,
 .form-input:focus {
   outline: none;
-  border-color: #ff8000;
-  box-shadow: 0 0 0 3px rgba(255, 128, 0, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
 }
 
 .form-group input::placeholder,
 .form-input::placeholder {
-  color: #9ca3af;
+  color: var(--text-secondary);
+  opacity: 0.6;
 }
 
 /* Status Dots */
@@ -266,18 +269,19 @@ tbody tr:last-child td {
 }
 .status-dot.active::before,
 .status-dot.available::before {
-  background-color: #2ecc71;
+  background-color: var(--success);
 }
 .status-dot.inactive::before,
 .status-dot.default::before {
-  background-color: #95a5a6;
+  background-color: var(--text-secondary);
+  opacity: 0.6;
 }
 .status-dot.resigned::before,
 .status-dot.broken::before {
-  background-color: #e74c3c;
+  background-color: var(--danger);
 }
 .status-dot.borrowed::before {
-  background-color: #f39c12;
+  background-color: var(--primary);
 }
 .status-dot.maintenance::before {
   background-color: #3498db;
@@ -302,19 +306,21 @@ tbody tr:last-child td {
   padding: 10px 20px;
   font-size: 1rem;
   font-weight: 500;
-  color: #7f8c8d;
+  color: var(--text-secondary);
+  opacity: 0.7;
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.2s;
 }
 
 .tab-btn:hover {
-  background-color: #f0f0f0;
-  color: #2c3e50;
+  background-color: var(--border-color);
+  color: var(--text-primary);
+  opacity: 1;
 }
 .tab-btn.active {
-  background-color: #fff;
-  color: #ff8000;
+  background-color: var(--bg-card);
+  color: var(--primary);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   font-weight: 600;
 }
@@ -323,7 +329,7 @@ tbody tr:last-child td {
 .crud-section {
   max-width: 800px;
   margin: 0 auto;
-  background-color: #fff;
+  background-color: var(--bg-card);
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -340,11 +346,11 @@ tbody tr:last-child td {
 .crud-header h3 {
   margin: 0;
   font-size: 1.25rem;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .add-edit-form {
-  background-color: #fff;
+  background-color: var(--bg-card);
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -390,7 +396,7 @@ tbody tr:last-child td {
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
-  border: 4px solid #fff;
+  border: 4px solid var(--bg-card);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -398,7 +404,7 @@ tbody tr:last-child td {
   position: absolute;
   bottom: 5px;
   right: 5px;
-  background-color: #ff8000; /* Primary color */
+  background-color: var(--primary); /* Primary color */
   color: white;
   width: 32px;
   height: 32px;
@@ -406,14 +412,14 @@ tbody tr:last-child td {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #fff;
+  border: 2px solid var(--bg-card);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .camera-icon:hover {
-  background-color: #e67300; /* Darker primary color */
+  background-color: var(--primary-dark);
   transform: scale(1.1);
 }
 
@@ -427,13 +433,13 @@ tbody tr:last-child td {
 }
 
 .stat-card {
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 1.5rem;
   box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.05),
     0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  border: 1px solid #f3f4f6;
+  border: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   gap: 1.25rem;
@@ -470,10 +476,12 @@ tbody tr:last-child td {
 .bg-green-light {
   background-color: #f0fdf4;
   color: #22c55e;
+  color: var(--success);
 }
 .bg-orange-light {
   background-color: #fff7ed;
   color: #f97316;
+  color: var(--primary);
 }
 .bg-purple-light {
   background-color: #faf5ff;
@@ -484,15 +492,16 @@ tbody tr:last-child td {
   margin: 0 0 0.25rem 0;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--text-secondary);
   transition: color 0.3s ease;
+  opacity: 0.7;
 }
 
 .stat-content .stat-value {
   margin: 0;
   font-size: 1.75rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-primary);
   line-height: 1.2;
   transition: color 0.3s ease;
 }
@@ -505,11 +514,11 @@ tbody tr:last-child td {
 }
 
 .chart-card {
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 1.25rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  border: 1px solid #f3f4f6;
+  border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -525,9 +534,9 @@ tbody tr:last-child td {
   margin: 0 0 1.5rem 0;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   padding-bottom: 1rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border-color);
   transition:
     color 0.3s ease,
     border-bottom-color 0.3s ease;
@@ -779,23 +788,23 @@ tbody tr:last-child td {
 .search-input-custom {
   width: 100%;
   padding: 12px 40px 12px 45px; /* Space for icons */
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 0.95rem;
   transition: all 0.2s ease;
-  background-color: #fff;
+  background-color: var(--bg-card);
 }
 
 .search-input-custom:focus {
-  border-color: #ff8000;
-  box-shadow: 0 0 0 3px rgba(255, 128, 0, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
   outline: none;
 }
 
 .search-icon-left {
   position: absolute;
   left: 14px;
-  color: #9ca3af;
+  color: var(--text-secondary);
   pointer-events: none;
 }
 
@@ -809,7 +818,7 @@ tbody tr:last-child td {
 .btn-clear {
   background: none;
   border: none;
-  color: #9ca3af;
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 4px;
   border-radius: 50%;
@@ -818,16 +827,16 @@ tbody tr:last-child td {
 }
 .btn-clear:hover {
   background-color: #f3f4f6;
-  color: #ef4444;
+  color: var(--danger);
 }
 
 /* --- Shared Filter Styles --- */
 .filter-toggle-btn {
   padding: 10px 16px;
-  background-color: white;
-  border: 1px solid #e5e7eb;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  color: #374151;
+  color: var(--text-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -842,8 +851,8 @@ tbody tr:last-child td {
 }
 .filter-toggle-btn.active {
   background-color: #fff7ed;
-  border-color: #ff8000;
-  color: #ff8000;
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .filters-container {
@@ -856,12 +865,12 @@ tbody tr:last-child td {
   padding: 0 1rem;
   height: 45px;
   border-radius: 8px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   outline: none;
   font-size: 0.9rem;
-  background-color: white;
+  background-color: var(--bg-card);
   cursor: pointer;
 }
 .filter-select:focus {
-  border-color: #ff8000;
+  border-color: var(--primary);
 }

@@ -58,6 +58,11 @@ const UserProfile = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Limit file size to 2MB to prevent large Base64 strings causing issues
+      if (file.size > 2 * 1024 * 1024) {
+        Swal.fire("ข้อผิดพลาด", "ขนาดไฟล์ต้องไม่เกิน 2MB", "error");
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData((prev) => ({ ...prev, profileImage: reader.result }));
@@ -71,13 +76,14 @@ const UserProfile = () => {
     setLoading(true);
     try {
       // จำลองการส่งข้อมูล (ปรับ Endpoint ตาม Backend จริง)
-      const response = await apiFetch(`/api/users/${user.id}`, {
+      const response = await apiFetch(`/api/profile/${user.id}`, {
         method: "PUT",
         body: JSON.stringify(formData),
       });
 
       if (response.ok) {
-        const updatedUser = await response.json();
+        const result = await response.json();
+        const updatedUser = result.user; // Extract the user object from the response
         // อัปเดต LocalStorage
         const newUserState = { ...user, ...updatedUser };
         localStorage.setItem("user", JSON.stringify(newUserState));
@@ -88,11 +94,12 @@ const UserProfile = () => {
 
         Swal.fire("สำเร็จ", "อัปเดตข้อมูลโปรไฟล์เรียบร้อยแล้ว", "success");
       } else {
-        throw new Error("Failed to update");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "ไม่สามารถอัปเดตโปรไฟล์ได้");
       }
     } catch (error) {
       console.error(error);
-      Swal.fire("ข้อผิดพลาด", "ไม่สามารถอัปเดตข้อมูลได้", "error");
+      Swal.fire("ข้อผิดพลาด", error.message, "เกิดการผิดพลาด");
     } finally {
       setLoading(false);
     }
@@ -155,18 +162,19 @@ const UserProfile = () => {
         <p>จัดการข้อมูลส่วนตัวและบัญชีผู้ใช้</p>
       </div>
 
-      <div className="profile-content">
-        <div className="profile-card">
-          <form onSubmit={handleSubmit}>
-            <div className="profile-header-section">
-              <div className="profile-avatar-large-wrapper">
+      <div className="profile-layout">
+        {/* Left Column: Identity & Read-only Info */}
+        <div className="profile-sidebar">
+          <div className="profile-card identity-card">
+            <div className="profile-avatar-section">
+              <div className="avatar-wrapper">
                 <img
                   src={formData.profileImage || "/images/logo.png"}
                   alt="Profile"
-                  className="profile-avatar-large"
+                  className="profile-avatar"
                 />
-                <label htmlFor="profile-upload" className="camera-btn-large">
-                  <Camera size={20} />
+                <label htmlFor="profile-upload" className="avatar-upload-btn">
+                  <Camera size={18} />
                 </label>
                 <input
                   type="file"
@@ -176,158 +184,186 @@ const UserProfile = () => {
                   hidden
                 />
               </div>
-              <div className="profile-title-info">
-                <h3>
-                  {user.firstName} {user.lastName}
-                </h3>
-                <span className="role-badge">{user.role}</span>
-              </div>
+              <h3 className="user-fullname">
+                {user.firstName} {user.lastName}
+              </h3>
+              <span className="user-role-badge">{user.role}</span>
             </div>
 
-            <div className="form-grid-profile">
-              <div className="form-group">
-                <label>
-                  <User size={16} /> ชื่อจริง
-                </label>
-                <input
-                  type="text"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                />
+            <div className="identity-details">
+              <div className="detail-item">
+                <span className="detail-icon">
+                  <Building size={16} />
+                </span>
+                <div className="detail-content">
+                  <label>สังกัด</label>
+                  <p>{user.InstitutionName || "-"}</p>
+                  <p className="sub-text">{user.DepartmentName || "-"}</p>
+                </div>
               </div>
-              <div className="form-group">
-                <label>
-                  <User size={16} /> นามสกุล
-                </label>
-                <input
-                  type="text"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                />
-              </div>
-              <div className="form-group">
-                <label>
-                  <Mail size={16} /> อีเมล
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                />
-              </div>
-              <div className="form-group">
-                <label>
-                  <Phone size={16} /> เบอร์โทรศัพท์
-                </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                />
-              </div>
-              <div className="form-group disabled">
-                <label>
-                  <Building size={16} /> สังกัด (แก้ไขไม่ได้)
-                </label>
-                <input
-                  type="text"
-                  value={`${user.InstitutionName || "-"} / ${user.DepartmentName || "-"}`}
-                  disabled
-                />
-              </div>
-              <div className="form-group disabled">
-                <label>
-                  <MapPin size={16} /> รหัสพนักงาน (แก้ไขไม่ได้)
-                </label>
-                <input type="text" value={user.employeeId} disabled />
+              <div className="detail-item">
+                <span className="detail-icon">
+                  <MapPin size={16} />
+                </span>
+                <div className="detail-content">
+                  <label>รหัสพนักงาน</label>
+                  <p>{user.employeeId}</p>
+                </div>
               </div>
             </div>
-
-            <div className="form-actions-profile">
-              <button
-                type="submit"
-                className="btn-save-profile"
-                disabled={loading}
-              >
-                <Save size={18} />
-                {loading ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
-              </button>
-            </div>
-          </form>
+          </div>
         </div>
 
-        {/* Password Change Section */}
-        <div className="profile-card password-section">
-          <div
-            className="password-header"
-            onClick={() => setShowPasswordForm(!showPasswordForm)}
-          >
-            <h3>
-              <Lock size={20} /> เปลี่ยนรหัสผ่าน
-            </h3>
-            {showPasswordForm ? (
-              <ChevronUp size={20} />
-            ) : (
-              <ChevronDown size={20} />
-            )}
-          </div>
-
-          {showPasswordForm && (
-            <form onSubmit={handleUpdatePassword} className="password-form">
-              <div className="form-grid-profile">
+        {/* Right Column: Editable Forms */}
+        <div className="profile-main">
+          <div className="profile-card settings-card">
+            <div className="card-header">
+              <h3>ข้อมูลส่วนตัว</h3>
+            </div>
+            <form onSubmit={handleSubmit}>
+              <div className="form-grid">
                 <div className="form-group">
                   <label>
-                    <Key size={16} /> รหัสผ่านปัจจุบัน
+                    <User size={16} /> ชื่อจริง
                   </label>
                   <input
-                    type="password"
-                    name="currentPassword"
-                    value={passwordData.currentPassword}
-                    onChange={handlePasswordChange}
-                    placeholder="ระบุรหัสผ่านเดิม"
+                    type="text"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    className="form-input"
                   />
                 </div>
                 <div className="form-group">
                   <label>
-                    <Lock size={16} /> รหัสผ่านใหม่
+                    <User size={16} /> นามสกุล
                   </label>
                   <input
-                    type="password"
-                    name="newPassword"
-                    value={passwordData.newPassword}
-                    onChange={handlePasswordChange}
-                    placeholder="อย่างน้อย 6 ตัวอักษร"
+                    type="text"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    className="form-input"
                   />
                 </div>
                 <div className="form-group">
                   <label>
-                    <Lock size={16} /> ยืนยันรหัสผ่านใหม่
+                    <Mail size={16} /> อีเมล
                   </label>
                   <input
-                    type="password"
-                    name="confirmPassword"
-                    value={passwordData.confirmPassword}
-                    onChange={handlePasswordChange}
-                    placeholder="ยืนยันรหัสผ่านอีกครั้ง"
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>
+                    <Phone size={16} /> เบอร์โทรศัพท์
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="form-input"
                   />
                 </div>
               </div>
-              <div className="form-actions-profile">
+
+              <div className="form-actions">
                 <button
                   type="submit"
-                  className="btn-save-profile btn-password"
+                  className="btn-primary"
                   disabled={loading}
                 >
-                  <Save size={18} />
-                  {loading ? "กำลังบันทึก..." : "อัปเดตรหัสผ่าน"}
+                  {loading ? (
+                    <div className="spinner-sm"></div>
+                  ) : (
+                    <>
+                      <Save size={18} /> บันทึกการเปลี่ยนแปลง
+                    </>
+                  )}
                 </button>
               </div>
             </form>
-          )}
+          </div>
+
+          <div className="profile-card security-card">
+            <div
+              className={`card-header clickable ${showPasswordForm ? "active" : ""}`}
+              onClick={() => setShowPasswordForm(!showPasswordForm)}
+            >
+              <h3>
+                <Lock size={20} /> ความปลอดภัยและรหัสผ่าน
+              </h3>
+              {showPasswordForm ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            </div>
+
+            {showPasswordForm && (
+              <form onSubmit={handleUpdatePassword} className="password-form-content">
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label>รหัสผ่านปัจจุบัน</label>
+                    <div className="input-with-icon">
+                      <Key size={16} className="input-icon" />
+                      <input
+                        type="password"
+                        name="currentPassword"
+                        value={passwordData.currentPassword}
+                        onChange={handlePasswordChange}
+                        placeholder="••••••"
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>รหัสผ่านใหม่</label>
+                    <div className="input-with-icon">
+                      <Lock size={16} className="input-icon" />
+                      <input
+                        type="password"
+                        name="newPassword"
+                        value={passwordData.newPassword}
+                        onChange={handlePasswordChange}
+                        placeholder="อย่างน้อย 6 ตัวอักษร"
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>ยืนยันรหัสผ่านใหม่</label>
+                    <div className="input-with-icon">
+                      <Lock size={16} className="input-icon" />
+                      <input
+                        type="password"
+                        name="confirmPassword"
+                        value={passwordData.confirmPassword}
+                        onChange={handlePasswordChange}
+                        placeholder="••••••"
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="form-actions">
+                  <button
+                    type="submit"
+                    className="btn-secondary"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <div className="spinner-sm"></div>
+                    ) : (
+                      <>อัปเดตรหัสผ่าน</>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
       </div>
     </div>

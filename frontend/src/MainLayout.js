@@ -7,7 +7,6 @@ import "./App.css";
 const MainLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState("home");
-  // ลบ isDarkMode state ออก เพราะเราใช้จาก Context แล้ว
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   useEffect(() => {
@@ -21,8 +20,6 @@ const MainLayout = () => {
   const toggleSidebar = useCallback(() => {
     setIsSidebarOpen((prev) => !prev);
   }, []);
-
-  // ลบ toggleDarkMode ออก เพราะ Header จะเรียกใช้จาก useTheme โดยตรง
 
   return (
     <div className="app-container">
@@ -47,7 +44,6 @@ const MainLayout = () => {
           transition: "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
-        {/* แก้ไข Header: ส่งแค่ toggleSidebar พอ ไม่ต้องส่ง isDarkMode/toggleDarkMode แล้ว */}
         <Header toggleSidebar={toggleSidebar} />
 
         <main style={{ flex: 1 }}>

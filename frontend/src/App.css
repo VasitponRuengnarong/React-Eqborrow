@@ -1,201 +1,53 @@
-/* App.css - Main Layout Styles */
-
-:root {
-  --sidebar-width: 260px;
-  --sidebar-width-collapsed: 80px;
-  --header-height: 60px;
-  --transition-speed: 0.3s;
-}
-
-/* Reset & Base Styles */
-body {
+/* Global styles for full-height layout */
+html,
+body,
+#root {
+  height: 100%;
   margin: 0;
   padding: 0;
-  background-color: var(--bg-body);
-  font-family: "Kanit", sans-serif; /* Ensure font is consistent */
-  overflow-x: hidden; /* Prevent horizontal scroll */
+  overflow: hidden; /* Prevent body scrollbar, let app-container manage */
 }
 
-/* App Container */
 .app-container {
   display: flex;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-  position: relative;
+  flex-direction: row;
+  height: 100%; /* Make app-container take full height of #root */
+  width: 100%;
+  overflow: hidden; /* Hide main scrollbar, content inside will scroll */
 }
 
-/* Main Content Area */
-.main-content {
-  flex: 1;
-  height: 100%;
-  overflow-y: auto; /* Allow vertical scrolling */
-  overflow-x: hidden;
-  background-color: var(--bg-body);
-  transition: margin-left var(--transition-speed) ease;
-  position: relative;
+/* Existing styles below */
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-}
-
-/* Content Wrapper (Inside Main Content) */
-/* This ensures padding is consistent across all pages */
-.content-wrapper {
-  padding: 2rem;
-  max-width: 1400px; /* Limit width on large screens */
-  margin: 0 auto;
-  width: 100%;
-  box-sizing: border-box;
-  flex: 1;
-}
-
-/* --- Responsive Design --- */
-
-/* Tablet & Mobile (Width <= 768px) */
-@media (max-width: 768px) {
-  .app-container {
-    flex-direction: column; /* Stack vertically if needed, but usually sidebar is absolute/fixed */
-  }
-
-  .main-content {
-    margin-left: 0 !important; /* Override inline styles if any */
-    width: 100%;
-    padding-top: 60px; /* Space for mobile header/toggle if exists */
-  }
-
-  .content-wrapper {
-    padding: 1rem; /* Reduce padding on mobile */
-  }
-
-  /* Sidebar Overlay on Mobile */
-  .sidebar.mobile {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100%;
-    z-index: 1000;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-  }
-
-  /* Overlay background when sidebar is open on mobile */
-  .sidebar-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 999;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease;
-  }
-
-  .sidebar-overlay.visible {
-    opacity: 1;
-    visibility: visible;
-  }
-}
-
-/* Scrollbar Styling (Optional but recommended) */
-.main-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.main-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.main-content::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
-  border-radius: 4px;
-}
-
-.main-content::-webkit-scrollbar-thumb:hover {
-  background-color: #94a3b8;
-}
-
-/* Sidebar User Profile Text Colors */
-.sidebar .user-name {
-  color: #ffffff;
-  font-weight: 600;
-}
-
-.sidebar .user-role {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-/* Enhanced Sidebar Styling (Gradient & Modern Look) */
-.sidebar {
-  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.sidebar-logo {
-  background: rgba(255, 255, 255, 0.03);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.sidebar-logo .logo-main {
-  color: #ffffff;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
-.sidebar-logo .logo-sub {
-  color: #94a3b8;
-}
-
-.menu-item {
-  color: #94a3b8 !important;
-  margin: 4px 12px !important;
-  border-radius: 8px;
-  transition: all 0.2s ease-in-out;
-}
-
-.menu-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #f1f5f9 !important;
-  transform: translateX(4px);
-}
-
-.menu-item.active {
-  background: linear-gradient(
-    90deg,
-    rgba(255, 128, 0, 0.15) 0%,
-    rgba(255, 128, 0, 0.05) 100%
-  );
-  color: #ff8000 !important;
-  border-left: 3px solid #ff8000;
-}
-
-.user-profile-section {
-  background: rgba(0, 0, 0, 0.2);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-}
-
-.logout-btn:hover {
-  background: rgba(239, 68, 68, 0.1);
-}
-
-/* Theme Toggle Button */
-.theme-toggle-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 50%;
-  color: var(--text-secondary);
-  display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
-  margin-right: 12px;
+  font-size: calc(10px + 2vmin);
+  color: white;
 }
 
-.theme-toggle-btn:hover {
-  background-color: var(--hover-bg);
-  color: var(--primary-color);
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }

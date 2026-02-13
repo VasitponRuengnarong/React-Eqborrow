@@ -135,7 +135,6 @@ const Sidebar = ({
 
   // คำนวณสถานะการแสดงผล: เปิดอยู่จริง หรือ แค่ Hover บน Desktop
   const isExpanded = isSidebarOpen || (isHovered && !isMobile);
-  const isCollapsed = !isExpanded && !isMobile;
 
   useEffect(() => {
     const currentPath = location.pathname;
@@ -152,14 +151,18 @@ const Sidebar = ({
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Collapse Toggle Button */}
-      <button className="sidebar-toggle" onClick={toggleSidebar}>
-        {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+      <button
+        className="sidebar-toggle"
+        onClick={toggleSidebar}
+        title={isSidebarOpen ? "ย่อแถบเมนู" : "ขยายแถบเมนู"}
+      >
+        {isSidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
       </button>
 
       {/* Logo */}
       <div className="sidebar-logo">
         <div className="logo-icon">
-          <img src="/images/logo.png" alt="Eqborrow Logo" />
+          <img src="/images/logob.png" alt="Eqborrow Logo" />
         </div>
         <div className="logo-text">
           <div className="logo-main">Eqborrow</div>
@@ -169,7 +172,7 @@ const Sidebar = ({
 
       {/* Menu Items */}
       <nav className="sidebar-menu">
-        <div className="menu-section-title">Menu</div>
+        <div className="menu-section-title">Main Menu</div>
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeMenu === item.id;
@@ -182,12 +185,11 @@ const Sidebar = ({
                 navigate(item.path);
                 if (isMobile) toggleSidebar(); // Close sidebar on mobile after navigation
               }}
+              title={item.label}
             >
               <Icon className="menu-icon" size={20} />
-              {!isCollapsed && <span className="menu-label">{item.label}</span>}
-              {isActive && !isCollapsed && (
-                <ChevronRight className="menu-arrow" size={16} />
-              )}
+              {!isMobile && <span className="menu-label">{item.label}</span>}
+              {isActive && <ChevronRight className="menu-arrow" size={16} />}
             </button>
           );
         })}
@@ -210,19 +212,21 @@ const Sidebar = ({
               />
               <div className="online-indicator" />
             </div>
-            {!isCollapsed && (
-              <div className="user-details">
-                <div className="user-name">
-                  {user.firstName} {user.lastName}
-                </div>
-                <div className="user-role">{user.role}</div>
+            <div className="user-details">
+              <div className="user-name-sidebar" style={{ color: "#fff", fontWeight: "bold" }}>
+                {user.firstName} {user.lastName}
               </div>
-            )}
+              <div className="user-role">{user.role}</div>
+            </div>
           </div>
 
-          <button className="logout-btn" onClick={handleLogout}>
+          <button
+            className="logout-btn"
+            onClick={handleLogout}
+            title="ออกจากระบบ"
+          >
             <LogOut className="logout-icon" size={16} />
-            {!isCollapsed && <span className="logout-text">ออกจากระบบ</span>}
+            <span className="logout-text">ออกจากระบบ</span>
           </button>
         </div>
       )}

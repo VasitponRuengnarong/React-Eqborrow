@@ -8,7 +8,10 @@ let multer;
 let upload;
 try {
   multer = require("multer"); // Require multer for file uploads
-  upload = multer({ storage: multer.memoryStorage() }); // Configure storage
+  upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB for security
+  });
 } catch (e) {
   console.warn(
     "Warning: 'multer' module not found. File upload functionality will be disabled.",
@@ -26,6 +29,13 @@ try {
 }
 const app = express();
 const PORT = 8080;
+
+// Security Middleware: Add basic security headers
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff"); // Prevent MIME type sniffing
+  res.setHeader("X-Frame-Options", "DENY"); // Prevent clickjacking
+  next();
+});
 
 // Database Connection Pool (more robust for web servers)
 const db = mysql.createPool({
@@ -82,6 +92,19 @@ db.getConnection()
         StatusName VARCHAR(50) NOT NULL
       )
     `);
+
+    // Check specifically for StatusName column in TB_M_StatusEMP
+    try {
+      await connection.execute("SELECT StatusName FROM TB_M_StatusEMP LIMIT 1");
+    } catch (e) {
+      if (e.code === "ER_BAD_FIELD_ERROR") {
+        console.log("Adding StatusName column to TB_M_StatusEMP...");
+        await connection.execute(
+          "ALTER TABLE TB_M_StatusEMP ADD COLUMN StatusName VARCHAR(50) NOT NULL DEFAULT 'Active'",
+        );
+      }
+    }
+
     // Seed StatusEMP
     await connection.execute(
       `INSERT IGNORE INTO TB_M_StatusEMP (EMPStatusID, StatusName) VALUES (1, 'Active'), (2, 'Inactive')`,
@@ -377,204 +400,78 @@ db.getConnection()
       }
     }
 
-    // --- SEED DATA: Populate all tables with requested equipment ---
+    // Check specifically for ModelID column in TB_M_Product
+    try {
+      await connection.execute("SELECT ModelID FROM TB_M_Product LIMIT 1");
+    } catch (e) {
+      if (e.code === "ER_BAD_FIELD_ERROR") {
+        console.log("Adding ModelID column to TB_M_Product...");
+        await connection.execute(
+          "ALTER TABLE TB_M_Product ADD COLUMN ModelID INT",
+        );
+      }
+    }
+
+    // Check specifically for CategoryID column in TB_M_Product
+    try {
+      await connection.execute("SELECT CategoryID FROM TB_M_Product LIMIT 1");
+    } catch (e) {
+      if (e.code === "ER_BAD_FIELD_ERROR") {
+        console.log("Adding CategoryID column to TB_M_Product...");
+        await connection.execute(
+          "ALTER TABLE TB_M_Product ADD COLUMN CategoryID INT",
+        );
+      }
+    }
+
+    // Check specifically for TypeID column in TB_M_Product
+    try {
+      await connection.execute("SELECT TypeID FROM TB_M_Product LIMIT 1");
+    } catch (e) {
+      if (e.code === "ER_BAD_FIELD_ERROR") {
+        console.log("Adding TypeID column to TB_M_Product...");
+        await connection.execute(
+          "ALTER TABLE TB_M_Product ADD COLUMN TypeID INT",
+        );
+      }
+    }
+
     const equipmentData = [
       {
-        name: "Sony Alpha 7 IV",
-        brand: "Sony",
-        type: "Camera",
-        category: "Camera & Lens",
-        desc: "Full-frame mirrorless camera, 33MP sensor, 4K 60p video, real-time Eye AF, hybrid autofocus system, professional photography and videography.",
+        name: 'MacBook Pro 14" M3',
+        category: 'Laptop',
+        brand: 'Apple',
+        type: 'แล็ปท็อป',
+        desc: 'Apple M3 chip, 16GB RAM, 512GB SSD'
       },
       {
-        name: "Sony Alpha A7S III",
-        brand: "Sony",
-        type: "Camera",
-        category: "Camera & Lens",
-        desc: "Full-frame mirrorless camera, 12.1MP optimized for video, 4K 120p recording, high ISO sensitivity, low light performance, S-Cinetone.",
+        name: 'Dell XPS 15',
+        category: 'Laptop',
+        brand: 'Dell',
+        type: 'แล็ปท็อป',
+        desc: 'Intel Core i9, 32GB RAM, 1TB SSD, RTX 4060'
       },
       {
-        name: "Sony FX3",
-        brand: "Sony",
-        type: "Camera",
-        category: "Camera & Lens",
-        desc: "Cinema Line full-frame camera, compact cage-free design, 4K 120p, active cooling fan, XLR handle unit, cinematic color science.",
+        name: 'Sony A7 IV',
+        category: 'Camera',
+        brand: 'Sony',
+        type: 'กล้อง Mirrorless',
+        desc: '33MP Full-Frame Exmor R CMOS Sensor'
       },
       {
-        name: "Sony FE 24-70mm GM II",
-        brand: "Sony",
-        type: "Lens",
-        category: "Camera & Lens",
-        desc: "G Master standard zoom lens, F2.8 constant aperture, lightweight design, advanced autofocus, high resolution, nano AR coating.",
+        name: 'Canon EOS R6',
+        category: 'Camera',
+        brand: 'Canon',
+        type: 'กล้อง Mirrorless',
+        desc: '20MP Full-Frame CMOS Sensor, 4K60p Video'
       },
       {
-        name: "Canon EOS R5",
-        brand: "Canon",
-        type: "Camera",
-        category: "Camera & Lens",
-        desc: "Professional full-frame mirrorless, 45MP resolution, 8K RAW video recording, in-body image stabilization (IBIS), Dual Pixel CMOS AF II.",
-      },
-      {
-        name: "Canon EOS C70",
-        brand: "Canon",
-        type: "Camera",
-        category: "Camera & Lens",
-        desc: "Cinema EOS camera, RF mount, Super 35mm DGO sensor, 4K 120p high frame rate, compact body, professional filmmaking tool.",
-      },
-      {
-        name: "Canon RF 15-35mm F2.8 L IS USM",
-        brand: "Canon",
-        type: "Lens",
-        category: "Camera & Lens",
-        desc: "Ultra-wide zoom lens, F2.8 constant aperture, image stabilization, Nano USM motor, L-series weather-sealed build, landscape and architecture.",
-      },
-      {
-        name: "Panasonic Lumix GH6",
-        brand: "Panasonic",
-        type: "Camera",
-        category: "Camera & Lens",
-        desc: "Micro Four Thirds mirrorless camera, 5.7K 60p video, Apple ProRes support, built-in active cooling, dynamic range boost, V-Log installed.",
-      },
-      {
-        name: "Panasonic Lumix S5 II",
-        brand: "Panasonic",
-        type: "Camera",
-        category: "Camera & Lens",
-        desc: "Full-frame mirrorless camera, Phase Hybrid AF, Active I.S., unlimited 4K 60p recording, 24.2MP sensor, real-time LUT.",
-      },
-      {
-        name: "Panasonic HC-X2000",
-        brand: "Panasonic",
-        type: "Camera",
-        category: "Camera & Lens",
-        desc: "Professional 4K camcorder, 24x optical zoom, compact and lightweight, 3G-SDI output, livestreaming capabilities, LEICA Dicomar lens.",
-      },
-      {
-        name: "Shure SM7B",
-        brand: "Shure",
-        type: "Microphone",
-        category: "Audio & Headphones",
-        desc: "Dynamic vocal microphone, cardioid pattern, flat wide-range frequency response, electromagnetic shielding, standard for podcasting and broadcasting.",
-      },
-      {
-        name: "Shure SM58",
-        brand: "Shure",
-        type: "Microphone",
-        category: "Audio & Headphones",
-        desc: "Legendary dynamic vocal microphone, cardioid pattern, pneumatic shock mount, built-in pop filter, durable construction for live performance.",
-      },
-      {
-        name: "Shure SRH1540",
-        brand: "Shure",
-        type: "Headphones",
-        category: "Audio & Headphones",
-        desc: "Premium closed-back headphones, 40mm neodymium drivers, carbon fiber construction, Alcantara ear pads, audiophile sound quality.",
-      },
-      {
-        name: "Sennheiser MKH 416",
-        brand: "Sennheiser",
-        type: "Microphone",
-        category: "Audio & Headphones",
-        desc: "Short shotgun interference tube microphone, high directivity, moisture resistant, industry standard for film, TV, and outdoor recording.",
-      },
-      {
-        name: "Sennheiser EW 112P G4",
-        brand: "Sennheiser",
-        type: "Microphone",
-        category: "Audio & Headphones",
-        desc: "Portable wireless microphone system, includes ME 2-II lavalier mic, robust bodypack transmitter, broadcast quality sound, reliable UHF transmission.",
-      },
-      {
-        name: "Sennheiser HD 280 Pro",
-        brand: "Sennheiser",
-        type: "Headphones",
-        category: "Audio & Headphones",
-        desc: "Dynamic closed-back monitor headphones, high ambient noise attenuation, accurate linear sound reproduction, collapsible design for mixing.",
-      },
-      {
-        name: "MacBook Pro 14",
-        brand: "Apple",
-        type: "Laptop",
-        category: "Computer & Display",
-        desc: "14-inch Liquid Retina XDR display, Apple M2/M3 Pro chip, high-performance laptop, 1080p FaceTime camera, six-speaker sound system.",
-      },
-      {
-        name: "MacBook Pro 16 M1",
-        brand: "Apple",
-        type: "Laptop",
-        category: "Computer & Display",
-        desc: "16-inch Liquid Retina XDR display, Apple M1 Pro/Max chip, long battery life, studio-quality mics, professional creative workstation.",
-      },
-      {
-        name: "iPad Pro 12.9",
-        brand: "Apple",
-        type: "Tablet",
-        category: "Computer & Display",
-        desc: "12.9-inch Liquid Retina XDR display, ProMotion technology, M1/M2 chip, Apple Pencil support, portable creative tablet.",
-      },
-      {
-        name: "Apple Studio Display",
-        brand: "Apple",
-        type: "Monitor",
-        category: "Computer & Display",
-        desc: "27-inch 5K Retina display, 12MP Ultra Wide camera with Center Stage, six-speaker spatial audio, P3 wide color gamut.",
-      },
-      {
-        name: "Dell Latitude 7420",
-        brand: "Dell",
-        type: "Laptop",
-        category: "Computer & Display",
-        desc: "Business laptop, 14-inch FHD display, Intel Core i7, lightweight carbon fiber design, privacy features, long battery life.",
-      },
-      {
-        name: "Dell Precision 5680",
-        brand: "Dell",
-        type: "Laptop",
-        category: "Computer & Display",
-        desc: "Mobile workstation, 16-inch display, NVIDIA RTX graphics, Intel Core i9, high performance for 3D rendering and CAD applications.",
-      },
-      {
-        name: "Dell XPS 15",
-        brand: "Dell",
-        type: "Laptop",
-        category: "Computer & Display",
-        desc: "Premium 15.6-inch laptop, OLED InfinityEdge display, CNC machined aluminum chassis, creator-focused performance, high-fidelity audio.",
-      },
-      {
-        name: "Dell UltraSharp U2723QE",
-        brand: "Dell",
-        type: "Monitor",
-        category: "Computer & Display",
-        desc: "27-inch 4K USB-C Hub monitor, IPS Black technology, high contrast ratio, 98% DCI-P3 color coverage, multitasking connectivity.",
-      },
-      {
-        name: "Manfrotto 504X Tripod",
-        brand: "Manfrotto",
-        type: "Tripod",
-        category: "Accessories",
-        desc: "Fluid video head with aluminum twin leg tripod, variable fluid drag system, counterbalance system, stable base for professional video.",
-      },
-      {
-        name: "Manfrotto MK055XPRO3",
-        brand: "Manfrotto",
-        type: "Tripod",
-        category: "Accessories",
-        desc: "Aluminum 3-section tripod, 90-degree column mechanism, Quick Power Lock levers, high load capacity, professional photography support.",
-      },
-      {
-        name: "Manfrotto MVH502AH",
-        brand: "Manfrotto",
-        type: "Tripod Head",
-        category: "Accessories",
-        desc: "Pro video head, flat base, variable fluid drag system on pan and tilt, counterbalance setting, smooth movement for DSLRs.",
-      },
-      {
-        name: "Manfrotto Pixi Evo",
-        brand: "Manfrotto",
-        type: "Tripod",
-        category: "Accessories",
-        desc: "Mini tripod, 2-section legs, adjustable angles, lightweight and portable, supports cameras up to 2.5kg, tabletop vlogging.",
-      },
+        name: 'Shure SM7B',
+        category: 'Microphone',
+        brand: 'Shure',
+        type: 'ไมโครโฟน Condenser',
+        desc: 'Vocal Microphone with Bass Roll-off and Mid-range Emphasis'
+      }
     ];
 
     console.log("Seeding equipment data...");
@@ -615,30 +512,7 @@ db.getConnection()
       const brandID = brandRes[0].BrandID;
       const typeID = typeRes[0].TypeID;
 
-      // 4. Model (Assuming Model Name is the Item Name)
-      await connection.execute(
-        "INSERT IGNORE INTO TB_M_Model (ModelName, BrandID) VALUES (?, ?)",
-        [item.name, brandID],
-      );
-      const [modelRes] = await connection.execute(
-        "SELECT ModelID FROM TB_M_Model WHERE ModelName = ? AND BrandID = ?",
-        [item.name, brandID],
-      );
-      const modelID = modelRes[0].ModelID;
-
-      // 5. Product (Master)
-      const [prodExist] = await connection.execute(
-        "SELECT ProductID FROM TB_M_Product WHERE ProductName = ?",
-        [item.name],
-      );
-      if (prodExist.length === 0) {
-        await connection.execute(
-          "INSERT INTO TB_M_Product (ProductName, ModelID, CategoryID, TypeID, Description) VALUES (?, ?, ?, ?, ?)",
-          [item.name, modelID, catID, typeID, item.desc],
-        );
-      }
-
-      // 6. Device (Inventory)
+      // 4. Device (Inventory) - TB_T_Device
       const [devExist] = await connection.execute(
         "SELECT DVID FROM TB_T_Device WHERE DeviceName = ?",
         [item.name],
@@ -760,6 +634,18 @@ db.getConnection()
 // Middleware to parse JSON bodies
 app.use(express.json({ limit: "10mb" })); // Increase limit for base64 images
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// Middleware: ตรวจสอบการเชื่อมต่อ Database ทุก Request
+app.use(async (req, res, next) => {
+  try {
+    // ลอง Query ง่ายๆ เพื่อเช็คว่า Database ยังตอบสนองอยู่หรือไม่
+    await db.execute("SELECT 1");
+    next();
+  } catch (error) {
+    console.error("Database connection failed:", error);
+    res.status(503).json({ message: "ไม่สามารถเชื่อมต่อฐานข้อมูลได้ (Database Connection Failed)", error: error.message });
+  }
+});
 
 // Health Check Endpoint
 app.get("/api/health", (req, res) => {
@@ -1096,39 +982,38 @@ const transporter = nodemailer.createTransport({
 });
 
 app.post("/api/forgot-password", async (req, res) => {
-  const { email } = req.body;
+  const { username, employeeId } = req.body;
 
-  if (!email) {
-    return res.status(400).json({ message: "กรุณากรอกอีเมล" });
+  if (!username || !employeeId) {
+    return res.status(400).json({ message: "กรุณาระบุชื่อผู้ใช้และรหัสพนักงาน" });
   }
 
   try {
-    // Check if employee exists by email in TB_T_Employee table
+    // Check if employee exists by username and EMP_NUM in TB_T_Employee table
     const [employees] = await db.execute(
-      "SELECT * FROM TB_T_Employee WHERE email = ?",
-      [email],
+      "SELECT * FROM TB_T_Employee WHERE username = ? AND EMP_NUM = ?",
+      [username, employeeId],
     );
     if (employees.length === 0) {
-      return res.status(404).json({ message: "ไม่พบอีเมลนี้ในระบบ" });
+      return res.status(404).json({ message: "ข้อมูลผู้ใช้งานไม่ถูกต้อง" });
     }
 
+    const user = employees[0];
+
+    // Generate token for direct identification in the next step
     const token = crypto.randomBytes(20).toString("hex");
     const expires = new Date(Date.now() + 3600000); // 1 hour from now
 
     await db.execute(
-      "UPDATE TB_T_Employee SET reset_token = ?, reset_token_expires = ? WHERE email = ?",
-      [token, expires, email],
+      "UPDATE TB_T_Employee SET reset_token = ?, reset_token_expires = ? WHERE EMPID = ?",
+      [token, expires, user.EMPID],
     );
 
-    const mailOptions = {
-      from: "Eqborrow System <no-reply@eqborrow.com>",
-      to: email,
-      subject: "รีเซ็ตรหัสผ่าน Eqborrow",
-      text: `คุณได้รับอีเมลนี้เนื่องจากมีการร้องขอรีเซ็ตรหัสผ่าน\n\nกรุณาคลิกลิงก์ด้านล่างเพื่อตั้งรหัสผ่านใหม่:\n\nhttp://localhost:3000/reset-password/${token}\n\nหากคุณไม่ได้ร้องขอ กรุณาเพิกเฉยต่ออีเมลนี้`,
-    };
-
-    await transporter.sendMail(mailOptions);
-    res.json({ message: "ส่งลิงก์รีเซ็ตรหัสผ่านเรียบร้อยแล้ว" });
+    // Return the token directly to the frontend for immediate redirection
+    res.json({ 
+      message: "ตรวจสอบข้อมูลสำเร็จ", 
+      resetToken: token 
+    });
   } catch (error) {
     console.error("Forgot password error:", error);
     res.status(500).json({ message: "เกิดข้อผิดพลาดที่เซิร์ฟเวอร์" });
@@ -1231,7 +1116,7 @@ app.post("/api/register", async (req, res) => {
 
     // Auto-assign role based on employee ID pattern
     // Force assign 'User' role (3) for all public registrations
-    const finalRoleId = 2;
+    const finalRoleId = 3; // Corrected from 2 (Staff) to 3 (User) to match comments and security best practices
 
     // Insert new employee into TB_T_Employee
     const insertQuery =
@@ -1253,9 +1138,11 @@ app.post("/api/register", async (req, res) => {
 
     // Fetch the newly created user to return it (for auto-login)
     const [newUsers] = await db.execute(
-      `SELECT e.*, r.RoleName 
+      `SELECT e.*, r.RoleName, d.DepartmentName, i.InstitutionName 
        FROM TB_T_Employee e 
        LEFT JOIN TB_M_Role r ON e.RoleID = r.RoleID 
+       LEFT JOIN TB_M_Department d ON e.DepartmentID = d.DepartmentID
+       LEFT JOIN TB_M_Institution i ON e.InstitutionID = i.InstitutionID
        WHERE e.EMPID = ?`,
       [result.insertId],
     );
@@ -1287,7 +1174,9 @@ app.post("/api/register", async (req, res) => {
         role: newUser.RoleName,
         roleId: newUser.RoleID,
         institutionId: newUser.InstitutionID,
+        InstitutionName: newUser.InstitutionName,
         departmentId: newUser.DepartmentID,
+        DepartmentName: newUser.DepartmentName,
         empStatusId: newUser.EMPStatusID,
         profileImage: newUser.image,
       },
@@ -1309,9 +1198,11 @@ app.post("/api/login", async (req, res) => {
   try {
     // Check for employee in TB_T_Employee table
     const [employees] = await db.execute(
-      `SELECT e.*, r.RoleName 
+      `SELECT e.*, r.RoleName, d.DepartmentName, i.InstitutionName 
        FROM TB_T_Employee e 
        LEFT JOIN TB_M_Role r ON e.RoleID = r.RoleID 
+       LEFT JOIN TB_M_Department d ON e.DepartmentID = d.DepartmentID
+       LEFT JOIN TB_M_Institution i ON e.InstitutionID = i.InstitutionID
        WHERE e.username = ?`,
       [username],
     );
@@ -1364,7 +1255,9 @@ app.post("/api/login", async (req, res) => {
         role: employee.RoleName,
         roleId: employee.RoleID,
         institutionId: employee.InstitutionID,
+        InstitutionName: employee.InstitutionName,
         departmentId: employee.DepartmentID,
+        DepartmentName: employee.DepartmentName,
         empStatusId: employee.EMPStatusID,
         profileImage: employee.image,
       },
@@ -1447,7 +1340,7 @@ app.get(
       const [borrowed] = await db.execute(`
       SELECT COUNT(*) as count 
       FROM TB_T_Device d 
-      JOIN TB_M_StatusDevice s ON d.DVStatusID = s.DVStatusID 
+      JOIN TB_M_StatusDevice s ON d.StatusID = s.DVStatusID 
       WHERE s.StatusNameDV = 'ถูกยืม'
     `);
 
@@ -1478,7 +1371,7 @@ app.get(
       const [pieData] = await db.execute(`
       SELECT s.StatusNameDV as name, COUNT(*) as value
       FROM TB_T_Device d
-      JOIN TB_M_StatusDevice s ON d.DVStatusID = s.DVStatusID 
+      JOIN TB_M_StatusDevice s ON d.StatusID = s.DVStatusID 
       WHERE s.StatusNameDV IN ('ว่าง', 'ถูกยืม')
       GROUP BY s.StatusNameDV
     `);
@@ -1586,7 +1479,7 @@ app.get(
       SELECT d.DeviceName, 
              SUM(CASE WHEN s.StatusNameDV = 'ว่าง' THEN 1 ELSE 0 END) as AvailableCount
       FROM TB_T_Device d
-      JOIN TB_M_StatusDevice s ON d.DVStatusID = s.DVStatusID
+      JOIN TB_M_StatusDevice s ON d.StatusID = s.DVStatusID
       GROUP BY d.DeviceName
       HAVING AvailableCount < ?
       ORDER BY AvailableCount ASC
@@ -1623,9 +1516,39 @@ app.post("/api/borrow", verifyToken, async (req, res) => {
 
     // 2. บันทึกรายการอุปกรณ์ลง TB_T_BorrowDetail
     for (const item of items) {
+      // เช็คจำนวนคงเหลือล่าสุด
+      const [devices] = await connection.execute(
+        "SELECT DeviceName, Quantity FROM TB_T_Device WHERE DeviceName = ? OR DeviceCode = ? OR SerialNumber = ?",
+        [item.name, item.name, item.name],
+      );
+
+      if (devices.length === 0) {
+        await connection.rollback();
+        return res
+          .status(400)
+          .json({ message: `ไม่พบอุปกรณ์ในระบบ: ${item.name}` });
+      }
+
+      const device = devices[0];
+      const availableQuantity = device.Quantity;
+
+      if (item.quantity > availableQuantity) {
+        await connection.rollback();
+        return res.status(400).json({
+          message: `จำนวนอุปกรณ์ "${device.DeviceName}" ที่ต้องการยืม(${item.quantity})​ เกินจำนวนคงเหลือ(${availableQuantity})`,
+        });
+      }
+
+      // If the items are already borrowed reject the request
+      if (availableQuantity === 0) {
+        await connection.rollback();
+        return res
+          .status(400)
+          .json({ message: `อุปกรณ์ "${device.DeviceName}" ถูกยืมหมดเเล้ว` });
+      }
       await connection.execute(
         "INSERT INTO TB_T_BorrowDetail (BorrowID, ItemName, Quantity, Remark) VALUES (?, ?, ?, ?)",
-        [borrowId, item.name, item.quantity, item.remark || ""],
+        [borrowId, device.DeviceName, item.quantity, item.remark || ""],
       );
     }
 
@@ -1704,6 +1627,71 @@ app.put(
 
       const oldStatus = currentBorrow[0].Status;
 
+      // --- จัดการสต็อกสินค้า (Quantity Logic) ---
+
+      // 1. กรณีอนุมัติ (Approved): ตัดสต็อก
+      if (status === "Approved" && oldStatus !== "Approved") {
+        const [details] = await connection.execute(
+          "SELECT * FROM TB_T_BorrowDetail WHERE BorrowID = ?",
+          [id],
+        );
+
+        for (const item of details) {
+          // เช็คจำนวนคงเหลือล่าสุด
+          const [device] = await connection.execute(
+            "SELECT Quantity FROM TB_T_Device WHERE DeviceName = ? FOR UPDATE",
+            [item.ItemName],
+          );
+
+          if (device.length === 0) {
+            throw new Error(`ไม่พบอุปกรณ์ในระบบ: ${item.ItemName}`);
+          }
+
+          if (device[0].Quantity < item.Quantity) {
+            throw new Error(
+              `สินค้าไม่พอสำหรับ: ${item.ItemName} (เหลือ: ${device[0].Quantity}, ต้องการ: ${item.Quantity})`,
+            );
+          }
+
+          // ตัดสต็อก
+          await connection.execute(
+            "UPDATE TB_T_Device SET Quantity = Quantity - ? WHERE DeviceName = ?",
+            [item.Quantity, item.ItemName],
+          );
+
+          // อัปเดตสถานะเป็น 'ถูกยืม' (2) ถ้าสินค้าหมด (Quantity = 0)
+          await connection.execute(
+            "UPDATE TB_T_Device SET StatusID = 2 WHERE DeviceName = ? AND Quantity = 0",
+            [item.ItemName],
+          );
+        }
+      }
+
+      // 2. กรณีคืนของ (Returned) หรือ ยกเลิก/ปฏิเสธ หลังจากที่อนุมัติไปแล้ว: คืนสต็อก
+      if (
+        oldStatus === "Approved" &&
+        (status === "Returned" || status === "Rejected" || status === "Cancelled")
+      ) {
+        const [details] = await connection.execute(
+          "SELECT * FROM TB_T_BorrowDetail WHERE BorrowID = ?",
+          [id],
+        );
+
+        for (const item of details) {
+          await connection.execute(
+            "UPDATE TB_T_Device SET Quantity = Quantity + ? WHERE DeviceName = ?",
+            [item.Quantity, item.ItemName],
+          );
+
+          // อัปเดตสถานะกลับเป็น 'ว่าง' (1) ถ้ามีสินค้าคืนมา (Quantity > 0) และสถานะเดิมคือ 'ถูกยืม'
+          await connection.execute(
+            "UPDATE TB_T_Device SET StatusID = 1 WHERE DeviceName = ? AND Quantity > 0 AND StatusID = 2",
+            [item.ItemName],
+          );
+        }
+      }
+      // ----------------------------------------
+
       // อัปเดตสถานะ
       await connection.execute(
         "UPDATE TB_T_Borrow SET Status = ? WHERE BorrowID = ?",
@@ -1715,11 +1703,6 @@ app.put(
         "INSERT INTO TB_L_ActivityLog (ActionType, BorrowID, ActorID, Details) VALUES (?, ?, ?, ?)",
         [status, id, adminId, `Admin updated status to ${status}`],
       );
-
-      // คืนสต็อกสินค้าเมื่อสถานะเปลี่ยนเป็น Returned (และป้องกันการคืนซ้ำ)
-      // This logic now supports partial returns.
-      if (status === "Returned" && oldStatus !== "Returned") {
-      }
 
       await connection.commit();
       res.json({ message: `อัปเดตสถานะเป็น ${status} เรียบร้อยแล้ว` });
@@ -1999,7 +1982,7 @@ app.put("/api/users/:id", verifyToken, checkAdmin, async (req, res) => {
   try {
     await db.execute(
       "UPDATE TB_T_Employee SET RoleID = ?, EMPStatusID = ? WHERE EMPID = ?",
-      [roleId, statusId, id],
+      [roleId ?? null, statusId ?? null, id],
     );
     res.json({ message: "อัปเดตข้อมูลสมาชิกสำเร็จ" });
   } catch (error) {
@@ -2051,9 +2034,11 @@ app.put("/api/profile/:id", verifyToken, async (req, res) => {
 
     // Fetch updated user to return
     const [updatedUsers] = await db.execute(
-      `SELECT e.*, r.RoleName 
+      `SELECT e.*, r.RoleName, d.DepartmentName, i.InstitutionName 
        FROM TB_T_Employee e 
        LEFT JOIN TB_M_Role r ON e.RoleID = r.RoleID 
+       LEFT JOIN TB_M_Department d ON e.DepartmentID = d.DepartmentID
+       LEFT JOIN TB_M_Institution i ON e.InstitutionID = i.InstitutionID
        WHERE e.EMPID = ?`,
       [id],
     );
@@ -2072,7 +2057,9 @@ app.put("/api/profile/:id", verifyToken, async (req, res) => {
         role: updatedUser.RoleName,
         roleId: updatedUser.RoleID,
         institutionId: updatedUser.InstitutionID,
+        InstitutionName: updatedUser.InstitutionName,
         departmentId: updatedUser.DepartmentID,
+        DepartmentName: updatedUser.DepartmentName,
         empStatusId: updatedUser.EMPStatusID,
         profileImage: updatedUser.image,
       },
@@ -2125,15 +2112,15 @@ app.put("/api/profile/:id/password", verifyToken, async (req, res) => {
 app.get("/api/products", async (req, res) => {
   try {
     const [products] = await db.execute(
-      `SELECT d.DVID, d.devicename as DeviceName, d.stickerid as DeviceCode, d.serialnumber as SerialNumber,
-              d.sticker as Image, d.Brand, d.DeviceType, d.Price, d.Quantity, d.Description,
+      `SELECT d.DVID, d.DeviceName, d.DeviceCode, d.SerialNumber,
+              d.Image, d.Brand, d.DeviceType, d.Price, d.Quantity, d.Description,
               d.CategoryID, c.CategoryName,
-              d.DVStatusID as StatusID, s.StatusNameDV,
+              d.StatusID, s.StatusNameDV,
               d.BrandID, b.BrandName,
               d.TypeID, t.TypeName
        FROM TB_T_Device d 
        LEFT JOIN TB_M_Category c ON d.CategoryID = c.CategoryID 
-       LEFT JOIN TB_M_StatusDevice s ON d.DVStatusID = s.DVStatusID
+       LEFT JOIN TB_M_StatusDevice s ON d.StatusID = s.DVStatusID
        LEFT JOIN TB_M_Brand b ON d.BrandID = b.BrandID
        LEFT JOIN TB_M_Type t ON d.TypeID = t.TypeID
        ORDER BY d.DVID DESC`,
@@ -2149,21 +2136,22 @@ app.get("/api/products", async (req, res) => {
 app.get("/api/products/search", async (req, res) => {
   const { q } = req.query;
   try {
-    let sql = `SELECT d.DVID, d.devicename as DeviceName, d.stickerid as DeviceCode, d.serialnumber as SerialNumber,
-              d.sticker as Image, d.Brand, d.DeviceType, d.Price, d.Quantity, d.Description,
+    let sql = `SELECT d.DVID, d.DeviceName, d.DeviceCode, d.SerialNumber,
+              d.Image, d.Brand, d.DeviceType, d.Price, d.Quantity, d.Description,
               d.CategoryID, c.CategoryName,
-              d.DVStatusID as StatusID, s.StatusNameDV,
+              d.StatusID, s.StatusNameDV,
               d.BrandID, b.BrandName,
-              d.TypeID, t.TypeName
+              d.TypeID, t.TypeName,
+              d.CreatedDate
        FROM TB_T_Device d 
        LEFT JOIN TB_M_Category c ON d.CategoryID = c.CategoryID 
-       LEFT JOIN TB_M_StatusDevice s ON d.DVStatusID = s.DVStatusID
+       LEFT JOIN TB_M_StatusDevice s ON d.StatusID = s.DVStatusID
        LEFT JOIN TB_M_Brand b ON d.BrandID = b.BrandID
        LEFT JOIN TB_M_Type t ON d.TypeID = t.TypeID`;
 
     const params = [];
     if (q) {
-      sql += ` WHERE d.devicename LIKE ? OR b.BrandName LIKE ? OR t.TypeName LIKE ? OR d.stickerid LIKE ?`;
+      sql += ` WHERE d.DeviceName LIKE ? OR b.BrandName LIKE ? OR t.TypeName LIKE ? OR d.DeviceCode LIKE ?`;
       const term = `%${q}%`;
       params.push(term, term, term, term);
     }
@@ -2175,6 +2163,29 @@ app.get("/api/products/search", async (req, res) => {
   } catch (error) {
     console.error("Error searching products:", error);
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการค้นหาสินค้า" });
+  }
+});
+
+// Check device status by Serial Number
+app.get("/api/devices/status/:serialNumber", async (req, res) => {
+  const { serialNumber } = req.params;
+  try {
+    const [devices] = await db.execute(
+      `SELECT d.DVID, d.DeviceName, d.DeviceCode, d.SerialNumber, s.StatusNameDV as Status, d.StatusID
+       FROM TB_T_Device d
+       LEFT JOIN TB_M_StatusDevice s ON d.StatusID = s.DVStatusID
+       WHERE d.SerialNumber = ?`,
+      [serialNumber],
+    );
+
+    if (devices.length === 0) {
+      return res.status(404).json({ message: "ไม่พบอุปกรณ์ที่มี Serial Number นี้" });
+    }
+
+    res.json(devices[0]);
+  } catch (error) {
+    console.error("Error checking device status:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการตรวจสอบสถานะอุปกรณ์" });
   }
 });
 
@@ -2200,7 +2211,7 @@ app.post("/api/products", verifyToken, checkAdmin, async (req, res) => {
 
   try {
     const [result] = await db.execute(
-      "INSERT INTO TB_T_Device (devicename, stickerid, serialnumber, CategoryID, DVStatusID, sticker, Brand, DeviceType, Price, Quantity, Description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO TB_T_Device (DeviceName, DeviceCode, SerialNumber, CategoryID, StatusID, Image, Brand, DeviceType, Price, Quantity, Description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         DeviceName,
         DeviceCode,
@@ -2244,7 +2255,7 @@ app.put("/api/products/:id", verifyToken, checkAdmin, async (req, res) => {
 
   try {
     let query =
-      "UPDATE TB_T_Device SET devicename=?, stickerid=?, serialnumber=?, CategoryID=?, DVStatusID=?, Brand=?, DeviceType=?, Price=?, Quantity=?, Description=?";
+      "UPDATE TB_T_Device SET DeviceName=?, DeviceCode=?, SerialNumber=?, CategoryID=?, StatusID=?, Brand=?, DeviceType=?, Price=?, Quantity=?, Description=?";
     let params = [
       DeviceName,
       DeviceCode,
@@ -2259,7 +2270,7 @@ app.put("/api/products/:id", verifyToken, checkAdmin, async (req, res) => {
     ];
 
     if (Image !== undefined) {
-      query += ", sticker=?";
+      query += ", Image=?";
       params.push(Image);
     }
 
@@ -2455,7 +2466,7 @@ app.post(
 
         if (categoryId && statusId) {
           await connection.execute(
-            "INSERT INTO TB_T_Device (devicename, stickerid, serialnumber, CategoryID, DVStatusID, Brand, DeviceType) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO TB_T_Device (DeviceName, DeviceCode, SerialNumber, CategoryID, StatusID, Brand, DeviceType) VALUES (?, ?, ?, ?, ?, ?, ?)",
             [
               deviceName,
               deviceCode,
@@ -2511,7 +2522,7 @@ app.post("/api/master-products", verifyToken, checkAdmin, async (req, res) => {
 
   try {
     const [result] = await db.execute(
-      "INSERT INTO TB_T_Device (devicename, stickerid, Price, Quantity, Description, sticker) VALUES (?, ?, ?, ?, ?, ?)",
+      "INSERT INTO TB_T_Device (DeviceName, DeviceCode, Price, Quantity, Description, Image) VALUES (?, ?, ?, ?, ?, ?)",
       [DeviceName, DeviceCode, Price, Quantity, Description, Image],
     );
     res
@@ -2558,6 +2569,100 @@ app.get("/api/stock-movements", verifyToken, checkAdmin, async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+// Notifications Endpoint
+app.get("/api/nav-notifications", verifyToken, async (req, res) => {
+  try {
+    // Only return these specific notifications for Admin role
+    if (req.user.role !== "Admin") {
+      return res.json([]);
+    }
+
+    const [lowStock] = await db.execute(
+      "SELECT DeviceName, Quantity FROM TB_T_Device WHERE Quantity < 5 ORDER BY Quantity ASC LIMIT 5"
+    );
+
+    const [pendingRequests] = await db.execute(
+      `SELECT b.BorrowID, b.BorrowDate, u.fname, u.lname 
+       FROM TB_T_Borrow b 
+       JOIN TB_T_Employee u ON b.EMPID = u.EMPID 
+       WHERE b.Status = 'Pending' 
+       ORDER BY b.CreatedDate DESC LIMIT 5`
+    );
+
+    // Recent returns (last 7 days?) or just last 5
+    const [recentReturns] = await db.execute(
+      `SELECT b.BorrowID, b.ReturnDate, u.fname, u.lname, d.ItemName 
+       FROM TB_T_BorrowDetail d
+       JOIN TB_T_Borrow b ON d.BorrowID = b.BorrowID
+       JOIN TB_T_Employee u ON b.EMPID = u.EMPID 
+       WHERE b.Status = 'Returned' 
+       ORDER BY b.ReturnDate DESC LIMIT 5`
+    );
+
+    const notifications = [];
+
+    // Format Low Stock
+    lowStock.forEach(item => {
+      notifications.push({
+        id: `stock-${item.DeviceName}`,
+        type: 'alert',
+        message: `สินค้าใกล้หมด: ${item.DeviceName} (เหลือ ${item.Quantity})`,
+        time: 'ขณะนี้',
+        priority: 3
+      });
+    });
+
+    // Format Pending Requests
+    pendingRequests.forEach(req => {
+      notifications.push({
+        id: `borrow-${req.BorrowID}`,
+        type: 'info',
+        message: `คำขอยืมใหม่จาก ${req.fname} ${req.lname}`,
+        time: new Date(req.BorrowDate).toLocaleDateString('th-TH'),
+        priority: 2
+      });
+    });
+    
+    // Format Returns
+    recentReturns.forEach(ret => {
+        notifications.push({
+            id: `return-${ret.BorrowID}-${ret.ItemName}`, // Unique ID
+            type: 'success',
+            message: `${ret.fname} คืนอุปกรณ์: ${ret.ItemName}`,
+            time: new Date(ret.ReturnDate).toLocaleDateString('th-TH'),
+            priority: 1
+        });
+    });
+
+    // Sort by priority (high to low)
+    notifications.sort((a, b) => b.priority - a.priority);
+
+    res.json(notifications);
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    res.status(500).json({ message: "Failed to fetch notifications" });
+  }
+});
+
+// Global Error Handler (Catch-all for unhandled errors)
+app.use((err, req, res, next) => {
+  console.error("Unhandled Error:", err.stack);
+  if (res.headersSent) {
+    return next(err);
+  }
+  res.status(500).json({
+    message: "เกิดข้อผิดพลาดที่ไม่คาดคิด (Internal Server Error)",
+    error: process.env.NODE_ENV === "development" ? err.message : undefined,
+  });
+});
+
+const server = app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+});
+
+// Graceful Shutdown
+process.on("SIGINT", async () => {
+  console.log("\nClosing database connection pool...");
+  await db.end();
+  process.exit(0);
 });

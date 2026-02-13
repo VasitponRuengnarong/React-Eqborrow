@@ -5,21 +5,14 @@ import {
   AlertTriangle,
   CheckSquare,
   Activity,
-  PieChart,
-  Bell,
+  Download,
+  Calendar,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./AdminDashboard.css";
 import { apiFetch } from "./api";
-
-const COLORS = [
-  "#0088FE",
-  "#00C49F",
-  "#FFBB28",
-  "#FF8042",
-  "#8884d8",
-  "#82ca9d",
-];
+import StatusChartCard from "./StatusChartCard";
+import CategoryChartCard from "./CategoryChartCard";
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -31,7 +24,12 @@ const AdminDashboard = () => {
     pieChartData: [],
   });
   const [lowStockItems, setLowStockItems] = useState([]);
+  const [products, setProducts] = useState([]); // State for products
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -39,12 +37,13 @@ const AdminDashboard = () => {
       try {
         const token = localStorage.getItem("accessToken");
         if (!token) {
-          window.location.href = "/login";
+          navigate("/login");
           return;
         }
 
         const response = await apiFetch("/api/dashboard/admin-stats");
         const alertsResponse = await apiFetch("/api/notifications/low-stock");
+        const productsResponse = await apiFetch("/api/products"); // Fetch products for the new chart
 
         if (response.ok) {
           const data = await response.json();
@@ -54,6 +53,10 @@ const AdminDashboard = () => {
           const alertsData = await alertsResponse.json();
           setLowStockItems(alertsData);
         }
+        if (productsResponse.ok) {
+            const productsData = await productsResponse.json();
+            setProducts(productsData);
+        }
       } catch (error) {
         console.error("Error fetching dashboard stats:", error);
       } finally {
@@ -62,7 +65,46 @@ const AdminDashboard = () => {
     };
 
     fetchStats();
-  }, []);
+  }, [navigate]);
+
+  // Filter products based on date range
+  const filteredProducts = products.filter((product) => {
+    if (!startDate && !endDate) return true;
+    const productDate = new Date(product.CreatedDate);
+    const start = startDate ? new Date(startDate) : new Date("1900-01-01");
+    const end = endDate ? new Date(endDate) : new Date();
+    end.setHours(23, 59, 59, 999); // Include the entire end day
+    return productDate >= start && productDate <= end;
+  });
+
+  // Function to handle Excel export
+  const handleExport = async () => {
+    try {
+      const response = await apiFetch("/api/borrows/export");
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `borrow_history_${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } else {
+        alert("ไม่สามารถดาวน์โหลดไฟล์ได้");
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+    }
+  };
+
+  // Pagination Logic for Recent Activity
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentActivityItems = stats.recentActivity.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(stats.recentActivity.length / itemsPerPage);
 
   if (loading) {
     return (
@@ -73,104 +115,35 @@ const AdminDashboard = () => {
     );
   }
 
-  // Helper function to render Pie Chart using SVG
-  const renderPieChart = (data) => {
-    const total = data.reduce((acc, item) => acc + item.value, 0);
-    let cumulativePercent = 0;
-
-    if (total === 0) return <p className="no-data">ไม่มีข้อมูลสินค้า</p>;
-
-    return (
-      <svg
-        viewBox="-1 -1 2 2"
-        style={{ transform: "rotate(-90deg)", height: "100%", width: "100%" }}
-        role="img"
-        aria-label="กราฟวงกลมแสดงสัดส่วนสินค้าตามหมวดหมู่"
-      >
-        {data.map((slice, index) => {
-          const startPercent = cumulativePercent;
-          const slicePercent = slice.value / total;
-          cumulativePercent += slicePercent;
-          const endPercent = cumulativePercent;
-
-          const x1 = Math.cos(2 * Math.PI * startPercent);
-          const y1 = Math.sin(2 * Math.PI * startPercent);
-          const x2 = Math.cos(2 * Math.PI * endPercent);
-          const y2 = Math.sin(2 * Math.PI * endPercent);
-
-          const largeArcFlag = slicePercent > 0.5 ? 1 : 0;
-
-          const pathData = `M 0 0 L ${x1} ${y1} A 1 1 0 ${largeArcFlag} 1 ${x2} ${y2} L 0 0`;
-
-          return (
-            <path
-              key={index}
-              d={pathData}
-              fill={COLORS[index % COLORS.length]}
-              className="pie-slice"
-            >
-              <title>{`${slice.name || "ไม่ระบุ"}: ${slice.value} รายการ`}</title>
-            </path>
-          );
-        })}
-      </svg>
-    );
-  };
 
   return (
     <div className="admin-dashboard">
-      <style>{`
-        .dashboard-header {
-          background: var(--bg-card);
-          padding: 24px 32px;
-          border-radius: 16px;
-          box-shadow: var(--shadow-sm);
-          margin-bottom: 24px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          border-left: 5px solid #ff8000;
-          transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
-        }
-        .dashboard-header h1 {
-          color: var(--text-primary);
-          margin: 0 0 8px 0;
-          font-family: "Poppins", sans-serif;
-          font-weight: 600;
-          font-size: 1.5rem;
-          transition: color 0.3s ease;
-        }
-        .dashboard-header p {
-          color: var(--text-secondary);
-          margin: 0;
-          font-family: "Poppins", sans-serif;
-          transition: color 0.3s ease;
-        }
-        .date-display {
-          color: #64748b;
-          font-family: "Poppins", sans-serif;
-          font-weight: 500;
-        }
-      `}</style>
-      <div className="dashboard-header">
-        <div>
-          <h1>Dashboard</h1>
-          <p>ภาพรวมระบบและการจัดการ</p>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-          <div className="notification-bell">
-            <Bell size={24} color="#555" />
-            {lowStockItems.length > 0 && (
-              <span className="notification-badge">{lowStockItems.length}</span>
-            )}
+      <div className="dashboard-header-premium">
+        <div className="welcome-section">
+          <div className="welcome-header-content">
+            <h1>Dashboard</h1>
+            <p>ภาพรวมระบบและการจัดการ</p>
           </div>
-          <div className="date-display">
-            {new Date().toLocaleDateString("th-TH", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
+          
+          <div className="header-actions">
+            <div className="date-badge-premium">
+              <Calendar size={18} />
+              <span>
+                {new Date().toLocaleDateString("th-TH", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </span>
+            </div>
+            
+            <button 
+              onClick={handleExport}
+              className="export-btn-premium"
+            >
+              <Download size={18} /> Export Data
+            </button>
           </div>
         </div>
       </div>
@@ -228,10 +201,48 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Charts Section */}
-      <div className="dashboard-charts">
-        {/* Main Section: Recent Activity Table */}
-        <div className="chart-card">
+      {/* Analytics Section */}
+      <div className="section-title">
+        <span>Asset Analytics</span>
+        <div className="filter-container">
+          <span style={{ fontSize: '13px', color: '#666', marginRight: '5px' }}>Filter Date:</span>
+          <input
+            type="date"
+            className="filter-input"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+          <span style={{ color: '#999' }}>-</span>
+          <input
+            type="date"
+            className="filter-input"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+          {(startDate || endDate) && (
+            <button 
+              onClick={() => { setStartDate(""); setEndDate(""); }}
+              style={{ background: 'none', border: 'none', color: '#ff8000', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="charts-grid">
+        <StatusChartCard products={filteredProducts} />
+        <CategoryChartCard products={filteredProducts} />
+      </div>
+
+      {/* Operations Section */}
+      <div className="section-title">
+        <span>Recent Operations</span>
+      </div>
+
+      <div className="operations-grid">
+        {/* Recent Activity Table */}
+        <div className="chart-card recent-activity" style={{ height: '100%' }}>
           <div className="chart-header">
             <Activity size={20} />
             <h2>Recent Activity</h2>
@@ -250,8 +261,8 @@ const AdminDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {stats.recentActivity.length > 0 ? (
-                  stats.recentActivity.map((item) => (
+                {currentActivityItems.length > 0 ? (
+                  currentActivityItems.map((item) => (
                     <tr key={item.BorrowID}>
                       <td>
                         {item.fname} {item.lname}
@@ -287,17 +298,37 @@ const AdminDashboard = () => {
               </tbody>
             </table>
           </div>
+          {/* Pagination Controls */}
+          {stats.recentActivity.length > itemsPerPage && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', padding: '15px 0', borderTop: '1px solid #eee' }}>
+              <button 
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                style={{ padding: '5px 10px', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', border: '1px solid #ddd', borderRadius: '4px', background: '#fff' }}
+              >
+                &lt; Previous
+              </button>
+              <span style={{ fontSize: '14px', color: '#666' }}>Page {currentPage} of {totalPages}</span>
+              <button 
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                style={{ padding: '5px 10px', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', border: '1px solid #ddd', borderRadius: '4px', background: '#fff' }}
+              >
+                Next &gt;
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Right Column: Quick Actions & Pie Chart */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          {/* System Alerts Card */}
-          {lowStockItems.length > 0 && (
-            <div className="chart-card alert-card-container">
+        {/* Low Stock Alerts */}
+        <div className={`chart-card alert-card-container ${lowStockItems.length === 0 ? 'healthy' : ''}`} style={{ height: 'fit-content' }}>
               <div className="chart-header">
-                <AlertTriangle size={20} color="#dc2626" />
-                <h2 style={{ color: "#dc2626" }}>Low Stock Alerts</h2>
+            <AlertTriangle size={20} color={lowStockItems.length > 0 ? "#dc2626" : "#4caf50"} />
+            <h2 style={{ color: lowStockItems.length > 0 ? "#dc2626" : "#4caf50" }}>
+              {lowStockItems.length > 0 ? "Low Stock Alerts" : "System Status"}
+            </h2>
               </div>
+          {lowStockItems.length > 0 ? (
               <div className="alert-list">
                 {lowStockItems.slice(0, 5).map((item, idx) => (
                   <div key={idx} className="alert-item">
@@ -313,35 +344,13 @@ const AdminDashboard = () => {
                   </div>
                 )}
               </div>
+          ) : (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#4caf50', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <CheckSquare size={40} style={{ marginBottom: '10px', opacity: 0.8 }} />
+              <p style={{ margin: 0, fontSize: '14px' }}>All systems operational</p>
+              <p style={{ margin: '5px 0 0 0', fontSize: '12px', opacity: 0.7 }}>Stock levels are healthy</p>
             </div>
           )}
-
-          <div className="chart-card">
-            <div className="chart-header">
-              <PieChart size={20} />
-              <h2>Available : Borrowed</h2>
-            </div>
-            <div className="pie-chart-container">
-              <div className="pie-chart-wrapper">
-                {renderPieChart(stats.pieChartData)}
-              </div>
-              <div className="chart-legend">
-                {stats.pieChartData.map((item, index) => (
-                  <div key={index} className="legend-item">
-                    <span
-                      className="legend-color"
-                      style={{
-                        backgroundColor: COLORS[index % COLORS.length],
-                      }}
-                    ></span>
-                    <span className="legend-text">
-                      {item.name || "ไม่ระบุ"}: <strong>{item.value}</strong>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

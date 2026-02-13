@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Calendar,
   Plus,
@@ -17,6 +17,7 @@ import {
   Mic,
   Speaker,
   ChevronDown,
+  FileText,
 } from "lucide-react";
 import "./BorrowRequest.css";
 import Swal from "sweetalert2"; // Import SweetAlert2
@@ -41,6 +42,7 @@ const BorrowRequest = () => {
   const [loading, setLoading] = useState(false); // Keep loading state
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const location = useLocation();
 
   // Find selected product for preview
   const selectedProduct = products.find(
@@ -55,6 +57,23 @@ const BorrowRequest = () => {
     fetchProducts();
     fetchCategories();
   }, []);
+
+  // Handle pre-selected item from dashboard
+  useEffect(() => {
+    if (location.state?.preSelectedId && products.length > 0) {
+      const productId = location.state.preSelectedId;
+      const product = products.find(p => p.DVID === productId);
+      if (product) {
+        setCurrentItem({
+          productId: product.DVID.toString(),
+          name: product.DeviceName,
+          quantity: 1,
+          remark: "",
+        });
+        // Scroll to the selection area or show a hint if needed
+      }
+    }
+  }, [location.state, products]);
 
   const fetchProducts = async () => {
     try {
@@ -237,16 +256,16 @@ const BorrowRequest = () => {
   return (
     <div className="borrow-request-page">
       <div className="page-header">
-        <h1>ยืมอุปกรณ์</h1>
-        <p>กรอกแบบฟอร์มเพื่อขอยืมอุปกรณ์</p>
+        <h2>ยืมอุปกรณ์</h2>
+        <p>กรอกแบบฟอร์มและเลือกรายการอุปกรณ์ที่ต้องการยืม</p>
       </div>
 
       <div className="borrow-container">
         <form onSubmit={handleSubmit} className="borrow-form">
-          <div className="form-section">
-            <h3>
-              <Calendar size={20} /> ข้อมูลการยืม
-            </h3>
+          <div className="form-card">
+            <div className="card-header-title">
+              <FileText size={20} /> ข้อมูลการยืม
+            </div>
             <div className="form-row">
               <div className="form-group">
                 <input
@@ -282,11 +301,11 @@ const BorrowRequest = () => {
             </div>
           </div>
 
-          <div className="form-section">
+          <div className="form-card">
             <div className="items-header">
-              <h3>
+              <div className="card-header-title">
                 <ShoppingCart size={20} /> รายการอุปกรณ์
-              </h3>
+              </div>
 
               {/* Filter Section */}
               <div className="filter-wrapper">
@@ -462,7 +481,7 @@ const BorrowRequest = () => {
             </div>
 
             {selectedItems.length > 0 && (
-              <div className="items-table-wrapper">
+              <div className="items-table-container">
                 <table className="items-table">
                   <thead>
                     <tr>
@@ -476,7 +495,7 @@ const BorrowRequest = () => {
                     {selectedItems.map((item, index) => (
                       <tr key={index}>
                         <td>{item.name}</td>
-                        <td>{item.quantity}</td>
+                        <td className="text-center">{item.quantity}</td>
                         <td>{item.remark || "-"}</td>
                         <td>
                           <button
@@ -495,7 +514,7 @@ const BorrowRequest = () => {
             )}
           </div>
 
-          <div className="form-actions">
+          <div className="form-footer">
             <button type="submit" className="submit-btn" disabled={loading}>
               <Save size={18} /> {loading ? "กำลังบันทึก..." : "ยืนยันการยืม"}
             </button>

@@ -69,11 +69,11 @@ const ActivityLogPage = () => {
   return (
     <div className="management-page">
       <div className="page-header">
-        <h2>
+        <h2 style={{ transition: "color 0.3s ease" }}>
           <History size={28} style={{ marginRight: "10px" }} />
           ประวัติการทำงาน (Activity Log)
         </h2>
-        <p>แสดงประวัติการดำเนินการต่างๆ ในระบบ</p>
+        <p style={{ transition: "color 0.3s ease" }}>แสดงประวัติการดำเนินการต่างๆ ในระบบ</p>
       </div>
 
       <div className="table-container">

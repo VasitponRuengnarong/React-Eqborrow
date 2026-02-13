@@ -1,363 +1,410 @@
+/* --- Main Sidebar Container --- */
 .sidebar {
-  min-width: 280px; /* Default desktop open width */
+  /* Dimensions & Positioning */
   width: 280px;
-  flex-shrink: 0;
+  min-width: 280px;
   height: 100vh;
   position: sticky;
   top: 0;
   left: 0;
-  background-color: #1e1e2d; /* Modern Dark Blue-Grey */
-  color: #9899ac;
-  border-right: 1px solid rgba(255, 255, 255, 0.02);
+  z-index: 1000;
+
+  /* Theming & Appearance - "Easy on Eyes" & "Visible" */
+  background: #ffffff; /* Clean white canvas */
+  color: #1e293b; /* Slate-800 - High contrast text */
+  border-right: 1px solid #e2e8f0; /* Subtle border */
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.05); /* slightly stronger shadow for separation */
+  font-family: "Poppins", sans-serif;
+
+  /* Layout & Transitions */
   display: flex;
   flex-direction: column;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-  font-family: "Poppins", sans-serif;
-  transition:
-    width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    left 0.3s ease; /* Add left for mobile transition */
-  z-index: 999; /* Lower z-index than overlay */
+  flex-shrink: 0;
+  transition: 
+    width 0.4s cubic-bezier(0.25, 1, 0.5, 1), /* Smooth ease-out */
+    min-width 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+    left 0.3s ease;
 }
 
-/* Mobile Sidebar (Overlay behavior) */
+/* --- Sidebar States (Mobile) --- */
 @media (max-width: 768px) {
   .sidebar.mobile {
     position: fixed;
-    left: -280px; /* Hidden by default */
-    top: 0;
-    width: 280px; /* Fixed width for mobile */
-    min-width: 280px;
-    z-index: 1000; /* Higher z-index for mobile overlay */
+    left: -280px;
+    box-shadow: none;
   }
-
   .sidebar.mobile.open {
-    left: 0; /* Slide in */
+    left: 0;
+    box-shadow: 10px 0 40px rgba(0, 0, 0, 0.15); /* Stronger shadow on mobile overlay */
   }
-
-  .sidebar.mobile .sidebar-toggle {
-    display: none; /* Hide desktop toggle on mobile */
-  }
+  .sidebar.mobile .sidebar-toggle { display: none; }
 }
 
-/* Desktop Sidebar (Collapsed/Open behavior) */
+/* --- Sidebar States (Desktop) --- */
 .sidebar.desktop.closed {
-  width: 80px;
-  min-width: 80px;
+  width: 88px; /* Slightly wider for comfort */
+  min-width: 88px;
 }
 
-/* Logo Section */
+/* --- Logo Section --- */
 .sidebar-logo {
-  padding: 24px 24px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
-  background: transparent;
-  transition:
-    gap 0.3s ease,
-    padding 0.3s ease;
+  gap: 16px;
+  padding: 24px 28px; /* More breathing room */
+  height: 90px;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .logo-icon {
-  width: 40px; /* Fixed size for the icon container */
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy pop */
+}
+.sidebar-logo:hover .logo-icon {
+  transform: scale(1.1) rotate(-5deg); /* Playful tilt on hover */
 }
 
 .sidebar-logo img {
-  /* Style for the actual image inside logo-icon */
-  height: 40px; /* Ensure image fits the container */
+  height: 48px; /* Slightly larger logo */
   width: auto;
   object-fit: contain;
-  font-weight: 700;
-  font-size: 20px;
-  flex-shrink: 0;
 }
+
+.sidebar.desktop.closed .sidebar-logo {
+  justify-content: center;
+  padding: 24px 0;
+}
+.sidebar.desktop.closed .logo-icon { margin: 0; }
 
 .logo-text {
-  flex: 1;
   white-space: nowrap;
   overflow: hidden;
-  transition:
-    opacity 0.2s ease,
-    max-width 0.3s ease;
-  max-width: 200px;
+  opacity: 1;
+  transition: opacity 0.2s ease, width 0.2s ease;
 }
-
-.user-name {
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.user-role {
-  color: #b2b2b2;
-  font-size: 12px;
-}
+.sidebar.desktop.closed .logo-text { opacity: 0; width: 0; display: none; }
 
 .logo-main {
-  font-weight: 700;
-  font-size: 14px;
-  color: #fff;
-  line-height: 1.2;
+  font-weight: 800;
+  font-size: 22px; /* Larger font */
+  color: #1e293b; /* Dark Slate */
+  letter-spacing: -0.02em;
 }
 
 .logo-sub {
-  font-size: 10px;
-  color: #888;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-size: 12px;
+  color: #f97316; /* Playful accent color */
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 0px;
 }
 
-/* Menu Section */
+/* --- Menu Section --- */
 .sidebar-menu {
   flex: 1;
   overflow-y: auto;
-  padding: 0 12px;
+  padding: 10px 20px; /* Comfortable padding */
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px; /* Spacing between items */
 }
 
 .menu-section-title {
-  padding: 0 12px 8px 12px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #666;
+  padding: 16px 16px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8; /* Visible grey for headers */
   text-transform: uppercase;
-  letter-spacing: 1px;
-  transition: opacity 0.3s ease;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  margin-top: 10px;
 }
-
-.sidebar.desktop.closed .menu-section-title {
-  opacity: 0;
-  height: 0;
-  overflow: hidden;
-  padding: 0;
-}
+.menu-section-title:first-child { margin-top: 0; }
+.sidebar.desktop.closed .menu-section-title { display: none; }
 
 .menu-item {
   display: flex;
   align-items: center;
   width: 100%;
-  gap: 12px;
-  padding: 12px 14px;
-  color: #9899ac;
+  gap: 16px;
+  padding: 14px 20px; /* Larger click area */
+  color: #475569; /* Slate-600 - Readable Contrast */
   background: transparent;
   text-decoration: none;
   border: none;
-  border-radius: 10px; /* Rounded corners for floating effect */
-  font-size: 13px;
+  border-radius: 16px; /* Soft, playful rounded corners */
+  font-size: 15px; /* Slightly larger text */
   font-weight: 500;
   cursor: pointer;
-  border-left: none;
   text-align: left;
-  transition:
-    all 0.3s ease,
-    gap 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative;
+  overflow: hidden; 
 }
 
+.sidebar.desktop.closed .menu-item {
+  padding: 14px;
+  justify-content: center;
+  border-radius: 16px;
+}
+
+/* Hover Effect - "Playful Lift" */
 .menu-item:hover {
-  background-color: rgba(255, 255, 255, 0.04);
-  color: #ffffff;
-}
-
-.menu-item.active {
-  background-color: #ff8000; /* Primary Color */
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(255, 128, 0, 0.3);
+  background-color: #f1f5f9; /* Clear hover bg */
+  color: #f97316; /* Text turns orange */
+  transform: translateX(4px); /* Moves slightly right */
   font-weight: 600;
 }
+.menu-item:hover .menu-icon {
+  color: #f97316;
+  transform: scale(1.1); /* Icon pops */
+}
+
+/* Active State - "Soft Glow Pill" */
+.menu-item.active {
+  background: #ffedd5; /* Clear Orange bg */
+  color: #c2410c; /* Deep Orange Text */
+  font-weight: 700; /* Bold */
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.1); /* Soft orange glow */
+}
+.menu-item.active:hover {
+  transform: none; /* Active item stays planted */
+  background: #ffedd5;
+}
+
+/* Active Indicator - Vertical Bar */
+.menu-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 24px;
+  width: 5px; /* Thicker bar */
+  background-color: #f97316;
+  border-radius: 0 4px 4px 0;
+  display: block;
+}
+.sidebar.desktop.closed .menu-item.active::before { display: none; }
 
 .menu-icon {
-  font-size: 18px;
-  width: 24px;
-  text-align: center;
   flex-shrink: 0;
+  color: #64748b; /* Slate-500 default - Visible */
+  font-size: 24px; /* Larger icons */
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy icon */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.menu-item.active .menu-icon {
+  color: #ea580c; /* Deep Orange */
 }
 
-.menu-label {
-  flex: 1;
+.menu-label, .menu-arrow {
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
-  transition:
-    opacity 0.2s ease,
-    max-width 0.3s ease;
-  max-width: 200px;
+  opacity: 1;
+  transition: opacity 0.2s ease;
 }
+.sidebar.desktop.closed .menu-label,
+.sidebar.desktop.closed .menu-arrow { display: none; }
 
 .menu-arrow {
   margin-left: auto;
-  opacity: 0.5;
-  transition:
-    opacity 0.2s ease,
-    max-width 0.3s ease;
-  max-width: 20px;
+  opacity: 0.6; /* More visible arrow */
+  font-size: 18px;
 }
 
-/* User Profile Section */
+/* --- User Profile Section - "Premium Gradient Card" --- */
 .user-profile-section {
-  padding: 20px 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.03);
-  background: #1b1b29;
+  padding: 20px 24px 24px;
   margin-top: auto;
+  flex-shrink: 0;
+  background: #ffffff;
+  /* border-top: 1px solid #f1f5f9; Removed for cleaner look */
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  transition: gap 0.3s ease;
-}
-
-.avatar-container {
+  gap: 16px;
+  padding: 16px;
+  border-radius: 20px;
+  /* Premium Gradient Background */
+  background: linear-gradient(135deg, #ff8000 0%, #ea580c 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2); 
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
   position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 20px -5px rgba(234, 88, 12, 0.3); /* Colored shadow */
 }
 
+/* Glass/Shine Effect Overlay */
+.user-info::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    transparent 50%
+  );
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.user-info:hover {
+  transform: translateY(-4px) scale(1.02); /* Pop up */
+  box-shadow: 0 14px 28px -5px rgba(234, 88, 12, 0.4);
+}
+
+.sidebar.desktop.closed .user-info {
+  padding: 10px;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+.sidebar.desktop.closed .user-info:hover {
+  background: #f1f5f9;
+  transform: none;
+}
+.sidebar.desktop.closed .user-info::after { display: none; }
+
+.avatar-container { position: relative; flex-shrink: 0; z-index: 1; }
 .user-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
   object-fit: cover;
-  background-color: #2b2b40;
+  background-color: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
-.user-name-bar {
-  font-weight: 600;
-  margin: 0;
-  color: #ffffff;
-}
-
 .online-indicator {
   position: absolute;
-  bottom: -2px;
+  bottom: 0;
   right: -2px;
-  width: 10px;
-  height: 10px;
-  background: #2ecc71;
+  width: 12px;
+  height: 12px;
+  background: #22c55e; /* Green stays same */
   border-radius: 50%;
-  border: 2px solid #1e1e2d;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .user-details {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   overflow: hidden;
-  white-space: nowrap;
-  transition:
-    opacity 0.2s ease,
-    max-width 0.3s ease;
-  max-width: 200px;
+  flex: 1;
+  z-index: 1; /* Above gradient overlay */
 }
-.user-name {
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 600;
+.sidebar.desktop.closed .user-details { display: none; }
+
+.user-name-sidebar {
+  color: #ffffff; /* White Text */
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-bottom: 2px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+.user-info:hover .user-name-sidebar {
+  color: #ffffff; /* Stays white */
 }
 
 .user-role {
-  color: #b2b2b2;
-  font-size: 12px;
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+  text-transform: uppercase;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  align-self: flex-start; /* Aligns to left if flex container is column */
 }
 
+/* --- Logout Button --- */
 .logout-btn {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px;
-  background-color: #2b2b40;
-  border: none;
-  color: #9899ac;
-  border-radius: 8px;
+  padding: 12px;
+  margin-top: 12px;
+  background: #fff7ed; /* Light orange bg default */
+  border: 1px solid transparent; 
+  color: #ea580c;
+  border-radius: 12px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  font-family: "Poppins", sans-serif;
-  transition:
-    all 0.2s ease,
-    gap 0.3s ease;
+  transition: all 0.2s ease;
 }
-
 .logout-btn:hover {
-  background-color: #323248;
-  color: #ffffff;
+  background: #ffedd5;
+  color: #c2410c;
+  transform: translateY(-1px);
 }
-
-.logout-icon {
-  font-size: 16px;
-}
-
-.logout-text {
-  white-space: nowrap;
-  overflow: hidden;
-  transition:
-    opacity 0.2s ease,
-    max-width 0.3s ease;
-  max-width: 200px;
-}
-
-/* Scrollbar Styling */
-.sidebar-menu::-webkit-scrollbar {
-  width: 6px;
-}
-
-.sidebar-menu::-webkit-scrollbar-track {
+.sidebar.desktop.closed .logout-btn {
+  border: none;
+  padding: 12px;
   background: transparent;
 }
-
-.sidebar-menu::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 3px;
+.sidebar.desktop.closed .logout-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
 }
+.sidebar.desktop.closed .logout-text { display: none; }
 
-.sidebar-menu::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-
-/* Collapse Toggle Button */
+/* --- Collapse Toggle Button - "Floating Pill" --- */
 .sidebar-toggle {
   position: absolute;
-  top: 24px;
-  right: -12px;
-  width: 24px;
-  height: 24px;
-  background-color: #323248;
-  border: none;
+  top: 32px;
+  right: -14px;
+  width: 32px; /* Large toggle */
+  height: 32px;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 50%;
-  color: #9899ac;
+  color: #64748b;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 10;
-  transition: all 0.2s;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  z-index: 1100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Float shadow */
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Springy */
 }
-
 .sidebar-toggle:hover {
-  background-color: #ff8000;
-  color: #fff;
+  background-color: #f97316;
+  border-color: #f97316;
+  color: #ffffff;
+  transform: scale(1.15) rotate(180deg); /* Playful rotation */
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
 }
 
-/* Hide toggle button on mobile */
-@media (max-width: 768px) {
-  .sidebar-toggle {
-    display: none;
-  }
+/* Scrollbar */
+.sidebar-menu::-webkit-scrollbar { width: 6px; }
+.sidebar-menu::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
 }
-
-/* Main Content Area adjustment for desktop sidebar */
-.main-content-area {
-  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+.sidebar-menu::-webkit-scrollbar-thumb:hover { background: #94a3b8; }

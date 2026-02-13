@@ -14,10 +14,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx",
-    "checkJs": false,
-    "maxNodeModuleJsDepth": 0
+    "jsx": "react-jsx"
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "**/node_modules", "build", "dist"]
+  "include": ["src"]
 }

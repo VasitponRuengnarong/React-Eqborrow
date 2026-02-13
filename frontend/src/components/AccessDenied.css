@@ -42,8 +42,8 @@
 }
 
 .error-message {
-  color: #4b5563;
-  font-size: 1.1rem;
+  color: #ff0000;
+  font-size: 0.9rem;
   margin-bottom: 20px;
 }
 
@@ -89,17 +89,17 @@
 }
 
 .btn-home {
-  background-color: #ff8000;
+  background-color: var(--primary);
   color: white;
 }
 
 .btn-home:hover {
-  background-color: #e67300;
+  background-color: var(--primary-dark);
 }
 
 .btn-logout {
-  background-color: #e5e7eb;
-  color: #374151;
+  background-color: var(--border-color);
+  color: var(--text-primary);
 }
 
 .btn-logout:hover {

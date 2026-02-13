@@ -11,7 +11,6 @@ import {
   Eye,
   EyeOff,
   Camera,
-  ChevronDown,
   Check,
 } from "lucide-react";
 import Swal from "sweetalert2";
@@ -515,56 +514,64 @@ const Register = () => {
 
             {/* Step 2: Organization */}
             {currentStep === 2 && (
-              <div className="form-section">
-                <h3 className="section-title">สังกัด</h3>
-                <div className="form-row">
-                  <div
-                    className={`form-group ${errors.institutionId ? "has-error" : ""}`}
-                  >
-                    <label htmlFor="institutionId" className="input-label">
-                      สำนัก
-                    </label>
-                    <CustomSelect
-                      icon={Building}
-                      placeholder="-- เลือกสำนัก --"
-                      options={masterData.institutions}
-                      value={formData.institutionId}
-                      onSelect={(value) => handleSelect("institutionId", value)}
-                      displayValue={getInstitutionName(formData.institutionId)}
-                      optionValueKey="InstitutionID"
-                      optionLabelKey="InstitutionName"
-                      disabled={dataLoading}
-                      error={!!errors.institutionId}
-                    />
-                    {errors.institutionId && (
-                      <span className="error-message">
-                        {errors.institutionId}
-                      </span>
-                    )}
-                  </div>
-                  <div
-                    className={`form-group ${errors.departmentId ? "has-error" : ""}`}
-                  >
-                    <label htmlFor="departmentId" className="input-label">
-                      ฝ่าย
-                    </label>
-                    <CustomSelect
-                      icon={Users}
-                      placeholder="-- เลือกฝ่าย --"
-                      options={filteredDepartments}
-                      value={formData.departmentId}
-                      onSelect={(value) => handleSelect("departmentId", value)}
-                      displayValue={getDepartmentName(formData.departmentId)}
-                      optionValueKey="DepartmentID"
-                      optionLabelKey="DepartmentName"
-                      disabled={dataLoading || !formData.institutionId}
-                      error={!!errors.departmentId}
-                    />
-                    {errors.departmentId && (
-                      <span className="error-message">
-                        {errors.departmentId}
-                      </span>
-                    )}
+              <div className="form-step-content">
+                <div className="form-section">
+                  <h3 className="section-title">สังกัด</h3>
+                  <div className="form-row">
+                    <div
+                      className={`form-group ${errors.institutionId ? "has-error" : ""}`}
+                    >
+                      <label htmlFor="institutionId" className="input-label">
+                        สำนัก
+                      </label>
+                      <CustomSelect
+                        icon={Building}
+                        placeholder="-- เลือกสำนัก --"
+                        options={masterData.institutions}
+                        value={formData.institutionId}
+                        onSelect={(value) =>
+                          handleSelect("institutionId", value)
+                        }
+                        displayValue={getInstitutionName(
+                          formData.institutionId,
+                        )}
+                        optionValueKey="InstitutionID"
+                        optionLabelKey="InstitutionName"
+                        disabled={dataLoading}
+                        error={!!errors.institutionId}
+                      />
+                      {errors.institutionId && (
+                        <span className="error-message">
+                          {errors.institutionId}
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      className={`form-group ${errors.departmentId ? "has-error" : ""}`}
+                    >
+                      <label htmlFor="departmentId" className="input-label">
+                        ฝ่าย
+                      </label>
+                      <CustomSelect
+                        icon={Users}
+                        placeholder="-- เลือกฝ่าย --"
+                        options={filteredDepartments}
+                        value={formData.departmentId}
+                        onSelect={(value) =>
+                          handleSelect("departmentId", value)
+                        }
+                        displayValue={getDepartmentName(formData.departmentId)}
+                        optionValueKey="DepartmentID"
+                        optionLabelKey="DepartmentName"
+                        disabled={dataLoading || !formData.institutionId}
+                        error={!!errors.departmentId}
+                      />
+                      {errors.departmentId && (
+                        <span className="error-message">
+                          {errors.departmentId}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -572,48 +579,50 @@ const Register = () => {
 
             {/* Step 3: Account */}
             {currentStep === 3 && (
-              <div className="form-section">
-                <h3 className="section-title">บัญชีผู้ใช้</h3>
-                <div className="form-row">
-                  <div
-                    className={`form-group ${errors.username ? "has-error" : ""}`}
-                  >
-                    <label htmlFor="username" className="input-label">
-                      ชื่อผู้ใช้
-                    </label>
-                    <div className="input-wrapper">
-                      <User className="input-icon" size={20} />
-                      <input
-                        type="text"
-                        id="username"
-                        placeholder="กรอกชื่อผู้ใช้"
-                        value={formData.username}
-                        onChange={handleChange}
-                      />
+              <div className="form-step-content">
+                <div className="form-section">
+                  <h3 className="section-title">บัญชีผู้ใช้</h3>
+                  <div className="form-row">
+                    <div
+                      className={`form-group ${errors.username ? "has-error" : ""}`}
+                    >
+                      <label htmlFor="username" className="input-label">
+                        ชื่อผู้ใช้
+                      </label>
+                      <div className="input-wrapper">
+                        <User className="input-icon" size={20} />
+                        <input
+                          type="text"
+                          id="username"
+                          placeholder="กรอกชื่อผู้ใช้"
+                          value={formData.username}
+                          onChange={handleChange}
+                        />
+                      </div>
+                      {errors.username && (
+                        <span className="error-message">{errors.username}</span>
+                      )}
                     </div>
-                    {errors.username && (
-                      <span className="error-message">{errors.username}</span>
-                    )}
-                  </div>
-                  <div
-                    className={`form-group ${errors.email ? "has-error" : ""}`}
-                  >
-                    <label htmlFor="email" className="input-label">
-                      อีเมล
-                    </label>
-                    <div className="input-wrapper">
-                      <Mail className="input-icon" size={20} />
-                      <input
-                        type="email"
-                        id="email"
-                        placeholder="กรอกอีเมล"
-                        value={formData.email}
-                        onChange={handleChange}
-                      />
+                    <div
+                      className={`form-group ${errors.email ? "has-error" : ""}`}
+                    >
+                      <label htmlFor="email" className="input-label">
+                        อีเมล
+                      </label>
+                      <div className="input-wrapper">
+                        <Mail className="input-icon" size={20} />
+                        <input
+                          type="email"
+                          id="email"
+                          placeholder="กรอกอีเมล"
+                          value={formData.email}
+                          onChange={handleChange}
+                        />
+                      </div>
+                      {errors.email && (
+                        <span className="error-message">{errors.email}</span>
+                      )}
                     </div>
-                    {errors.email && (
-                      <span className="error-message">{errors.email}</span>
-                    )}
                   </div>
                 </div>
               </div>
@@ -621,63 +630,65 @@ const Register = () => {
 
             {/* Step 4: Security */}
             {currentStep === 4 && (
-              <div className="form-section">
-                <h3 className="section-title">ความปลอดภัย</h3>
-                <div className="form-row">
-                  <div
-                    className={`form-group ${errors.password ? "has-error" : ""}`}
-                  >
-                    <label htmlFor="password" className="input-label">
-                      รหัสผ่าน
-                    </label>
-                    <div className="password-input-wrapper">
-                      <Lock className="input-icon" size={20} />
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        id="password"
-                        placeholder="กรอกรหัสผ่าน"
-                        value={formData.password}
-                        onChange={handleChange}
-                      />
-                      <button
-                        type="button"
-                        className="password-toggle"
-                        onClick={() => setShowPassword(!showPassword)}
-                        tabIndex="-1"
-                      >
-                        {showPassword ? (
-                          <EyeOff size={20} />
-                        ) : (
-                          <Eye size={20} />
-                        )}
-                      </button>
+              <div className="form-step-content">
+                <div className="form-section">
+                  <h3 className="section-title">ความปลอดภัย</h3>
+                  <div className="form-row">
+                    <div
+                      className={`form-group ${errors.password ? "has-error" : ""}`}
+                    >
+                      <label htmlFor="password" className="input-label">
+                        รหัสผ่าน
+                      </label>
+                      <div className="password-input-wrapper">
+                        <Lock className="input-icon" size={20} />
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          id="password"
+                          placeholder="กรอกรหัสผ่าน"
+                          value={formData.password}
+                          onChange={handleChange}
+                        />
+                        <button
+                          type="button"
+                          className="password-toggle"
+                          onClick={() => setShowPassword(!showPassword)}
+                          tabIndex="-1"
+                        >
+                          {showPassword ? (
+                            <EyeOff size={20} />
+                          ) : (
+                            <Eye size={20} />
+                          )}
+                        </button>
+                      </div>
+                      {errors.password && (
+                        <span className="error-message">{errors.password}</span>
+                      )}
                     </div>
-                    {errors.password && (
-                      <span className="error-message">{errors.password}</span>
-                    )}
-                  </div>
 
-                  <div
-                    className={`form-group ${errors.confirmPassword ? "has-error" : ""}`}
-                  >
-                    <label htmlFor="confirmPassword" className="input-label">
-                      ยืนยันรหัสผ่าน
-                    </label>
-                    <div className="password-input-wrapper">
-                      <Lock className="input-icon" size={20} />
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        id="confirmPassword"
-                        placeholder="ยืนยันรหัสผ่าน"
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                      />
+                    <div
+                      className={`form-group ${errors.confirmPassword ? "has-error" : ""}`}
+                    >
+                      <label htmlFor="confirmPassword" className="input-label">
+                        ยืนยันรหัสผ่าน
+                      </label>
+                      <div className="password-input-wrapper">
+                        <Lock className="input-icon" size={20} />
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          id="confirmPassword"
+                          placeholder="ยืนยันรหัสผ่าน"
+                          value={formData.confirmPassword}
+                          onChange={handleChange}
+                        />
+                      </div>
+                      {errors.confirmPassword && (
+                        <span className="error-message">
+                          {errors.confirmPassword}
+                        </span>
+                      )}
                     </div>
-                    {errors.confirmPassword && (
-                      <span className="error-message">
-                        {errors.confirmPassword}
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>

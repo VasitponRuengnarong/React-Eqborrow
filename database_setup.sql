@@ -44,11 +44,13 @@ CREATE TABLE IF NOT EXISTS `TB_M_Role` (
 
 -- 4. ตาราง TB_M_StatusEMP (สถานะการใช้งานของพนักงาน)
 DROP TABLE IF EXISTS `TB_M_StatusEMP`;
-CREATE TABLE `TB_M_StatusEMP` (
+CREATE TABLE IF NOT EXISTS `TB_M_StatusEMP` (
   `EMPStatusID` int(11) NOT NULL AUTO_INCREMENT,
   `StatusNameEMP` varchar(50) NOT NULL,
   PRIMARY KEY (`EMPStatusID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
 
 -- 5. ตาราง TB_M_Category (หมวดหมู่ของอุปกรณ์)
 CREATE TABLE IF NOT EXISTS `TB_M_Category` (
@@ -158,6 +160,9 @@ CREATE TABLE `TB_T_Device` (
   `BorrowTransStatusID` int(11) DEFAULT NULL,
   `Brand` varchar(100) DEFAULT NULL,
   `DeviceType` varchar(100) DEFAULT NULL,
+  `Price` decimal(10,2) DEFAULT NULL,
+  `Quantity` int(11) DEFAULT NULL,
+  `Description` text,
   PRIMARY KEY (`DVID`),
   KEY `FK_Device_Category` (`CategoryID`),
   KEY `FK_Device_Brand` (`BrandID`),
@@ -237,6 +242,7 @@ CREATE TABLE `TB_T_Favorite` (
     `CreatedDate` DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY `unique_fav` (`EMPID`, `DVID`)
 );
+
 
 -- 17. ตาราง TB_T_Borrow (การยืม - ใช้คู่กับ server.js)
 DROP TABLE IF EXISTS `TB_T_Borrow`;
@@ -393,3 +399,14 @@ SELECT DVID, DeviceName, Brand, BrandID
 FROM TB_T_Device 
 WHERE Brand IS NOT NULL AND Brand != '' AND BrandID IS NULL;
 SET FOREIGN_KEY_CHECKS = 1;
+
+
+
+DELETE FROM `TB_T_Borrow` WHERE `EMPID` = 1;
+ALTER TABLE `TB_T_Borrow` DROP FOREIGN KEY `TB_T_Borrow_ibfk_1`;
+
+ALTER TABLE `TB_T_Borrow`
+ADD CONSTRAINT `TB_T_Borrow_ibfk_1`
+FOREIGN KEY (`EMPID`) REFERENCES `TB_T_Employee` (`EMPID`)
+ON DELETE CASCADE;
+

@@ -1,6 +1,6 @@
 .pending-requests-container {
   padding: 20px;
-  background-color: #f5f7fa;
+  background-color: var(--background);
   min-height: 100%;
 }
 
@@ -11,7 +11,8 @@
   align-items: center;
   justify-content: center;
   height: 300px;
-  color: #7f8c8d;
+  color: var(--text);
+  opacity: 0.7;
   gap: 15px;
 }
 
@@ -22,7 +23,7 @@
 }
 
 .request-card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   overflow: hidden;
@@ -38,7 +39,7 @@
 
 .request-header {
   padding: 15px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -53,7 +54,7 @@
 .avatar-placeholder {
   width: 40px;
   height: 40px;
-  background-color: #3498db;
+  background-color: var(--secondary);
   color: white;
   border-radius: 50%;
   display: flex;
@@ -65,17 +66,19 @@
 
 .user-profile-mini h4 {
   margin: 0;
-  color: #2c3e50;
+  color: var(--text);
   font-size: 1rem;
 }
 .user-profile-mini span {
   font-size: 0.8rem;
-  color: #7f8c8d;
+  color: var(--text);
+  opacity: 0.7;
 }
 
 .request-date {
   font-size: 0.75rem;
-  color: #95a5a6;
+  color: var(--text);
+  opacity: 0.6;
 }
 
 .request-body {
@@ -88,12 +91,12 @@
   gap: 8px;
   margin-bottom: 10px;
   font-size: 0.9rem;
-  color: #34495e;
+  color: var(--text);
   align-items: flex-start;
 }
 
 .items-list-mini {
-  background-color: #f9f9f9;
+  background-color: var(--grid);
   padding: 10px;
   border-radius: 6px;
   margin-top: 10px;
@@ -102,7 +105,8 @@
 .items-list-mini h5 {
   margin: 0 0 5px 0;
   font-size: 0.85rem;
-  color: #7f8c8d;
+  color: var(--text);
+  opacity: 0.7;
 }
 .items-list-mini ul {
   margin: 0;
@@ -113,14 +117,15 @@
   margin-bottom: 3px;
 }
 .remark {
-  color: #95a5a6;
+  color: var(--text);
+  opacity: 0.6;
   font-size: 0.8rem;
   font-style: italic;
 }
 
 .request-actions {
-  padding: 15px;
-  background-color: #f8f9fa;
+  padding: 15px; /* Already correct */
+  background-color: var(--grid);
   display: flex;
   gap: 10px;
   justify-content: flex-end;
@@ -139,18 +144,18 @@
   font-size: 0.9rem;
 }
 .btn-approve {
-  background-color: #2ecc71;
+  background-color: var(--success);
   color: white;
 }
 .btn-reject {
-  background-color: #e74c3c;
+  background-color: var(--danger);
   color: white;
 }
 .btn-approve:hover {
-  background-color: #27ae60;
+  filter: brightness(1.1);
 }
 .btn-reject:hover {
-  background-color: #c0392b;
+  filter: brightness(1.1);
 }
 
 /* Search & Filter Styles */
@@ -164,7 +169,7 @@
 .search-box,
 .filter-box {
   position: relative;
-  background: white;
+  background: var(--card-bg);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   display: flex;
@@ -185,22 +190,24 @@
 .filter-icon {
   position: absolute;
   left: 12px;
-  color: #95a5a6;
+  color: var(--text);
+  opacity: 0.6;
 }
 
 .search-box input,
 .filter-box select {
   width: 100%;
   padding: 12px 12px 12px 40px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 0.95rem;
   outline: none;
   background: transparent;
   height: 45px;
+  color: var(--text-primary);
 }
 
 .search-box input:focus,
 .filter-box select:focus {
-  border-color: #3498db;
+  border-color: var(--secondary);
 }

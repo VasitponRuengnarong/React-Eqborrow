@@ -18,6 +18,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/all-devices" element={<AllDevices />} />
           <Route path="/borrow-history" element={<BorrowHistory />} />
+
         </Routes>
       </div>
     </Router>

@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   Search,
   Edit,
@@ -12,6 +18,9 @@ import {
   Filter,
   Loader,
   Layers,
+  Box,
+  CheckSquare,
+  ArrowRightLeft,
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
@@ -185,6 +194,14 @@ const ProductManagement = () => {
     setSortConfig({ key, direction });
   };
   // --- 2. Main Product Actions (Edit/Delete) ---
+  const handleAddClick = () => {
+    setProductModal({
+      isOpen: true,
+      mode: "add",
+      data: getInitialProductState(), // Use initial state for new product
+    });
+  };
+
   const handleEditClick = (product) => {
     setProductModal({
       isOpen: true,
@@ -549,6 +566,28 @@ const ProductManagement = () => {
   };
 
   // --- 4. Data Processing for Display ---
+  const stats = React.useMemo(() => {
+    const inStock = products.filter((p) => p.StatusNameDV === "ว่าง").length;
+    const borrowed = products.filter((p) => p.StatusNameDV === "ถูกยืม").length;
+    return {
+      total: products.length,
+      inStock,
+      borrowed,
+      categories: categories.length,
+    };
+  }, [products, categories]);
+
+  const SummaryCard = ({ title, value, icon: Icon, color }) => (
+    <div className={`stat-card`}>
+      <div className={`stat-icon-wrapper ${color}`}>
+        <Icon size={24} />
+      </div>
+      <div className="stat-content">
+        <h3>{title}</h3>
+        <p className="stat-value">{value}</p>
+      </div>
+    </div>
+  );
 
   // Create a summary for the "stock" tab by grouping products
   const stockSummary = React.useMemo(() => {
@@ -698,28 +737,68 @@ const ProductManagement = () => {
 
   // --- 6. Main Render ---
   return (
-    <div className="member-management">
-      {" "}
-      {/* ใช้ Class เดิมเพื่อให้ CSS ทำงานได้เลย */}
+    <div className="management-page product-management-container">
       <div className="page-header">
-        <h2>จัดการข้อมูลสินค้า</h2>
-        <p>จัดการรายการสินค้า, หมวดหมู่, และสถานะ , จำนวนคงเหลือ</p>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">จัดการสินค้า</h2>
+          <p className="text-gray-500 mt-1">
+            ภาพรวมและจัดการรายการสินค้า, หมวดหมู่, และสถานะในระบบ
+          </p>
+        </div>
       </div>
-      <div className="tabs-container" role="tablist">
-        {["products", "categories", "statuses", "stock"].map((tab) => (
-          <button
-            key={tab}
-            role="tab"
-            aria-selected={activeTab === tab}
-            className={`tab-btn ${activeTab === tab ? "active" : ""}`}
-            onClick={() => setActiveTab(tab)}
-          >
-            {tab === "products" && "รายการสินค้า"}
-            {tab === "categories" && "หมวดหมู่สินค้า"}
-            {tab === "statuses" && "สถานะสินค้า"}
-            {tab === "stock" && "จำนวนคงเหลือ"}
-          </button>
-        ))}
+
+      <div className="dashboard-stats-grid">
+        <SummaryCard
+          title="สินค้าทั้งหมด"
+          value={stats.total}
+          icon={Box}
+          color="bg-blue-light"
+        />
+        <SummaryCard
+          title="พร้อมใช้งาน"
+          value={stats.inStock}
+          icon={CheckSquare}
+          color="bg-green-light"
+        />
+        <SummaryCard
+          title="ถูกยืม"
+          value={stats.borrowed}
+          icon={ArrowRightLeft}
+          color="bg-orange-light"
+        />
+        <SummaryCard
+          title="หมวดหมู่"
+          value={stats.categories}
+          icon={Layers}
+          color="bg-purple-light"
+        />
+      </div>
+
+      <div className="tabs-container">
+        <button
+          className={`tab-btn ${activeTab === "products" ? "active" : ""}`}
+          onClick={() => setActiveTab("products")}
+        >
+          รายการสินค้า
+        </button>
+        <button
+          className={`tab-btn ${activeTab === "stock" ? "active" : ""}`}
+          onClick={() => setActiveTab("stock")}
+        >
+          จำนวนคงเหลือ
+        </button>
+        <button
+          className={`tab-btn ${activeTab === "categories" ? "active" : ""}`}
+          onClick={() => setActiveTab("categories")}
+        >
+          หมวดหมู่
+        </button>
+        <button
+          className={`tab-btn ${activeTab === "statuses" ? "active" : ""}`}
+          onClick={() => setActiveTab("statuses")}
+        >
+          สถานะ
+        </button>
       </div>
       {(activeTab === "products" || activeTab === "stock") && (
         <>
@@ -1072,12 +1151,7 @@ const ProductManagement = () => {
                 >
                   <FileUp size={18} /> Import Excel
                 </button>
-                <button
-                  className="btn btn-primary"
-                  onClick={() =>
-                    setProductModal({ isOpen: true, mode: "add", data: null })
-                  }
-                >
+                <button className="btn btn-primary" onClick={handleAddClick}>
                   <Plus size={18} /> เพิ่มสินค้า
                 </button>
               </div>
@@ -1085,7 +1159,7 @@ const ProductManagement = () => {
           </div>
 
           {activeTab === "products" && (
-            <div className="table-container">
+            <div className="table-container" style={{ marginTop: "1.5rem" }}>
               <table className="member-table">
                 <thead>
                   <tr>
@@ -1158,7 +1232,7 @@ const ProductManagement = () => {
                         <td>
                           <div className="user-cell">
                             <img
-                              src={p.Image || defaultProductImage}
+                              src={p.Image || defaultProductImage} // Use local default image
                               alt={p.DeviceName}
                               className="avatar-circle product-zoom"
                             />
@@ -1179,7 +1253,7 @@ const ProductManagement = () => {
                         </td>
                         <td>
                           <div className="action-buttons">
-                            <button
+                            <button // Use the helper function here
                               className="btn-icon edit"
                               onClick={() => handleEditClick(p)}
                               disabled={!isAdminUser}
@@ -1206,7 +1280,10 @@ const ProductManagement = () => {
           )}
 
           {activeTab === "stock" && (
-            <div className="product-grid-container">
+            <div
+              className="product-grid-container"
+              style={{ marginTop: "1.5rem" }}
+            >
               {loading ? (
                 <div
                   style={{
@@ -1263,7 +1340,7 @@ const ProductManagement = () => {
           )}
 
           {/* Pagination Controls */}
-          {!loading && filteredProducts.length > 0 && (
+          {!loading && sortedItems.length > itemsPerPage && (
             <div
               className="pagination-controls"
               style={{
@@ -1274,7 +1351,7 @@ const ProductManagement = () => {
                 marginTop: "1rem",
               }}
             >
-              <button
+              <button // Use the helper function here
                 className="btn btn-secondary"
                 onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
@@ -1290,7 +1367,7 @@ const ProductManagement = () => {
                 หน้า <strong>{currentPage}</strong> จาก{" "}
                 <strong>{totalPages}</strong>
               </span>
-              <button
+              <button // Use the helper function here
                 className="btn btn-secondary"
                 onClick={() =>
                   setCurrentPage((prev) => Math.min(prev + 1, totalPages))

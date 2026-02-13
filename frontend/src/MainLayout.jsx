@@ -7,7 +7,6 @@ import "./App.css";
 const MainLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState("home");
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768); // Detect mobile initially
 
   useEffect(() => {
@@ -20,11 +19,6 @@ const MainLayout = () => {
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
-  };
-
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    // คุณอาจจะเพิ่ม logic การเปลี่ยน theme จริงๆ ที่นี่
   };
 
   return (
@@ -40,21 +34,17 @@ const MainLayout = () => {
 
       {/* Main Content Area */}
       <div
+        className="main-content"
         style={{
           flex: 1,
           display: "flex",
-          marginLeft: isMobile ? 0 : isSidebarOpen ? "280px" : "80px", // Adjust margin based on sidebar state
           flexDirection: "column",
           position: "relative",
           overflowY: "auto", // Allow main content to scroll
-          transition: "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)", // Smooth transition for content shift
+          height: "100vh", // Ensure full height scrolling context
         }}
       >
-        <Header
-          toggleSidebar={toggleSidebar}
-          toggleDarkMode={toggleDarkMode}
-          isDarkMode={isDarkMode}
-        />
+        <Header toggleSidebar={toggleSidebar} />
 
         <main style={{ flex: 1 }}>
           <Outlet />

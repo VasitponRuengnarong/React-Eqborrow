@@ -1,3 +1,4 @@
+/* --- Page Container --- */
 .login-page {
   width: 100%;
   min-height: 100vh;
@@ -5,114 +6,98 @@
   align-items: center;
   justify-content: center;
   font-family: "Poppins", sans-serif;
-  background: transparent;
+  background-color: #f3f4f6; /* Consistent with Register */
+  /* Subtle background pattern */
+  background-image: radial-gradient(#e0e0e0 1px, transparent 1px);
+  background-size: 16px 16px;
   padding: 20px;
+  position: relative;
+  overflow: hidden; /* To contain Aurora */
 }
 
+/* Aurora Backdrop */
+.aurora-bg-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* --- Main Card Container (Split Layout) --- */
 .login-container {
   display: flex;
   width: 100%;
-  max-width: 1000px;
-  min-height: 600px;
-  height: auto;
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  max-width: 900px;
+  min-height: 550px; /* Slightly shorter than Register since less fields */
+  background: #ffffff;
   border-radius: 24px;
+  border: 1px solid #e0e0e0;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
-  overflow: visible;
   animation: fadeIn 0.8s ease-out forwards;
+  flex-direction: row; /* Split */
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+  z-index: 1; /* Above Aurora */
 }
 
-/* Left Side - Brand */
+/* --- Left Side: Brand Section --- */
 .login-brand {
-  flex: 0 0 35%;
+  flex: 0 0 40%; /* 40% Width like Register */
   background: linear-gradient(
     135deg,
-    rgba(255, 128, 0, 0.9),
-    rgba(255, 100, 0, 0.95)
+    #ff8000 0%, /* var(--primary) */
+    #ea580c 100% /* var(--primary-dark) */
   );
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 60px 40px;
+  padding: 40px;
   color: white;
   position: relative;
-  overflow: hidden;
-  border-top-left-radius: 24px;
-  border-bottom-left-radius: 24px;
-}
-
-/* Decorative circle for brand background */
-.login-brand::before {
-  content: "";
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 0.1) 0%,
-    transparent 60%
-  );
-  animation: rotate 30s linear infinite;
-  display: block;
 }
 
 .brand-content {
   text-align: center;
   z-index: 1;
-  animation: float 6s ease-in-out infinite;
 }
 
 .thai-pbs-logo {
   width: auto;
   height: auto;
   background: transparent;
-  border-radius: 0;
-  backdrop-filter: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 30px;
-  box-shadow: none;
+  margin: 0 auto 20px;
   animation: pulse 3s infinite ease-in-out;
 }
 
-.thai-pbs-logo .logo-text {
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 1px;
-}
-
 .brand-title {
-  font-size: 36px;
+  font-size: 32px;
   font-weight: 700;
-  margin: 0 0 10px 0;
-  line-height: 1.2;
+  margin: 10px 0;
+  color: white !important;
 }
 
 .brand-subtitle {
   font-size: 14px;
   opacity: 0.9;
-  margin: 0;
   letter-spacing: 2px;
-  font-weight: 500;
   text-transform: uppercase;
+  font-weight: 500;
 }
 
-/* Right Side - Login Form */
+/* --- Right Side: Form Section --- */
 .login-form-section {
-  flex: 1;
-  padding: 40px 60px;
+  flex: 1; /* Fills remaining space */
+  padding: 50px 60px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   background: transparent;
-  border-top-right-radius: 24px;
-  border-bottom-right-radius: 24px;
 }
 
 .login-header {
@@ -121,23 +106,24 @@
 }
 
 .login-header h2 {
-  font-size: 30px;
+  font-size: 28px;
   font-weight: 700;
-  color: #1a202c;
+  color: #1f2937;
   margin: 0 0 10px 0;
 }
 
 .login-header p {
-  font-size: 15px;
-  color: #718096;
+  font-size: 14px;
+  color: #6b7280;
+  opacity: 0.8;
   margin: 0;
 }
 
-/* Login Form */
+/* --- Form Styles --- */
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 0;
   margin-bottom: 20px;
 }
 
@@ -152,12 +138,13 @@
   display: block;
   font-size: 14px;
   font-weight: 500;
-  color: #4a5568;
+  color: #1f2937;
   margin-bottom: 8px;
   transition: color 0.2s;
 }
 
-.input-wrapper {
+.input-wrapper,
+.password-input-wrapper {
   position: relative;
   width: 100%;
 }
@@ -167,85 +154,65 @@
   top: 50%;
   transform: translateY(-50%);
   left: 16px;
-  color: #a0aec0;
+  color: #888888;
+  opacity: 0.6;
   pointer-events: none;
   transition: color 0.2s;
   z-index: 2;
 }
 
-.input-wrapper input {
+.input-wrapper input,
+.password-input-wrapper input {
   width: 100%;
-  padding-left: 50px; /* Add padding to prevent text from overlapping the icon */
+  padding: 12px 16px 12px 48px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 14px;
+  background: #ffffff;
+  color: #1f2937;
+  outline: none;
+  transition: all 0.2s;
+  box-sizing: border-box;
 }
 
-/* Focus within state for label and icon */
 .form-group:focus-within .input-label,
 .form-group:focus-within .input-icon {
-  color: #ff8000;
+  color: #ff8000; /* var(--primary) */
 }
 
-/* Error State */
-.form-group.has-error .input-icon {
-  color: #fc8181;
+.input-wrapper input:focus,
+.password-input-wrapper input:focus {
+  border-color: #ff8000;
+  box-shadow: 0 0 0 3px rgba(255, 128, 0, 0.1);
 }
 
-.error-message {
-  color: #ff3333;
-  font-size: 11px;
-  margin-top: 5px;
-  text-align: left;
-  animation: fadeIn 0.3s ease;
-}
-
-.error-banner {
-  background-color: #ffebee;
-  color: #c62828;
-  padding: 10px;
-  border-radius: 4px;
-  font-size: 13px;
-  text-align: center;
-  margin-bottom: 15px;
-  animation: fadeIn 0.3s ease;
-}
-
-/* Password Input Wrapper */
-.password-input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.password-input-wrapper input {
-  flex: 1;
-  padding-right: 40px;
-}
-
+/* Password Toggle */
 .password-toggle {
   position: absolute;
-  right: 16px; /* Adjust position to be inside the input area */
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 16px;
-  padding: 4px 8px;
+  color: #333333;
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity 0.2s ease;
-  color: #777;
+  padding: 4px;
 }
-
 .password-toggle:hover {
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
-/* Form Options */
+/* Options Row: Remember Me & Forgot Password */
 .form-options {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 10px;
-  margin-bottom: 15px;
+  margin-bottom: 24px;
   font-size: 13px;
 }
 
@@ -255,87 +222,64 @@
   gap: 8px;
   cursor: pointer;
   color: #666;
-  font-weight: 500;
   user-select: none;
 }
-
-.forgot-password-link {
-  background: transparent;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: #ff8000;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: "Poppins", sans-serif;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-/* Animated Underline Effect */
-.forgot-password-link::after {
-  content: "";
-  position: absolute;
-  width: 100%;
-  height: 1.5px;
-  bottom: -2px;
-  left: 0;
-  background-color: #ff8000;
-  transform: scaleX(0);
-  transform-origin: bottom right;
-  transition: transform 0.3s ease-out;
-}
-
-.forgot-password-link:hover {
-  color: #e65100;
-}
-
-.forgot-password-link:hover::after {
-  transform: scaleX(1);
-  transform-origin: bottom left;
-  background-color: #e65100;
-}
-
-.remember-me input[type="checkbox"] {
+.remember-me input {
+  accent-color: #ff8000;
   width: 16px;
   height: 16px;
   cursor: pointer;
-  accent-color: #ff8000;
+}
+
+.forgot-password-link {
+  background: none;
+  border: none;
+  color: #ff8000;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+}
+.forgot-password-link:hover {
+  text-decoration: underline;
 }
 
 /* Login Button */
 .login-btn {
-  width: 100%; /* ขยายเต็มความกว้าง */
-  background-color: #ff8c00; /* สีส้ม */
+  width: 100%;
+  padding: 12px;
+  background-color: #ff8000; /* var(--primary) */
   color: white;
   border: none;
-  padding: 12px;
-  border-radius: 8px; /* ความมนของขอบ */
+  border-radius: 8px;
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
-  box-shadow: 0 4px 6px rgba(255, 140, 0, 0.2); /* เงาฟุ้งๆ สีส้ม */
-  transition: background 0.3s;
+  transition: background-color 0.3s, transform 0.1s;
+  box-shadow: 0 4px 12px rgba(255, 128, 0, 0.25);
 }
 
 .login-btn:hover {
-  background-color: #e65100;
+  background-color: #ea580c; /* var(--primary-dark) */
+  transform: translateY(-1px);
+}
+.login-btn:active {
+  transform: translateY(0);
 }
 
 /* Social Login */
 .social-login-section {
-  margin-top: 25px;
+  margin-top: 24px;
   text-align: center;
 }
 
 .divider {
   display: flex;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   color: #aaa;
   font-size: 12px;
 }
-
 .divider::before,
 .divider::after {
   content: "";
@@ -343,15 +287,13 @@
   height: 1px;
   background-color: #e0e0e0;
 }
-
 .divider span {
   padding: 0 10px;
 }
 
 .social-buttons {
   display: flex;
-  gap: 15px;
-  justify-content: center;
+  gap: 12px;
 }
 
 .social-btn {
@@ -365,151 +307,84 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-family: "Poppins", sans-serif;
+  font-family: inherit;
 }
-
 .social-btn:hover {
   background-color: #f9f9f9;
   border-color: #ccc;
-  transform: translateY(-1px);
 }
-
 .social-btn.google:hover {
   color: #db4437;
   border-color: #db4437;
-  background-color: #fff0f0;
+  background: #fff0f0;
 }
 .social-btn.facebook:hover {
   color: #4267b2;
   border-color: #4267b2;
-  background-color: #f0f6ff;
+  background: #f0f6ff;
 }
 
-/* Login Footer */
+/* Footer */
 .login-footer {
   text-align: center;
   font-size: 13px;
-  color: #888;
+  color: #666666;
+  margin-top: 24px;
 }
-
 .login-footer a {
   color: #ff8000;
   text-decoration: none;
   font-weight: 600;
-  transition: color 0.3s ease;
 }
-
 .login-footer a:hover {
-  color: #e65100;
   text-decoration: underline;
 }
 
-/* Fade In Animation */
+/* Error States */
+.has-error input {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+.has-error .input-icon {
+  color: #ef4444;
+}
+.error-banner {
+  background-color: #fef2f2;
+  color: #dc2626;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: center;
+  margin-bottom: 20px;
+  border: 1px solid #fecaca;
+}
+
+/* Animations */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
-/* Fade In Up Animation */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Rotate Animation */
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Pulse Animation */
 @keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-/* Float Animation */
-@keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-  100% {
-    transform: translateY(0px);
-  }
-}
-
-/* Background Gradient Animation */
-@keyframes gradientBG {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
   .login-container {
     flex-direction: column;
+    max-width: 450px;
     height: auto;
-    max-width: 100%;
+    min-height: auto;
+    border-radius: 20px;
   }
-
+  
   .login-brand {
-    padding: 40px 20px;
-    min-height: 250px;
+    padding: 30px;
+    flex: 0 0 auto; /* Natural height */
   }
 
   .login-form-section {
-    padding: 30px 20px;
-  }
-
-  .brand-title {
-    font-size: 32px;
-  }
-
-  .login-header h2 {
-    font-size: 24px;
-  }
-
-  .login-container {
-    border-radius: 24px;
-  }
-
-  .login-brand {
-    border-radius: 24px 24px 0 0;
-  }
-  .login-form-section {
-    border-radius: 0 0 24px 24px;
+    padding: 30px;
   }
 }

@@ -1,4 +1,10 @@
-/* Specific styles for Product Management */
+.product-management-container {
+  font-family: "Kanit", sans-serif;
+}
+
+/* Re-using styles from Management.css, but keeping specific overrides here */
+
+/* Table Image */
 .product-table-image {
   width: 60px;
   height: 60px;
@@ -6,14 +12,16 @@
   border-radius: 8px;
   background-color: #f3f4f6;
 }
-
 .product-form .form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1.5rem;
 }
-
-/* Fix layout overlapping issues and ensure proper stacking */
+.product-form .form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
 .product-form .form-group {
   position: relative;
   display: flex;
@@ -21,13 +29,12 @@
   margin-bottom: 0; /* Let grid gap handle spacing */
 }
 
+/* Form Styles */
 .product-form .form-group label {
-  position: static; /* Reset absolute positioning from global styles */
   margin-bottom: 0.5rem;
-  color: #374151;
+  font-weight: 500;
+  color: var(--text-primary);
   font-size: 0.875rem;
-  pointer-events: auto;
-  transform: none;
 }
 
 .product-form .form-group input,
@@ -37,12 +44,11 @@
   border: 1px solid #d1d5db;
   border-radius: 8px;
   background-color: #fff;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   height: 45px; /* Fixed height for consistency */
   box-shadow: none;
   margin-top: 0;
 }
-
 .form-group-full {
   grid-column: 1 / -1;
 }
@@ -53,20 +59,6 @@
   gap: 1rem;
 }
 
-.image-preview {
-  width: 100%;
-  min-height: 150px;
-  border: 2px dashed #d1d5db;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background-color: #f9fafb;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-}
 .image-preview-content {
   position: relative;
   width: 100%;
@@ -77,14 +69,28 @@
   flex-direction: column;
   color: #888;
 }
+.image-preview {
+  width: 100%;
+  min-height: 150px;
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-color: var(--bg-body);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
 .image-preview-content span {
   margin-top: 8px;
   font-size: 0.9rem;
 }
 
 .image-preview.dragging {
-  border-color: #ff8000;
-  background-color: #fff8f0;
+  border-color: var(--primary);
+  background-color: rgba(249, 115, 22, 0.05);
 }
 
 .image-preview img {
@@ -104,7 +110,7 @@
 
 .btn-remove-image {
   position: absolute;
-  top: 8px;
+  top: 8px; /* Already correct */
   right: 8px;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid #e5e7eb;
@@ -123,7 +129,6 @@
   border-color: #fca5a5;
 }
 
-/* Image Upload Progress Bar */
 .progress-overlay {
   position: absolute;
   top: 0;
@@ -148,7 +153,7 @@
 
 .progress-bar-fill {
   height: 100%;
-  background: #ff8000;
+  background: var(--primary); /* Already correct */
   transition: width 0.2s ease;
 }
 
@@ -161,17 +166,6 @@
 
 input[type="file"] {
   display: none;
-}
-
-.loading-container,
-.error-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  font-size: 1.2rem;
-  color: var(--text-secondary);
-  transition: color 0.3s ease;
 }
 
 .add-row {
@@ -194,7 +188,7 @@ input[type="file"] {
   align-items: center;
   gap: 0.25rem;
   padding: 0.8rem 1rem;
-  background-color: #ff8000;
+  background-color: var(--primary); /* Already correct */
   color: white;
   border: none;
   border-radius: 6px;
@@ -204,7 +198,7 @@ input[type="file"] {
 }
 
 .btn-add-mini:hover {
-  background-color: #ff8000;
+  background-color: var(--primary-dark); /* Already correct */
 }
 
 .btn-add-mini:disabled {
@@ -212,7 +206,6 @@ input[type="file"] {
   cursor: not-allowed;
 }
 
-/* Suggestions Dropdown */
 .suggestions-dropdown {
   position: absolute;
   top: 100%;
@@ -249,7 +242,7 @@ input[type="file"] {
   border-bottom: none;
 }
 .suggestion-item:hover {
-  background-color: #fff7ed;
+  background-color: rgba(249, 115, 22, 0.05);
   transition: background-color 0.3s ease;
 }
 
@@ -295,13 +288,7 @@ input[type="file"] {
 
 .spinner-icon {
   animation: spin 1s linear infinite;
-  color: #ff8000;
-}
-
-/* Table Column Styles */
-.th-center,
-.td-center {
-  text-align: center;
+  color: var(--primary);
 }
 
 .action-center {
@@ -315,12 +302,6 @@ input[type="file"] {
     gap: 1rem;
   }
 }
-.user-name {
-  font-weight: 500;
-  color: var(--text-primary);
-  transition: color 0.3s ease;
-}
-
 /* Crop Modal Styles */
 .crop-container {
   position: relative;
@@ -338,7 +319,6 @@ input[type="file"] {
   gap: 0.5rem;
 }
 
-/* Chip Filter Styles */
 .filter-wrapper {
   position: relative;
 }
@@ -346,7 +326,7 @@ input[type="file"] {
 .chip-popup-container {
   position: absolute;
   top: calc(100% + 10px);
-  left: 0;
+  left: 0; /* Already correct */
   background-color: var(--bg-card, #ffffff);
   border: 1px solid var(--border-color, #e5e7eb);
   border-radius: 16px;
@@ -370,7 +350,7 @@ input[type="file"] {
 .chip {
   padding: 6px 12px;
   border-radius: 20px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   background-color: var(--bg-body);
   color: var(--text-secondary);
   font-size: 13px;
@@ -387,13 +367,13 @@ input[type="file"] {
 }
 
 .chip:hover {
-  background-color: var(--hover-bg);
+  background-color: var(--border-color);
 }
 
 .chip.active {
-  background-color: #ff8000;
+  background-color: var(--primary); /* Already correct */
   color: white;
-  border-color: #ff8000;
+  border-color: var(--primary); /* Already correct */
 }
 
 @keyframes popupFadeIn {

@@ -1,66 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { User, Lock } from "lucide-react";
+import { User, Lock, Eye, EyeOff } from "lucide-react";
 import "./Login.css";
 import Aurora from "./Aurora";
 import Swal from "sweetalert2";
-import { Eye, EyeOff } from "lucide-react";
-const LoginPage = () => {
-  const navigate = useNavigate();
+
+const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [ripple, setRipple] = useState(null);
-  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
-  // ตรวจสอบว่ามี Token อยู่แล้วหรือไม่ (ถ้ามีให้ไปหน้า Dashboard เลย)
-  useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (token) {
-      navigate("/dashboard");
-    }
-  }, [navigate]);
-
-  const triggerRipple = (e) => {
-    const button = e.currentTarget;
-    const rect = button.getBoundingClientRect();
-    const diameter = Math.max(button.clientWidth, button.clientHeight);
-    const radius = diameter / 2;
-
-    setRipple({
-      x: e.clientX - rect.left - radius,
-      y: e.clientY - rect.top - radius,
-      size: diameter,
-    });
-
-    setTimeout(() => setRipple(null), 600);
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-    if (!username.trim()) {
-      newErrors.username = "กรุณากรอกชื่อผู้ใช้";
-    } else if (username.length < 4) {
-      newErrors.username = "ชื่อผู้ใช้ต้องมีอย่างน้อย 4 ตัวอักษร";
-    }
-
-    if (!password) {
-      newErrors.password = "กรุณากรอกรหัสผ่าน";
-    } else if (password.length < 6) {
-      newErrors.password = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    setError("");
+    setIsLoading(true);
 
-    setLoading(true);
     try {
       const response = await fetch("/api/login", {
         method: "POST",
@@ -68,111 +25,104 @@ const LoginPage = () => {
         body: JSON.stringify({ username, password }),
       });
 
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ (Server Error)");
-      }
-
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || "เข้าสู่ระบบไม่สำเร็จ");
+      if (response.ok) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("accessToken", data.accessToken);
+        window.dispatchEvent(new Event("user-updated"));
+        navigate("/dashboard");
+      } else {
+        setError(data.message || "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
+        Swal.fire({
+          icon: "error",
+          title: "เข้าสู่ระบบไม่สำเร็จ",
+          text: data.message || "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
+          timer: 1500,
+          showConfirmButton: false,
+        });
       }
-
-      localStorage.setItem("user", JSON.stringify(data.user));
-      if (data.token || data.accessToken) {
-        localStorage.setItem("accessToken", data.token || data.accessToken);
-      }
-      setLoading(false);
-      navigate("/dashboard");
-    } catch (error) {
-      setLoading(false);
-      Swal.fire("เกิดข้อผิดพลาด!", error.message, "error");
+    } catch (err) {
+      setError("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+      Swal.fire({
+        icon: "error",
+        title: "เกิดข้อผิดพลาด",
+        text: "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="login-page" style={{ position: "relative" }}>
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          zIndex: 0,
-        }}
-      >
+    <div className="login-page">
+      <div className="aurora-bg-layer">
         <Aurora
           colorStops={["#ff8000", "#ff8000", "#ff8000"]}
           blend={0.5}
           amplitude={1.0}
-          speed={1}
+          speed={0.5}
         />
       </div>
-      <div
-        className="login-container"
-        style={{ position: "relative", zIndex: 1 }}
-      >
-        {/* Left Side - Brand */}
+
+      <div className="login-container">
+        {/* Left Side - Brand (Matches Register Page Theme) */}
         <div className="login-brand">
           <div className="brand-content">
             <div className="thai-pbs-logo">
               <img
                 src="/images/logo.png"
-                alt="Eqborrow Logo" // More specific alt text
-                style={{ height: "200px", width: "auto" }} // Consistent height, auto width
+                alt="Eqborrow Logo"
+                style={{ height: "200px", width: "auto" }}
               />
             </div>
             <h1 className="brand-title">Eqborrow</h1>
-            <p className="brand-subtitle">Equipment Borrowing System</p>{" "}
-            {/* Changed subtitle */}
+            <p className="brand-subtitle">Login</p>
           </div>
         </div>
 
         {/* Right Side - Login Form */}
         <div className="login-form-section">
-          {/* Title */}
           <div className="login-header">
-            <h2>เข้าสู่ระบบ</h2>
-            <p>ยินดีต้อนรับกลับเข้าสู่ระบบ Eqborrow</p>
+            <h2>Welcome Back</h2>
+            <p>Please enter your details to sign in.</p>
           </div>
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="login-form" noValidate>
-            {/* Username Field */}
-            <div className={`form-group ${errors.username ? "has-error" : ""}`}>
+          <form onSubmit={handleLogin} className="login-form">
+            {error && <div className="error-banner">{error}</div>}
+
+            <div className={`form-group ${error ? "has-error" : ""}`}>
               <label htmlFor="username" className="input-label">
-                ชื่อผู้ใช้
+                Username
               </label>
               <div className="input-wrapper">
                 <User className="input-icon" size={20} />
                 <input
                   type="text"
                   id="username"
-                  placeholder="กรอกชื่อผู้ใช้"
+                  placeholder="Enter your username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  disabled={isLoading}
+                  required
                 />
               </div>
-              {errors.username && (
-                <span className="error-message">{errors.username}</span>
-              )}
             </div>
 
-            {/* Password Field */}
-            <div className={`form-group ${errors.password ? "has-error" : ""}`}>
+            <div className={`form-group ${error ? "has-error" : ""}`}>
               <label htmlFor="password" className="input-label">
-                รหัสผ่าน
+                Password
               </label>
-              <div className="input-wrapper password-input-wrapper">
+              <div className="password-input-wrapper">
                 <Lock className="input-icon" size={20} />
                 <input
                   type={showPassword ? "text" : "password"}
                   id="password"
-                  placeholder="กรอกรหัสผ่าน"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  required
                 />
                 <button
                   type="button"
@@ -183,56 +133,30 @@ const LoginPage = () => {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              {errors.password && (
-                <span className="error-message">{errors.password}</span>
-              )}
             </div>
 
-            {/* Remember Me */}
             <div className="form-options">
               <label className="remember-me">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                />
-                <span>จดจำข้อมูล</span>
+                <input type="checkbox" />
+                <span>Remember me</span>
               </label>
-              <button
-                type="button"
-                className="forgot-password-link"
-                onClick={() => navigate("/forgot-password")}
-              >
-                ลืมรหัสผ่าน?
+              <button type="button" className="forgot-password-link">
+                <Link to="/forgot-password">ลืมรหัสผ่าน?</Link>
               </button>
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
-              className="login-btn"
-              disabled={loading}
-              onClick={triggerRipple}
+              className="login-btn" // Reusing button class from Register.css style if applicable, or define in Login.css
+              disabled={isLoading}
             >
-              {loading ? <div className="spinner"></div> : "เข้าสู่ระบบ"}
-              {ripple && (
-                <span
-                  className="ripple"
-                  style={{
-                    left: ripple.x,
-                    top: ripple.y,
-                    width: ripple.size,
-                    height: ripple.size,
-                  }}
-                />
-              )}
+              {isLoading ? <div className="spinner"></div> : "Log In"}
             </button>
           </form>
 
-          {/* Sign Up Link */}
           <div className="login-footer">
             <p>
-              ยังไม่มีบัญชี? <Link to="/register">สมัครสมาชิก</Link>
+              Don't have an account? <Link to="/register">Create an account</Link>
             </p>
           </div>
         </div>
@@ -241,4 +165,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default Login;

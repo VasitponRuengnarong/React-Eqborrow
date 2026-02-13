@@ -11,6 +11,7 @@ import {
   Search,
 } from "lucide-react";
 import "./BorrowReturn.css";
+import Swal from "sweetalert2";
 import { apiFetch } from "./api";
 
 const BorrowReturn = () => {
@@ -150,11 +151,11 @@ const BorrowReturn = () => {
       const requestQty = parseInt(newItem.quantity || 0);
 
       if (inCartQty + requestQty > totalAvailable) {
-        alert(`จำนวนอุปกรณ์ไม่เพียงพอ (คงเหลือ: ${totalAvailable})`);
+        Swal.fire("แจ้งเตือน", `จำนวนอุปกรณ์ไม่เพียงพอ (คงเหลือ: ${totalAvailable})`, "warning");
         return;
       }
     } else {
-      alert("ไม่พบข้อมูลอุปกรณ์นี้ในระบบ กรุณาเลือกจากรายการแนะนำ");
+      Swal.fire("แจ้งเตือน", "ไม่พบข้อมูลอุปกรณ์นี้ในระบบ กรุณาเลือกจากรายการแนะนำ", "warning");
       return;
     }
 
@@ -175,12 +176,12 @@ const BorrowReturn = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (formData.items.length === 0) {
-      alert("กรุณาเพิ่มรายการอุปกรณ์อย่างน้อย 1 รายการ");
+      Swal.fire("แจ้งเตือน", "กรุณาเพิ่มรายการอุปกรณ์อย่างน้อย 1 รายการ", "warning");
       return;
     }
 
     if (!user || !user.id) {
-      alert("ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่");
+      Swal.fire("แจ้งเตือน", "ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่", "error");
       return;
     }
 
@@ -199,20 +200,29 @@ const BorrowReturn = () => {
       const data = await response.json();
 
       if (response.ok) {
-        alert("บันทึกข้อมูลการยืมเรียบร้อยแล้ว");
+        Swal.fire("สำเร็จ", "บันทึกข้อมูลการยืมเรียบร้อยแล้ว", "success");
         // รีเซ็ตฟอร์มหลังจากบันทึกสำเร็จ
         setFormData({ ...formData, purpose: "", items: [] });
       } else {
-        alert(data.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+        Swal.fire("เกิดข้อผิดพลาด", data.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล", "error");
       }
     } catch (error) {
       console.error("Error submitting borrow form:", error);
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
+      Swal.fire("เกิดข้อผิดพลาด", "เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์", "error");
     }
   };
 
   const handleReturn = async (borrowId) => {
-    if (!window.confirm("คุณต้องการแจ้งคืนอุปกรณ์รายการนี้ใช่หรือไม่?")) return;
+    const result = await Swal.fire({
+      title: 'ยืนยันการคืน?',
+      text: "คุณต้องการแจ้งคืนอุปกรณ์รายการนี้ใช่หรือไม่?",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'ใช่, คืนอุปกรณ์',
+      cancelButtonText: 'ยกเลิก'
+    });
+
+    if (!result.isConfirmed) return;
 
     try {
       const response = await apiFetch(`/api/borrows/${borrowId}/status`, {
@@ -221,15 +231,15 @@ const BorrowReturn = () => {
       });
 
       if (response.ok) {
-        alert("บันทึกการคืนอุปกรณ์เรียบร้อยแล้ว");
+        Swal.fire("สำเร็จ", "บันทึกการคืนอุปกรณ์เรียบร้อยแล้ว", "success");
         fetchActiveBorrows(); // Refresh list
       } else {
         const data = await response.json();
-        alert(data.message || "เกิดข้อผิดพลาด");
+        Swal.fire("เกิดข้อผิดพลาด", data.message || "เกิดข้อผิดพลาด", "error");
       }
     } catch (error) {
       console.error("Error returning item:", error);
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      Swal.fire("เกิดข้อผิดพลาด", "เกิดข้อผิดพลาดในการเชื่อมต่อ", "error");
     }
   };
 
@@ -296,8 +306,8 @@ const BorrowReturn = () => {
         .suggestion-code { font-size: 0.8rem; color: var(--text-secondary); } /* Add transition for color */
       `}</style>
       <div className="page-header">
-        <h2>ระบบยืม-คืนสินค้า</h2>
-        <p>จัดการการเบิกจ่ายและส่งคืนอุปกรณ์สำนักงาน</p>
+        <h2>ระบบยืม-คืนอุปกรณ์</h2>
+        <p>จัดการคำขอยืมและแจ้งคืนอุปกรณ์</p>
       </div>
 
       {/* Tabs Navigation */}
@@ -351,7 +361,7 @@ const BorrowReturn = () => {
           <form onSubmit={handleSubmit} className="borrow-form">
             {/* Borrowing Details */}
             <div className="info-card">
-              <h3>
+              <h3 className="card-title">
                 <FileText size={20} /> รายละเอียดการยืม
               </h3>
               <div className="form-row">
@@ -388,7 +398,7 @@ const BorrowReturn = () => {
 
             {/* Items List */}
             <div className="info-card">
-              <h3>
+              <h3 className="card-title">
                 <Briefcase size={20} /> รายการอุปกรณ์
               </h3>
 
@@ -419,7 +429,6 @@ const BorrowReturn = () => {
                           onClick={() => handleSelectSuggestion(p)}
                         >
                           <div className="suggestion-name">{p.DeviceName}</div>
-                          <div className="suggestion-code">{p.DeviceCode}</div>
                         </li>
                       ))}
                     </ul>
@@ -496,7 +505,7 @@ const BorrowReturn = () => {
           </form>
         ) : (
           <div className="info-card">
-            <h3>
+            <h3 className="card-title">
               <Repeat size={20} /> รายการที่ต้องคืน (Approved)
             </h3>
             {activeBorrows.length === 0 ? (
@@ -518,7 +527,6 @@ const BorrowReturn = () => {
                       <th>กำหนดคืน</th>
                       <th>วัตถุประสงค์</th>
                       <th>รายการอุปกรณ์</th>
-                      <th>จัดการ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -550,19 +558,6 @@ const BorrowReturn = () => {
                               </li>
                             ))}
                           </ul>
-                        </td>
-                        <td>
-                          <button
-                            className="submit-btn"
-                            style={{
-                              padding: "6px 12px",
-                              fontSize: "0.85rem",
-                              backgroundColor: "#3498db",
-                            }}
-                            onClick={() => handleReturn(borrow.BorrowID)}
-                          >
-                            คืนอุปกรณ์
-                          </button>
                         </td>
                       </tr>
                     ))}

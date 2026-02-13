@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { Menu, Moon, Sun } from "lucide-react";
+import { Menu } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import "./Header.css";
-import { useTheme } from "./ThemeContext";
 const defaultProfileImage = "/logo.png"; // Placeholder for profile image
 
 const Header = ({ toggleSidebar }) => {
-  const { isDarkMode, toggleDarkMode } = useTheme();
   // Lazy initialize user state to prevent flickering
   const [user, setUser] = useState(() => {
     const storedUser = localStorage.getItem("user");
     return storedUser ? JSON.parse(storedUser) : null;
   });
   const [currentTime, setCurrentTime] = useState(new Date());
+    const navigate = useNavigate();
+
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -38,13 +39,10 @@ const Header = ({ toggleSidebar }) => {
 
       <div className="header-time">{currentTime.toLocaleTimeString()}</div>
 
-      <div className="user-profile">
-        {/* ปุ่มเปลี่ยน Dark Mode */}
-        <button onClick={toggleDarkMode} className="theme-toggle-btn">
-          {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
+      <div className="user-profile" onClick={() => navigate("/profile")}>
         <img
           src={user?.profileImage || defaultProfileImage}
+          className="profile-image"
           alt="User Profile"
         />
         <span>{user ? `${user.firstName} ${user.lastName}` : "ผู้ใช้งาน"}</span>

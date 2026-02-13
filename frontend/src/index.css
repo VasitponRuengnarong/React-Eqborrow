@@ -1,13 +1,45 @@
+:root {
+  /* Brand Colors */
+  --primary: #f97316; /* Thai PBS Orange Fresh */
+  --primary-dark: #ea580c;
+
+  /* Backgrounds */
+  --bg-body: #f3f4f6; /* Cool Gray */
+  --bg-card: #ffffff; /* White */
+  --sidebar-bg: #111827; /* Rich Black */
+
+  /* Text */
+  --text-primary: #1f2937; /* Gray-800 */
+  --text-secondary: #6b7280;
+  --text-trinary: #f97316; /* Gray-500 */
+
+  /* Status */
+  --success: #10b981; /* Emerald */
+  --danger: #ef4444; /* Red */
+  --border-color: #e5e7eb;
+
+  /* Status checks */
+  --status-pending: #f97316; /* Amber */
+
+  /* User Name Colors (Context Specific) */
+  --username-sidebar: #ffffff;
+  --username-table: var(--text-primary);
+  --username-card: var(--text-primary);
+  --username-pill: var(--text-primary);
+
+  --background-shadow: rgba(0, 0, 0, 0.1);
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family:
+    source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
