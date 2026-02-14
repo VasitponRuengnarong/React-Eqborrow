@@ -1,0 +1,1 @@
+{"ast":null,"code":"module.exports = require('../dist/compat/predicate/isPlainObject.js').isPlainObject;","map":null,"metadata":{},"sourceType":"script","externalDependencies":[]}

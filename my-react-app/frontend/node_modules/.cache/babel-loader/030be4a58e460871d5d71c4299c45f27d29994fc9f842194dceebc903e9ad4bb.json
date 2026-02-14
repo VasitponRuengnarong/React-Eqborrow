@@ -1,0 +1,1 @@
+{"ast":null,"code":"'use strict';\n\nObject.defineProperty(exports, Symbol.toStringTag, {\n  value: 'Module'\n});\nfunction getSymbols(object) {\n  return Object.getOwnPropertySymbols(object).filter(symbol => Object.prototype.propertyIsEnumerable.call(object, symbol));\n}\nexports.getSymbols = getSymbols;","map":null,"metadata":{},"sourceType":"script","externalDependencies":[]}

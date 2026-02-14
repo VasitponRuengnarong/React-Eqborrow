@@ -1,0 +1,1 @@
+{"ast":null,"code":"'use strict';\n\nObject.defineProperty(exports, Symbol.toStringTag, {\n  value: 'Module'\n});\nconst isMatchWith = require('./isMatchWith.js');\nfunction isMatch(target, source) {\n  return isMatchWith.isMatchWith(target, source, () => undefined);\n}\nexports.isMatch = isMatch;","map":null,"metadata":{},"sourceType":"script","externalDependencies":[]}

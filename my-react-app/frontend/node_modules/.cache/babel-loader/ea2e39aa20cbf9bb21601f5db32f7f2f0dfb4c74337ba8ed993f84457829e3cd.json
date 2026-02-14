@@ -1,0 +1,1 @@
+{"ast":null,"code":"'use strict';\n\nObject.defineProperty(exports, Symbol.toStringTag, {\n  value: 'Module'\n});\nfunction isTypedArray(x) {\n  return ArrayBuffer.isView(x) && !(x instanceof DataView);\n}\nexports.isTypedArray = isTypedArray;","map":null,"metadata":{},"sourceType":"script","externalDependencies":[]}

@@ -1,0 +1,1 @@
+{"ast":null,"code":"import { createContext, useContext } from 'react';\nexport var TooltipPortalContext = /*#__PURE__*/createContext(null);\nexport var useTooltipPortal = () => useContext(TooltipPortalContext);","map":null,"metadata":{},"sourceType":"module","externalDependencies":[]}

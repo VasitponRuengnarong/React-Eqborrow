@@ -1,0 +1,1 @@
+{"ast":null,"code":"module.exports = require('../dist/compat/math/range.js').range;","map":null,"metadata":{},"sourceType":"script","externalDependencies":[]}

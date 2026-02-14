@@ -1,0 +1,1 @@
+{"ast":null,"code":"import { createContext } from 'react';\nexport var BrushUpdateDispatchContext = /*#__PURE__*/createContext(() => {});","map":null,"metadata":{},"sourceType":"module","externalDependencies":[]}

@@ -1,0 +1,1 @@
+{"ast":null,"code":"import EventEmitter from './index.js';\nexport { EventEmitter };\nexport default EventEmitter;","map":null,"metadata":{},"sourceType":"module","externalDependencies":[]}

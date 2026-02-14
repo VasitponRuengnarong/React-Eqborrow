@@ -1,0 +1,1 @@
+{"ast":null,"code":"export function isWellBehavedNumber(n) {\n  return Number.isFinite(n);\n}\nexport function isPositiveNumber(n) {\n  return typeof n === 'number' && n > 0 && Number.isFinite(n);\n}","map":null,"metadata":{},"sourceType":"module","externalDependencies":[]}

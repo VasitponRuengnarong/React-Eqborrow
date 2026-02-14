@@ -1,0 +1,1 @@
+{"ast":null,"code":"export var selectChartWidth = state => state.layout.width;\nexport var selectChartHeight = state => state.layout.height;\nexport var selectContainerScale = state => state.layout.scale;\nexport var selectMargin = state => state.layout.margin;","map":null,"metadata":{},"sourceType":"module","externalDependencies":[]}

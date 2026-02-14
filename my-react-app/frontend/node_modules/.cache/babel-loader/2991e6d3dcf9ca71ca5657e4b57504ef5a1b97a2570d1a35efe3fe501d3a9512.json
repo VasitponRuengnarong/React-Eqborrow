@@ -1,0 +1,1 @@
+{"ast":null,"code":"import { createContext, useContext } from 'react';\nexport var LegendPortalContext = /*#__PURE__*/createContext(null);\nexport var useLegendPortal = () => useContext(LegendPortalContext);","map":null,"metadata":{},"sourceType":"module","externalDependencies":[]}

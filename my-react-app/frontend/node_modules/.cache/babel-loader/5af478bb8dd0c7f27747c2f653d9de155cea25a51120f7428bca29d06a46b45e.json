@@ -1,0 +1,1 @@
+{"ast":null,"code":"'use strict';\n\nObject.defineProperty(exports, Symbol.toStringTag, {\n  value: 'Module'\n});\nfunction isSymbol(value) {\n  return typeof value === 'symbol' || value instanceof Symbol;\n}\nexports.isSymbol = isSymbol;","map":null,"metadata":{},"sourceType":"script","externalDependencies":[]}

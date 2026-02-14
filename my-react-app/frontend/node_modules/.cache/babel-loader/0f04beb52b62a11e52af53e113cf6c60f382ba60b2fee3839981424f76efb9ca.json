@@ -1,0 +1,1 @@
+{"ast":null,"code":"'use strict';\n\nObject.defineProperty(exports, Symbol.toStringTag, {\n  value: 'Module'\n});\nconst get = require('./get.js');\nfunction property(path) {\n  return function (object) {\n    return get.get(object, path);\n  };\n}\nexports.property = property;","map":null,"metadata":{},"sourceType":"script","externalDependencies":[]}

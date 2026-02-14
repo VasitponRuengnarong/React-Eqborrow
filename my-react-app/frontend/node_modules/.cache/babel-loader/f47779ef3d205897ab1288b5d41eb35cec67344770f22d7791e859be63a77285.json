@@ -1,0 +1,1 @@
+{"ast":null,"code":"'use strict';\n\nObject.defineProperty(exports, Symbol.toStringTag, {\n  value: 'Module'\n});\nfunction isUnsafeProperty(key) {\n  return key === '__proto__';\n}\nexports.isUnsafeProperty = isUnsafeProperty;","map":null,"metadata":{},"sourceType":"script","externalDependencies":[]}

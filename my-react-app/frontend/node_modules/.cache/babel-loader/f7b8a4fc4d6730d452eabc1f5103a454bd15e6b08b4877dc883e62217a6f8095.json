@@ -1,0 +1,1 @@
+{"ast":null,"code":"'use strict';\n\nObject.defineProperty(exports, Symbol.toStringTag, {\n  value: 'Module'\n});\nfunction isLength(value) {\n  return Number.isSafeInteger(value) && value >= 0;\n}\nexports.isLength = isLength;","map":null,"metadata":{},"sourceType":"script","externalDependencies":[]}

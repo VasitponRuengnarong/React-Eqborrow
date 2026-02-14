@@ -1,0 +1,1 @@
+{"ast":null,"code":"'use strict';\n\nObject.defineProperty(exports, Symbol.toStringTag, {\n  value: 'Module'\n});\nfunction identity(x) {\n  return x;\n}\nexports.identity = identity;","map":null,"metadata":{},"sourceType":"script","externalDependencies":[]}
