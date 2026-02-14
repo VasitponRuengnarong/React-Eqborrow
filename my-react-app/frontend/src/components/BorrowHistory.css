@@ -1,0 +1,131 @@
+.borrow-history-container {
+  padding: 20px;
+  background-color: #f5f7fa;
+  min-height: 100%;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.history-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  border-left: 4px solid transparent;
+}
+
+.history-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.history-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fff;
+}
+
+.header-left {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.borrow-id {
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.borrow-date {
+  color: #95a5a6;
+  font-size: 0.9rem;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.status-badge.pending {
+  background-color: #fff3cd;
+  color: #f39c12;
+}
+.status-badge.approved {
+  background-color: #d4edda;
+  color: #27ae60;
+}
+.status-badge.rejected {
+  background-color: #f8d7da;
+  color: #c0392b;
+}
+.status-badge.returned {
+  background-color: #d1ecf1;
+  color: #17a2b8;
+}
+
+.history-body {
+  padding: 20px;
+}
+
+.history-info {
+  margin-bottom: 15px;
+  color: #34495e;
+}
+
+.history-info p {
+  margin: 5px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.mini-table th {
+  text-align: left;
+  padding: 8px;
+  background-color: #f9f9f9;
+  color: #7f8c8d;
+  font-weight: 600;
+}
+
+.mini-table td {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+  color: #2c3e50;
+}
+
+.mini-table tr:last-child td {
+  border-bottom: none;
+}
+
+.btn-return {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin-left: 10px;
+  transition: background-color 0.2s;
+}
+
+.btn-return:hover {
+  background-color: #2980b9;
+}

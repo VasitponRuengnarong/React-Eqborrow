@@ -1,0 +1,537 @@
+import React, { useState, useEffect } from "react";
+import {
+  Calendar,
+  Clock,
+  Plus,
+  Trash2,
+  Save,
+  FileText,
+  User,
+  Briefcase,
+  Building,
+  Repeat,
+  CheckCircle,
+} from "lucide-react";
+import "./BorrowReturn.css";
+import { API_BASE_URL } from "../config";
+
+const BorrowReturn = () => {
+  const [user, setUser] = useState(null);
+  const [activeTab, setActiveTab] = useState("borrow"); // 'borrow' or 'return'
+  const [activeBorrows, setActiveBorrows] = useState([]); // List of items to return
+  const [products, setProducts] = useState([]); // List of available products
+  const [masterData, setMasterData] = useState({
+    institutions: [],
+    departments: [],
+  });
+
+  const [formData, setFormData] = useState({
+    borrowDate: new Date().toISOString().split("T")[0],
+    returnDate: "",
+    purpose: "",
+    items: [],
+  });
+
+  const [newItem, setNewItem] = useState({
+    productId: "",
+    name: "",
+    quantity: 1,
+    remark: "",
+  });
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+
+    const fetchMasterData = async () => {
+      try {
+        const [instRes, deptRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/institutions`),
+          fetch(`${API_BASE_URL}/api/departments`),
+        ]);
+        if (instRes.ok && deptRes.ok) {
+          const institutions = await instRes.json();
+          const departments = await deptRes.json();
+          setMasterData({ institutions, departments });
+        }
+      } catch (error) {
+        console.error("Error fetching master data", error);
+      }
+
+      // Fetch products for selection
+      const prodRes = await fetch(`${API_BASE_URL}/api/products`);
+      if (prodRes.ok) {
+        setProducts(await prodRes.json());
+      }
+    };
+    fetchMasterData();
+  }, []);
+
+  // Fetch active borrows when switching to 'return' tab
+  useEffect(() => {
+    if (activeTab === "return" && user?.id) {
+      fetchActiveBorrows();
+    }
+  }, [activeTab, user]);
+
+  const fetchActiveBorrows = async () => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/borrows/user/${user.id}`,
+      );
+      if (response.ok) {
+        const data = await response.json();
+        // Filter only Approved items that can be returned
+        const approved = data.filter((item) => item.Status === "Approved");
+        setActiveBorrows(approved);
+      }
+    } catch (error) {
+      console.error("Error fetching active borrows:", error);
+    }
+  };
+
+  const getDepartmentName = (id) => {
+    const dept = masterData.departments.find((d) => d.DepartmentID === id);
+    return dept ? dept.DepartmentName : "-";
+  };
+
+  const getInstitutionName = (id) => {
+    const inst = masterData.institutions.find((i) => i.InstitutionID === id);
+    return inst ? inst.InstitutionName : "-";
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleItemChange = (e) => {
+    const { name, value } = e.target;
+    if (name === "productId") {
+      const selectedProd = products.find((p) => p.ProductID === Number(value));
+      setNewItem({
+        ...newItem,
+        productId: value,
+        name: selectedProd ? selectedProd.ProductName : "",
+      });
+    } else {
+      setNewItem({ ...newItem, [name]: value });
+    }
+  };
+
+  const addItem = () => {
+    if (!newItem.productId) {
+      alert("กรุณาเลือกอุปกรณ์ที่ต้องการยืม");
+      return;
+    }
+
+    const qty = Number(newItem.quantity);
+    if (isNaN(qty) || qty <= 0) {
+      alert("กรุณาระบุจำนวนที่ต้องการยืมให้ถูกต้อง");
+      return;
+    }
+
+    const selectedProduct = products.find(
+      (p) => p.ProductID === Number(newItem.productId),
+    );
+
+    if (!selectedProduct) return;
+
+    // คำนวณจำนวนสินค้าชนิดนี้ที่ถูกเพิ่มลงในรายการยืมไปแล้ว
+    const existingQuantity = formData.items
+      .filter((item) => Number(item.productId) === Number(newItem.productId))
+      .reduce((sum, item) => sum + Number(item.quantity), 0);
+
+    const totalRequested = existingQuantity + qty;
+
+    if (totalRequested > selectedProduct.Quantity) {
+      alert(
+        `ไม่สามารถเพิ่มรายการได้: จำนวนที่ต้องการ (${totalRequested}) เกินจำนวนคงเหลือในสต็อก (${selectedProduct.Quantity})`,
+      );
+      return;
+    }
+
+    setFormData({
+      ...formData,
+      items: [...formData.items, { ...newItem, id: Date.now(), quantity: qty }],
+    });
+    setNewItem({ productId: "", name: "", quantity: 1, remark: "" });
+  };
+
+  const clearItems = () => {
+    if (
+      formData.items.length > 0 &&
+      window.confirm("ต้องการลบรายการทั้งหมดหรือไม่?")
+    ) {
+      setFormData({ ...formData, items: [] });
+    }
+  };
+
+  const removeItem = (id) => {
+    setFormData({
+      ...formData,
+      items: formData.items.filter((item) => item.id !== id),
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (formData.items.length === 0) {
+      alert("กรุณาเพิ่มรายการอุปกรณ์อย่างน้อย 1 รายการ");
+      return;
+    }
+
+    if (!user || !user.id) {
+      alert("ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/borrow`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          borrowDate: formData.borrowDate,
+          returnDate: formData.returnDate,
+          purpose: formData.purpose,
+          items: formData.items,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("บันทึกข้อมูลการยืมเรียบร้อยแล้ว");
+        // รีเซ็ตฟอร์มหลังจากบันทึกสำเร็จ
+        setFormData({ ...formData, purpose: "", items: [] });
+      } else {
+        alert(data.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      }
+    } catch (error) {
+      console.error("Error submitting borrow form:", error);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
+    }
+  };
+
+  const handleReturn = async (borrowId) => {
+    if (!window.confirm("คุณต้องการแจ้งคืนอุปกรณ์รายการนี้ใช่หรือไม่?")) return;
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/borrows/${borrowId}/status`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "Returned" }),
+        },
+      );
+
+      if (response.ok) {
+        alert("บันทึกการคืนอุปกรณ์เรียบร้อยแล้ว");
+        fetchActiveBorrows(); // Refresh list
+      } else {
+        const data = await response.json();
+        alert(data.message || "เกิดข้อผิดพลาด");
+      }
+    } catch (error) {
+      console.error("Error returning item:", error);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+    }
+  };
+
+  return (
+    <div className="borrow-return-container">
+      <div className="page-header">
+        <h2>ระบบยืม-คืนครุภัณฑ์</h2>
+        <p>จัดการการเบิกจ่ายและส่งคืนอุปกรณ์สำนักงาน</p>
+      </div>
+
+      {/* Tabs Navigation */}
+      <div className="tabs-container">
+        <button
+          className={`tab-btn ${activeTab === "borrow" ? "active" : ""}`}
+          onClick={() => setActiveTab("borrow")}
+        >
+          <Plus size={18} /> แจ้งยืมอุปกรณ์
+        </button>
+        <button
+          className={`tab-btn ${activeTab === "return" ? "active" : ""}`}
+          onClick={() => setActiveTab("return")}
+        >
+          <Repeat size={18} /> แจ้งคืนอุปกรณ์
+        </button>
+      </div>
+
+      <div className="borrow-content">
+        {/* User Info Card */}
+        <div className="info-card user-info">
+          <h3>
+            <User className="header-icon" size={20} /> ข้อมูลผู้ยืม
+          </h3>
+          <div className="info-grid">
+            <div className="info-item">
+              <label>ชื่อ-นามสกุล</label>
+              <div className="info-value">
+                {user?.firstName} {user?.lastName}
+              </div>
+            </div>
+            <div className="info-item">
+              <label>รหัสพนักงาน</label>
+              <div className="info-value">{user?.employeeId}</div>
+            </div>
+            <div className="info-item">
+              <label>ตำแหน่ง</label>
+              <div className="info-value">{user?.role}</div>
+            </div>
+            <div className="info-item">
+              <label>ฝ่าย/สำนัก</label>
+              <div className="info-value">
+                {getDepartmentName(user?.departmentId)} /{" "}
+                {getInstitutionName(user?.institutionId)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {activeTab === "borrow" ? (
+          <form onSubmit={handleSubmit} className="borrow-form">
+            {/* Borrowing Details */}
+            <div className="info-card">
+              <h3>
+                <FileText className="header-icon" size={20} /> รายละเอียดการยืม
+              </h3>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>
+                    <Calendar size={16} /> วันที่ยืม
+                  </label>
+                  <input
+                    type="date"
+                    name="borrowDate"
+                    value={formData.borrowDate}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>
+                    <Clock size={16} /> กำหนดคืน (โดยประมาณ)
+                  </label>
+                  <input
+                    type="date"
+                    name="returnDate"
+                    value={formData.returnDate}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label>วัตถุประสงค์การใช้งาน</label>
+                <textarea
+                  name="purpose"
+                  rows="3"
+                  value={formData.purpose}
+                  onChange={handleInputChange}
+                  placeholder="ระบุเหตุผลหรือชื่องานที่นำไปใช้..."
+                  required
+                ></textarea>
+              </div>
+            </div>
+
+            {/* Items List */}
+            <div className="info-card">
+              <h3>
+                <Briefcase className="header-icon" size={20} /> รายการอุปกรณ์
+              </h3>
+
+              <div className="add-item-row">
+                <select
+                  name="productId"
+                  value={newItem.productId}
+                  onChange={handleItemChange}
+                  onKeyDown={(e) => e.key === "Enter" && addItem()}
+                  className="item-input-name"
+                >
+                  <option value="">-- เลือกอุปกรณ์ --</option>
+                  {products.map((prod) => (
+                    <option key={prod.ProductID} value={prod.ProductID}>
+                      {prod.ProductName} ({prod.ProductCode}) - คงเหลือ{" "}
+                      {prod.Quantity}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  name="quantity"
+                  min="1"
+                  value={newItem.quantity}
+                  onChange={handleItemChange}
+                  onKeyDown={(e) => e.key === "Enter" && addItem()}
+                  className="item-input-qty"
+                />
+                <input
+                  type="text"
+                  name="remark"
+                  placeholder="หมายเหตุ"
+                  value={newItem.remark}
+                  onChange={handleItemChange}
+                  onKeyDown={(e) => e.key === "Enter" && addItem()}
+                  className="item-input-remark"
+                />
+                <button type="button" onClick={addItem} className="add-btn">
+                  <Plus size={18} /> เพิ่ม
+                </button>
+              </div>
+
+              <div className="items-table-wrapper">
+                <table className="items-table">
+                  <thead>
+                    <tr>
+                      <th>ลำดับ</th>
+                      <th>รายการ</th>
+                      <th>จำนวน</th>
+                      <th>หมายเหตุ</th>
+                      <th>
+                        {formData.items.length > 0 ? (
+                          <button
+                            type="button"
+                            onClick={clearItems}
+                            className="delete-btn"
+                            style={{ fontSize: "0.85rem", fontWeight: "bold" }}
+                          >
+                            ลบทั้งหมด
+                          </button>
+                        ) : (
+                          "จัดการ"
+                        )}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {formData.items.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="empty-row">
+                          ยังไม่มีรายการที่เลือก
+                        </td>
+                      </tr>
+                    ) : (
+                      formData.items.map((item, index) => (
+                        <tr key={item.id}>
+                          <td>{index + 1}</td>
+                          <td>{item.name}</td>
+                          <td>{item.quantity}</td>
+                          <td>{item.remark}</td>
+                          <td>
+                            <button
+                              type="button"
+                              onClick={() => removeItem(item.id)}
+                              className="delete-btn"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="form-actions">
+              <button type="submit" className="submit-btn">
+                <Save size={18} /> บันทึกการยืม
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="info-card">
+            <h3>
+              <Repeat className="header-icon" size={20} /> รายการที่ต้องคืน
+              (Approved)
+            </h3>
+            {activeBorrows.length === 0 ? (
+              <div className="empty-row" style={{ padding: "40px" }}>
+                <CheckCircle
+                  size={48}
+                  color="#2ecc71"
+                  style={{ marginBottom: "10px" }}
+                />
+                <p>ไม่มีรายการค้างคืนในขณะนี้</p>
+              </div>
+            ) : (
+              <div className="items-table-wrapper">
+                <table className="items-table">
+                  <thead>
+                    <tr>
+                      <th>รหัสรายการ</th>
+                      <th>วันที่ยืม</th>
+                      <th>กำหนดคืน</th>
+                      <th>วัตถุประสงค์</th>
+                      <th>รายการอุปกรณ์</th>
+                      <th>จัดการ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activeBorrows.map((borrow) => (
+                      <tr key={borrow.BorrowID}>
+                        <td>#{borrow.BorrowID}</td>
+                        <td>
+                          {new Date(borrow.BorrowDate).toLocaleDateString(
+                            "th-TH",
+                          )}
+                        </td>
+                        <td>
+                          {new Date(borrow.ReturnDate).toLocaleDateString(
+                            "th-TH",
+                          )}
+                        </td>
+                        <td>{borrow.Purpose}</td>
+                        <td>
+                          <ul
+                            style={{
+                              margin: 0,
+                              paddingLeft: "20px",
+                              fontSize: "0.9rem",
+                            }}
+                          >
+                            {borrow.items.map((item) => (
+                              <li key={item.BorrowDetailID}>
+                                {item.ItemName} (x{item.Quantity})
+                              </li>
+                            ))}
+                          </ul>
+                        </td>
+                        <td>
+                          <button
+                            className="submit-btn"
+                            style={{
+                              padding: "6px 12px",
+                              fontSize: "0.85rem",
+                              backgroundColor: "#3498db",
+                            }}
+                            onClick={() => handleReturn(borrow.BorrowID)}
+                          >
+                            คืนอุปกรณ์
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default BorrowReturn;

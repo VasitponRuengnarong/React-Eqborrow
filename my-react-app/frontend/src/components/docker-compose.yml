@@ -1,0 +1,49 @@
+services:
+  db:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_DATABASE: ebrs_system
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    ports:
+      - "3307:3306" # Map to port 3307 on host to avoid conflict with local MySQL
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: root
+      DB_NAME: ebrs_system
+      PORT: 8080
+      EMAIL_USER: keng24022547@gmail.com # แก้ไขเป็นอีเมลจริงของคุณ
+      EMAIL_PASS: sggu dpot lbgh lvva # แก้ไขเป็นรหัสผ่านแอป (App Password)
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - CHOKIDAR_USEPOLLING=true # Fix for hot reload on Windows
+      - WDS_SOCKET_PORT=0
+      - REACT_APP_API_BASE_URL=http://backend:8080 # Frontend Container จะใช้ชื่อ Service 'backend' ใน Docker Network
+    stdin_open: true
+    tty: true
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
