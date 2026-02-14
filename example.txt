@@ -1,0 +1,2 @@
+This is an example file.
+You can use this file to test git operations or as a placeholder.

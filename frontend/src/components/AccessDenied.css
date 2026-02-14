@@ -1,0 +1,107 @@
+.access-denied-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f3f4f6;
+  padding: 20px;
+  font-family: "Kanit", sans-serif;
+}
+
+.access-denied-card {
+  background: white;
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+}
+
+.icon-wrapper {
+  margin-bottom: 20px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.access-denied-card h1 {
+  color: #1f2937;
+  margin: 0 0 10px 0;
+  font-size: 2rem;
+}
+
+.error-message {
+  color: #ff0000;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+.user-role-info {
+  background-color: #fef2f2;
+  border: 1px solid #fee2e2;
+  padding: 10px;
+  border-radius: 8px;
+  display: inline-block;
+  margin-bottom: 20px;
+  color: #991b1b;
+}
+
+.role-badge {
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.suggestion-text {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-bottom: 30px;
+  line-height: 1.5;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.action-buttons button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: "Kanit", sans-serif;
+}
+
+.btn-home {
+  background-color: var(--primary);
+  color: white;
+}
+
+.btn-home:hover {
+  background-color: var(--primary-dark);
+}
+
+.btn-logout {
+  background-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.btn-logout:hover {
+  background-color: #d1d5db;
+}

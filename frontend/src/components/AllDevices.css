@@ -1,0 +1,56 @@
+.user-profile-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  background: var(--card-bg); /* Use card-bg */
+  border: 1px solid var(--border);
+  border-radius: 50px; /* ทรงแคปซูล */
+  box-shadow: var(--shadow);
+  width: fit-content;
+  transition: all 0.2s ease-in-out;
+  cursor: default;
+  gap: 8px;
+}
+
+.user-profile-section:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border-color: var(--border); /* Use var(--border) */
+}
+
+.user-name {
+  font-weight: 600;
+  color: var(--username-pill);
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--text); /* Default/inactive color */
+}
+
+.status-dot.status-available,
+.status-dot.status-active {
+  background-color: var(--success); /* Green (ว่าง / Active) */
+}
+
+.status-dot.status-borrowed {
+  background-color: var(--warning); /* Yellow/Orange (ถูกยืม) */
+}
+
+.status-dot.status-repair,
+.status-dot.status-broken,
+.status-dot.status-inactive {
+  background-color: var(--danger); /* Red (ส่งซ่อม / ชำรุด / Inactive) */
+}
+
+.status-dot.status-lost {
+  background-color: var(--text); /* Gray (สูญหาย) */
+  opacity: 0.5;
+}

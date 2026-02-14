@@ -1,0 +1,105 @@
+/* CustomSelect.css */
+
+.input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.custom-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px 12px 45px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  background-color: var(--bg-card);
+  cursor: pointer;
+  transition: all 0.2s;
+  height: 45px; /* Match input height */
+  box-sizing: border-box;
+}
+
+.custom-select-trigger:hover {
+  border-color: #e0e0e0;
+}
+
+.custom-select-trigger.active,
+.custom-select-trigger:focus-within {
+  border-color: #ff8000;
+  box-shadow: 0 0 0 3px rgba(255, 128, 0, 0.1);
+  outline: none;
+}
+
+.custom-select-trigger.disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  color: #333333;
+  opacity: 0.6;
+}
+
+.placeholder-text {
+  color: #333333;
+  opacity: 0.6;
+}
+
+.dropdown-arrow {
+  transition: transform 0.2s ease;
+}
+
+.dropdown-arrow.rotate {
+  transform: rotate(180deg);
+}
+
+.chip-popup {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  max-height: 250px;
+  overflow-y: auto;
+  animation: popupFadeIn 0.2s ease-out;
+}
+
+.chip-option {
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.chip-option:hover {
+  background-color: rgba(255, 128, 0, 0.05);
+}
+
+.chip-option.active {
+  background-color: #ff8000;
+  color: white;
+  font-weight: 500;
+}
+
+.no-options {
+  padding: 10px 12px; /* Already correct */
+  color: #333333;
+  opacity: 0.6;
+  font-style: italic;
+}
+
+@keyframes popupFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
