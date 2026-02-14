@@ -1,0 +1,91 @@
+/* Global styles for full-height layout */
+/* --- Global Variables (Moved from index.css to ensure loading) --- */
+:root {
+  /* Brand Colors */
+  --primary: #f97316;
+  --primary-dark: #ea580c;
+
+  /* Backgrounds */
+  --bg-body: #f3f4f6;
+  --bg-card: #ffffff;
+  --bg-hover: #f1f5f9;
+  
+  /* Sidebar Specific */
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #e2e8f0;
+  --sidebar-text: #475569;
+  --sidebar-text-active: #c2410c;
+  --sidebar-bg-active: #ffedd5;
+
+  /* Text */
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-trinary: #f97316;
+
+  /* Status */
+  --success: #10b981;
+  --danger: #ef4444;
+  --border-color: #e5e7eb;
+  --input-bg: #ffffff;
+  
+  --background-shadow: rgba(0, 0, 0, 0.1);
+}
+
+
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevent body scrollbar */
+  background-color: var(--bg-body);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: row;
+  height: 100%; 
+  width: 100%;
+  overflow: hidden; 
+  background-color: var(--bg-body);
+}
+
+/* Existing styles below */
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
