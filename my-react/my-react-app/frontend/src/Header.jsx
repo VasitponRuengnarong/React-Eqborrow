@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { Menu, User, LogOut } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Menu, User, LogOut, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useNotification } from "./context/NotificationContext";
+import NotificationDropdown from "./components/NotificationDropdown";
 import "./Header.css";
+
 const defaultProfileImage = "/logo.png"; // Placeholder for profile image
 
 const Header = ({ toggleSidebar }) => {
@@ -11,8 +14,11 @@ const Header = ({ toggleSidebar }) => {
     return storedUser ? JSON.parse(storedUser) : null;
   });
   const [currentTime, setCurrentTime] = useState(new Date());
-    const navigate = useNavigate();
-
+  const navigate = useNavigate();
+  
+  const { unreadCount } = useNotification();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notifRef = useRef(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -29,6 +35,20 @@ const Header = ({ toggleSidebar }) => {
     };
     window.addEventListener("user-updated", handleUserUpdate);
     return () => window.removeEventListener("user-updated", handleUserUpdate);
+  }, []);
+
+  // Close notifications when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+        if (notifRef.current && !notifRef.current.contains(event.target)) {
+            setShowNotifications(false);
+        }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   const [showDropdown, setShowDropdown] = useState(false);
@@ -49,6 +69,40 @@ const Header = ({ toggleSidebar }) => {
 
       <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         
+        {/* Notification Bell */}
+        <div className="notification-wrapper" ref={notifRef} style={{ position: 'relative', cursor: 'pointer' }}>
+            <div 
+                className="notification-icon" 
+                onClick={() => setShowNotifications(!showNotifications)}
+                style={{ position: 'relative', padding: '8px', color: '#555' }}
+            >
+                <Bell size={24} />
+                {unreadCount > 0 && (
+                    <span className="badge" style={{
+                        position: 'absolute',
+                        top: '0',
+                        right: '0',
+                        backgroundColor: '#FF6B00',
+                        color: 'white',
+                        borderRadius: '50%',
+                        fontSize: '10px',
+                        width: '18px',
+                        height: '18px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 'bold',
+                        border: '2px solid white'
+                    }}>
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                )}
+            </div>
+            {showNotifications && (
+                <NotificationDropdown onClose={() => setShowNotifications(false)} />
+            )}
+        </div>
+
         <div 
           className="user-profile-container" 
           onMouseEnter={() => setShowDropdown(true)}

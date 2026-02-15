@@ -54,8 +54,8 @@ const Navbar = () => {
           </li>
           <li>
             <Link
-              to="/borrow-history"
-              className={`navbar-item ${location.pathname === "/borrow-history" ? "active" : ""}`}
+              to="/history"
+              className={`navbar-item ${location.pathname === "/history" ? "active" : ""}`}
             >
               ประวัติการยืม
             </Link>

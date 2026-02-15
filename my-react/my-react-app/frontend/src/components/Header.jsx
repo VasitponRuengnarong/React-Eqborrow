@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Menu, Search, Bell, ChevronRight } from "lucide-react";
+import { Menu, Bell, ChevronRight } from "lucide-react";
+import { useNotification } from "../context/NotificationContext"; // Import Context
 import "./Header.css";
+import NotificationDropdown from "./NotificationDropdown";
 
 const defaultProfileImage = "/images/logo.png";
 
 const Header = ({ toggleSidebar }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { unreadCount, fetchNotifications } = useNotification(); // Use Context
   
   // Lazy initialize user state to prevent flickering
   const [user, setUser] = useState(() => {
@@ -17,42 +20,25 @@ const Header = ({ toggleSidebar }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // --- New State for Functionality ---
-  const [searchText, setSearchText] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState([]);
+  const notificationRef = useRef(null);
 
-  // Fetch Notifications from Backend
-  const fetchNotifications = async () => {
-    try {
-      const storedUser = localStorage.getItem("user");
-      const token = localStorage.getItem("token");
-      if (!storedUser || !token) return;
-
-      const response = await fetch("http://localhost:8080/api/nav-notifications", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setNotifications(data);
-      }
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
-    }
-  };
-
+  // Close notifications when clicking outside
   useEffect(() => {
-    fetchNotifications(); // Initial fetch
-    const interval = setInterval(fetchNotifications, 30000); // Poll every 30s
-    return () => clearInterval(interval);
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSearch = (e) => {
-    if (e) e.preventDefault();
-    console.log("Searching for:", searchText);
-    // Future: Implement actual search routing or filtering
-    // navigate(`/dashboard?search=${searchText}`);
-  };
-
+  // Initial fetch on mount (Context handles polling, but we can trigger one on mount too if needed)
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+  
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -101,48 +87,20 @@ const Header = ({ toggleSidebar }) => {
         <div className="header-time">{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
         
         {/* Notification Bell */}
-        <div className={`notification-wrapper ${notifications.length > 0 ? "has-unread" : ""}`}>
+        <div 
+          className={`notification-wrapper ${unreadCount > 0 ? "has-unread" : ""}`}
+          ref={notificationRef}
+        >
           <button 
             className={`notification-btn ${showNotifications ? "active" : ""}`}
             onClick={() => setShowNotifications(!showNotifications)}
           >
-            <Bell size={20} className={notifications.length > 0 ? "bell-shake" : ""} />
-            {notifications.length > 0 && <span className="notification-badge">{notifications.length}</span>}
+            <Bell size={20} className={unreadCount > 0 ? "bell-shake" : ""} />
+            {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
           </button>
 
           {showNotifications && (
-            <div className="notification-dropdown">
-              <div className="dropdown-header">
-                <h3>Notifications</h3>
-                <button className="mark-read-btn" onClick={() => setNotifications([])}>Mark all read</button>
-              </div>
-              <div className="dropdown-content">
-                {notifications.length > 0 ? (
-                  notifications.map(notif => (
-                    <div 
-                      key={notif.id} 
-                      className={`notification-item unread ${
-                        notif.message.includes('low stock') ? 'alert' : 
-                        notif.message.includes('Pending') ? 'info' : 'success'
-                      }`}
-                    >
-                      <div className="notif-icon">
-                        {notif.message.includes('low stock') ? '⚠️' : 
-                         notif.message.includes('Pending') ? '📦' : '↩️'}
-                      </div>
-                      <div className="notif-text">
-                        <p className="notif-msg">{notif.message}</p>
-                        <span className="notif-time">{notif.time}</span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="empty-notif" style={{ padding: '40px 20px', textAlign: 'center', color: '#94a3b8' }}>
-                    <p style={{ fontSize: '13px' }}>No new notifications</p>
-                  </div>
-                )}
-              </div>
-            </div>
+            <NotificationDropdown onClose={() => setShowNotifications(false)} />
           )}
         </div>
 

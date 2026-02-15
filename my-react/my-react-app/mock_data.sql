@@ -90,8 +90,7 @@ VALUES (1, 'ไม่มีฝ่าย', 1),
 INSERT IGNORE INTO
     TB_M_Role (RoleName)
 VALUES ('Admin'),
-    ('User'),
-    ('Manager');
+    ('User');
 
 INSERT IGNORE INTO
     TB_M_StatusEMP (StatusNameEMP)
@@ -161,21 +160,6 @@ VALUES ('ว่าง'),
     ('ชำรุด'),
     ('สูญหาย'),
     ('ระงับใช้งาน');
-
-INSERT IGNORE INTO
-    TB_M_Duestatus (Due_statusName)
-VALUES ('ปกติ'),
-    ('เกินกำหนด'),
-    ('เสียหาย'),
-    ('สูญหาย');
-
-INSERT IGNORE INTO
-    TB_M_StatusBorrowTrans (StatusNameTrans)
-VALUES ('Pending'),
-    ('Approved'),
-    ('Rejected'),
-    ('Returned'),
-    ('Overdue');
 
 -- 4. Employees (Users)
 -- Admin User
@@ -404,41 +388,4 @@ VALUES (
         DATE_SUB(NOW(), INTERVAL 2 DAY)
     );
 
--- Transaction Details
-INSERT IGNORE INTO
-    TB_T_BorrowTrans (
-        transaction_num,
-        transactiondate,
-        DVID,
-        EMPID,
-        borrowdate,
-        duedate,
-        returndate,
-        purpose,
-        BorrowTransStatusID,
-        StatusNameTrans
-    )
-VALUES (
-        'TRX-20231001-001',
-        DATE_SUB(NOW(), INTERVAL 5 DAY),
-        1,
-        2,
-        DATE_SUB(NOW(), INTERVAL 5 DAY),
-        DATE_SUB(NOW(), INTERVAL 3 DAY),
-        DATE_SUB(NOW(), INTERVAL 3 DAY),
-        'ถ่ายทำข่าวภาคสนาม',
-        4,
-        'Returned'
-    ),
-    (
-        'TRX-20231004-001',
-        DATE_SUB(NOW(), INTERVAL 2 DAY),
-        4,
-        3,
-        DATE_SUB(NOW(), INTERVAL 2 DAY),
-        DATE_ADD(NOW(), INTERVAL 1 DAY),
-        NULL,
-        'ถ่ายรายการสารคดี',
-        2,
-        'Approved'
-    );
+);

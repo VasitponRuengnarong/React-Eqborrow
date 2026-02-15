@@ -85,6 +85,27 @@ db.getConnection()
       )
     `);
 
+    // --- NEW: Migration for existing TB_M_Department tables ---
+    try {
+      // Check if InstitutionID exists
+      await connection.execute("SELECT InstitutionID FROM TB_M_Department LIMIT 1");
+    } catch (e) {
+      if (e.code === "ER_BAD_FIELD_ERROR") {
+        console.log("Adding InstitutionID column to TB_M_Department...");
+        await connection.execute(
+          "ALTER TABLE TB_M_Department ADD COLUMN InstitutionID INT"
+        );
+        // Add foreign key constraint
+        try {
+          await connection.execute(
+            "ALTER TABLE TB_M_Department ADD CONSTRAINT fk_department_institution FOREIGN KEY (InstitutionID) REFERENCES TB_M_Institution(InstitutionID) ON DELETE SET NULL"
+          );
+        } catch (fkError) {
+          console.warn("Notice: InstitutionID column added, but foreign key constraint might already exist or failed.");
+        }
+      }
+    }
+
     // Auto-create TB_M_StatusEMP
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS TB_M_StatusEMP (
@@ -144,20 +165,7 @@ db.getConnection()
       )
     `);
 
-    // --- NEW: TB_M_Product (Master) ---
-    await connection.execute(`
-      CREATE TABLE IF NOT EXISTS TB_M_Product (
-        ProductID INT AUTO_INCREMENT PRIMARY KEY,
-        ProductName VARCHAR(255) NOT NULL,
-        ModelID INT,
-        CategoryID INT,
-        TypeID INT,
-        Description TEXT,
-        FOREIGN KEY (ModelID) REFERENCES TB_M_Model(ModelID) ON DELETE SET NULL,
-        FOREIGN KEY (CategoryID) REFERENCES TB_M_Category(CategoryID) ON DELETE SET NULL,
-        FOREIGN KEY (TypeID) REFERENCES TB_M_Type(TypeID) ON DELETE SET NULL
-      )
-    `);
+
 
     // Auto-create TB_M_StatusDevice table
     await connection.execute(`
@@ -196,6 +204,21 @@ db.getConnection()
       )
     `);
 
+    // --- NEW: TB_T_Notification ---
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS TB_T_Notification (
+        NotificationID INT AUTO_INCREMENT PRIMARY KEY,
+        EMPID INT NOT NULL,
+        Title VARCHAR(255) NOT NULL,
+        Message TEXT NOT NULL,
+        Type ENUM('Success', 'Warning', 'Info', 'Error') DEFAULT 'Info',
+        ActionUrl VARCHAR(255),
+        IsRead BOOLEAN DEFAULT FALSE,
+        CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (EMPID) REFERENCES TB_T_Employee(EMPID) ON DELETE CASCADE
+      )
+    `);
+
     // Auto-create TB_T_Employee
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS TB_T_Employee (
@@ -230,11 +253,27 @@ db.getConnection()
         BorrowDate DATE,
         ReturnDate DATE,
         Purpose TEXT,
-        Status ENUM('Pending', 'Approved', 'Rejected', 'Returned', 'Cancelled') DEFAULT 'Pending',
+        Status ENUM('Pending', 'Approved', 'Rejected', 'Returned', 'Cancelled', 'PendingReturn') DEFAULT 'Pending',
         CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+        ModifyDate DATETIME ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (EMPID) REFERENCES TB_T_Employee(EMPID)
       )
     `);
+
+    // --- NEW: Migration for TB_T_Borrow to add PendingReturn status and ModifyDate ---
+    try {
+      await connection.execute("SELECT ModifyDate FROM TB_T_Borrow LIMIT 1");
+    } catch (e) {
+      if (e.code === "ER_BAD_FIELD_ERROR") {
+        console.log("Adding ModifyDate column and updating Status ENUM for TB_T_Borrow...");
+        await connection.execute(
+          "ALTER TABLE TB_T_Borrow ADD COLUMN ModifyDate DATETIME ON UPDATE CURRENT_TIMESTAMP"
+        );
+        await connection.execute(
+          "ALTER TABLE TB_T_Borrow MODIFY COLUMN Status ENUM('Pending', 'Approved', 'Rejected', 'Returned', 'Cancelled', 'PendingReturn') DEFAULT 'Pending'"
+        );
+      }
+    }
 
     // Auto-create TB_T_BorrowDetail
     await connection.execute(`
@@ -400,41 +439,7 @@ db.getConnection()
       }
     }
 
-    // Check specifically for ModelID column in TB_M_Product
-    try {
-      await connection.execute("SELECT ModelID FROM TB_M_Product LIMIT 1");
-    } catch (e) {
-      if (e.code === "ER_BAD_FIELD_ERROR") {
-        console.log("Adding ModelID column to TB_M_Product...");
-        await connection.execute(
-          "ALTER TABLE TB_M_Product ADD COLUMN ModelID INT",
-        );
-      }
-    }
 
-    // Check specifically for CategoryID column in TB_M_Product
-    try {
-      await connection.execute("SELECT CategoryID FROM TB_M_Product LIMIT 1");
-    } catch (e) {
-      if (e.code === "ER_BAD_FIELD_ERROR") {
-        console.log("Adding CategoryID column to TB_M_Product...");
-        await connection.execute(
-          "ALTER TABLE TB_M_Product ADD COLUMN CategoryID INT",
-        );
-      }
-    }
-
-    // Check specifically for TypeID column in TB_M_Product
-    try {
-      await connection.execute("SELECT TypeID FROM TB_M_Product LIMIT 1");
-    } catch (e) {
-      if (e.code === "ER_BAD_FIELD_ERROR") {
-        console.log("Adding TypeID column to TB_M_Product...");
-        await connection.execute(
-          "ALTER TABLE TB_M_Product ADD COLUMN TypeID INT",
-        );
-      }
-    }
 
     const equipmentData = [
       {
@@ -696,6 +701,32 @@ const checkAdmin = (req, res, next) => {
       .json({ message: "Access denied. Admin role required." });
   }
   next();
+};
+
+// --- Notification Helper Function ---
+const createNotification = async (empID, title, message, type = 'Info', actionUrl = null) => {
+  try {
+    await db.execute(
+      "INSERT INTO TB_T_Notification (EMPID, Title, Message, Type, ActionUrl) VALUES (?, ?, ?, ?, ?)",
+      [empID, title, message, type, actionUrl]
+    );
+    console.log(`Notification created for user ${empID}: ${title}`);
+  } catch (error) {
+    console.error("Error creating notification:", error);
+  }
+};
+
+// Helper to get all Admin user IDs
+const getAllAdminIds = async () => {
+  try {
+    const [admins] = await db.execute(
+      "SELECT EMPID FROM TB_T_Employee e JOIN TB_M_Role r ON e.RoleID = r.RoleID WHERE r.RoleName = 'Admin'"
+    );
+    return admins.map(admin => admin.EMPID);
+  } catch (error) {
+    console.error("Error fetching admin IDs:", error);
+    return [];
+  }
 };
 
 // Helper function for creating master data routes
@@ -1357,7 +1388,7 @@ app.get(
       // 5. Recent Activity (Limit 10)
       const [recent] = await db.execute(`
       SELECT b.BorrowID, b.Status, b.CreatedDate, 
-             e.fname, e.lname, 
+             e.fname, e.lname, e.image as requesterImage,
              GROUP_CONCAT(bd.ItemName SEPARATOR ', ') as EquipmentName
       FROM TB_T_Borrow b
       JOIN TB_T_Employee e ON b.EMPID = e.EMPID
@@ -1476,11 +1507,14 @@ app.get(
       const threshold = 5; // Alert if available items are less than 5
       const [rows] = await db.execute(
         `
-      SELECT d.DeviceName, 
-             SUM(CASE WHEN s.StatusNameDV = 'ว่าง' THEN 1 ELSE 0 END) as AvailableCount
+      SELECT 
+        d.DeviceName, 
+        d.image,
+        d.DeviceCode,
+        SUM(CASE WHEN s.StatusNameDV = 'ว่าง' THEN 1 ELSE 0 END) as AvailableCount
       FROM TB_T_Device d
       JOIN TB_M_StatusDevice s ON d.StatusID = s.DVStatusID
-      GROUP BY d.DeviceName
+      GROUP BY d.DeviceName, d.image, d.DeviceCode
       HAVING AvailableCount < ?
       ORDER BY AvailableCount ASC
     `,
@@ -1488,8 +1522,8 @@ app.get(
       );
       res.json(rows);
     } catch (error) {
-      console.error("Error fetching low stock:", error);
-      res.status(500).json({ message: "Error fetching notifications" });
+      console.error("Error fetching low stock notifications:", error);
+      res.status(500).json({ message: "Error fetching stock data" });
     }
   },
 );
@@ -1552,7 +1586,49 @@ app.post("/api/borrow", verifyToken, async (req, res) => {
       );
     }
 
+    // บันทึก Log การสร้างคำขอ
+    await connection.execute(
+      "INSERT INTO TB_L_ActivityLog (ActionType, BorrowID, ActorID, Details) VALUES (?, ?, ?, ?)",
+      ["Created", borrowId, userId, "User created borrow request"]
+    );
+
     await connection.commit(); // ยืนยันการบันทึก
+
+    // --- Notification Triggers: Notify Admins & Requester ---
+    try {
+      // 1. Notify Requester
+      await createNotification(
+        userId,
+        "บันทึกคำขอยืมแล้ว",
+        `คำขอยืมเลขที่ #${borrowId} ของคุณส่งถึงแอดมินแล้ว`,
+        "Info",
+        "/history"
+      );
+
+      // 2. Notify Admins
+      const adminIds = await getAllAdminIds();
+      const [userInfo] = await db.execute(
+        "SELECT fname, lname FROM TB_T_Employee WHERE EMPID = ?",
+        [userId]
+      );
+      const userName = userInfo.length > 0 ? `${userInfo[0].fname} ${userInfo[0].lname}` : "ผู้ใช้";
+      
+      for (const adminId of adminIds) {
+        // Skip if admin is also the requester
+        if (adminId == userId) continue;
+
+        await createNotification(
+          adminId,
+          "มีคำขอยืมใหม่",
+          `${userName} ได้ส่งคำขอยืมอุปกรณ์ (รายการ #${borrowId})`,
+          "Warning",
+          "/approvals"
+        );
+      }
+    } catch (notifError) {
+      console.error("Error triggering notifications:", notifError);
+    }
+
     res.status(201).json({ message: "บันทึกข้อมูลการยืมสำเร็จ", borrowId });
   } catch (error) {
     await connection.rollback(); // ยกเลิกถ้ามี error
@@ -1668,9 +1744,10 @@ app.put(
       }
 
       // 2. กรณีคืนของ (Returned) หรือ ยกเลิก/ปฏิเสธ หลังจากที่อนุมัติไปแล้ว: คืนสต็อก
+      // ต้องเปลี่ยนจาก Approved หรือ PendingReturn เป็น Returned เท่านั้นถึงจะคืนสต็อก
       if (
-        oldStatus === "Approved" &&
-        (status === "Returned" || status === "Rejected" || status === "Cancelled")
+        (oldStatus === "Approved" || oldStatus === "PendingReturn") &&
+        status === "Returned"
       ) {
         const [details] = await connection.execute(
           "SELECT * FROM TB_T_BorrowDetail WHERE BorrowID = ?",
@@ -1697,6 +1774,76 @@ app.put(
         "UPDATE TB_T_Borrow SET Status = ? WHERE BorrowID = ?",
         [status, id],
       );
+
+      // --- Notification Triggers ---
+      // Get requester ID for this borrow
+      const [borrowInfo] = await connection.execute(
+        "SELECT EMPID, BorrowID FROM TB_T_Borrow WHERE BorrowID = ?",
+        [id]
+      );
+      
+      if (borrowInfo.length > 0) {
+        const requesterID = borrowInfo[0].EMPID;
+        
+        // Notify user when their request is approved or rejected
+        if (status === "Approved" && oldStatus !== "Approved") {
+          await createNotification(
+            requesterID,
+            "คำขอยืมได้รับการอนุมัติ",
+            `คำขอยืมเลขที่ #${id} ของคุณได้รับการอนุมัติแล้ว`,
+            "Success",
+            `/history`
+          );
+        } else if (status === "Rejected") {
+          await createNotification(
+            requesterID,
+            "คำขอยืมถูกปฏิเสธ",
+            `คำขอยืมเลขที่ #${id} ถูกปฏิเสธ`,
+            "Warning",
+            `/history`
+          );
+        }
+        
+        // Notify admins when user returns equipment
+        if (status === "Returned" && oldStatus === "Approved") {
+          const adminIds = await getAllAdminIds();
+          const [userInfo] = await connection.execute(
+            "SELECT fname, lname FROM TB_T_Employee WHERE EMPID = ?",
+            [requesterID]
+          );
+          const userName = userInfo.length > 0 ? `${userInfo[0].fname} ${userInfo[0].lname}` : "ผู้ใช้";
+          
+          for (const adminId of adminIds) {
+            await createNotification(
+              adminId,
+              "มีการคืนอุปกรณ์",
+              `${userName} ได้คืนอุปกรณ์ (รายการ #${id})`,
+              "Info",
+              `/history`
+            );
+          }
+        }
+
+        // Notify admins when user requests to return (PendingReturn)
+        if (status === "PendingReturn") {
+          const adminIds = await getAllAdminIds();
+          const [userInfo] = await connection.execute(
+            "SELECT fname, lname FROM TB_T_Employee WHERE EMPID = ?",
+            [requesterID]
+          );
+          const userName = userInfo.length > 0 ? `${userInfo[0].fname} ${userInfo[0].lname}` : "ผู้ใช้";
+          
+          for (const adminId of adminIds) {
+            await createNotification(
+              adminId,
+              "คำแจ้งคืนอุปกรณ์",
+              `${userName} แจ้งคืนอุปกรณ์ (รายการ #${id}) รอการตรวจสอบ`,
+              "Warning",
+              `/approvals`
+            );
+          }
+        }
+      }
 
       // --- บันทึก Log การทำงาน (อนุมัติ/ปฏิเสธ/คืนของ) ---
       await connection.execute(
@@ -1748,7 +1895,7 @@ app.get("/api/borrows/user/:userId", verifyToken, async (req, res) => {
 app.get("/api/borrows", verifyToken, async (req, res) => {
   try {
     let query = `
-      SELECT b.*, e.fname, e.lname, e.EMP_NUM, d.DepartmentName, i.InstitutionName
+      SELECT b.*, e.fname, e.lname, e.EMP_NUM, d.DepartmentName, i.InstitutionName, e.image as requesterImage
       FROM TB_T_Borrow b
       JOIN TB_T_Employee e ON b.EMPID = e.EMPID
       LEFT JOIN TB_M_Department d ON e.DepartmentID = d.DepartmentID
@@ -1960,7 +2107,7 @@ app.get("/api/users", verifyToken, checkAdmin, async (req, res) => {
     const [users] = await db.execute(`
       SELECT e.EMPID, e.fname, e.lname, e.username, e.email, e.phone, e.EMP_NUM,
              r.RoleName, s.StatusName, d.DepartmentName, i.InstitutionName, e.DepartmentID,
-             e.RoleID, e.EMPStatusID
+             e.RoleID, e.EMPStatusID, e.image
       FROM TB_T_Employee e
       LEFT JOIN TB_M_Role r ON e.RoleID = r.RoleID
       LEFT JOIN TB_M_StatusEMP s ON e.EMPStatusID = s.EMPStatusID
@@ -2495,61 +2642,7 @@ app.post(
   },
 );
 
-// --- Master Product Management Endpoints (TB_T_Device) ---
-// Optional: For managing the master product list if needed separately from devices
 
-// Get all master products
-app.get("/api/master-products", async (req, res) => {
-  try {
-    const [products] = await db.execute(
-      "SELECT * FROM TB_T_Device ORDER BY CreatedDate DESC",
-    );
-    res.json(products);
-  } catch (error) {
-    console.error("Error fetching master products:", error);
-    res.status(500).json({ message: "เกิดข้อผิดพลาดในการดึงข้อมูลสินค้าหลัก" });
-  }
-});
-
-// Create master product
-app.post("/api/master-products", verifyToken, checkAdmin, async (req, res) => {
-  const { DeviceName, DeviceCode, Price, Quantity, Description, Image } =
-    req.body;
-
-  if (!DeviceName) {
-    return res.status(400).json({ message: "กรุณากรอกชื่อสินค้า" });
-  }
-
-  try {
-    const [result] = await db.execute(
-      "INSERT INTO TB_T_Device (DeviceName, DeviceCode, Price, Quantity, Description, Image) VALUES (?, ?, ?, ?, ?, ?)",
-      [DeviceName, DeviceCode, Price, Quantity, Description, Image],
-    );
-    res
-      .status(201)
-      .json({ message: "เพิ่มสินค้าหลักสำเร็จ", productId: result.insertId });
-  } catch (error) {
-    console.error("Error creating master product:", error);
-    res.status(500).json({ message: "เกิดข้อผิดพลาดในการเพิ่มสินค้าหลัก" });
-  }
-});
-
-// Delete master product
-app.delete(
-  "/api/master-products/:id",
-  verifyToken,
-  checkAdmin,
-  async (req, res) => {
-    const { id } = req.params;
-    try {
-      await db.execute("DELETE FROM TB_T_Device WHERE DVID = ?", [id]);
-      res.json({ message: "ลบสินค้าหลักสำเร็จ" });
-    } catch (error) {
-      console.error("Error deleting master product:", error);
-      res.status(500).json({ message: "เกิดข้อผิดพลาดในการลบสินค้าหลัก" });
-    }
-  },
-);
 
 // Get stock movement logs (Requires TB_L_StockMovement table and Trigger)
 app.get("/api/stock-movements", verifyToken, checkAdmin, async (req, res) => {
@@ -2644,6 +2737,98 @@ app.get("/api/nav-notifications", verifyToken, async (req, res) => {
   }
 });
 
+// --- Notification System Endpoints ---
+
+// Get notifications for a user
+app.get("/api/notifications/:empId", verifyToken, async (req, res) => {
+  const { empId } = req.params;
+  // Security check: Ensure user can only fetch their own notifications unless Admin
+  if (req.user.id != empId && req.user.role !== "Admin") {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
+  try {
+    const [rows] = await db.execute(
+      "SELECT * FROM TB_T_Notification WHERE EMPID = ? ORDER BY CreatedAt DESC",
+      [empId]
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    res.status(500).json({ message: "Error fetching notifications" });
+  }
+});
+
+// Create a notification (Internal/Admin usage)
+app.post("/api/notifications", verifyToken, async (req, res) => {
+  const { empId, Title, Message, Type, ActionUrl } = req.body;
+  try {
+    const [result] = await db.execute(
+      "INSERT INTO TB_T_Notification (EMPID, Title, Message, Type, ActionUrl) VALUES (?, ?, ?, ?, ?)",
+      [empId, Title, Message, Type || 'Info', ActionUrl]
+    );
+    res.status(201).json({ NotificationID: result.insertId, message: "Notification created" });
+  } catch (error) {
+    console.error("Error creating notification:", error);
+    res.status(500).json({ message: "Error creating notification" });
+  }
+});
+
+// Mark notification as read
+app.put("/api/notifications/:id/read", verifyToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.execute(
+      "UPDATE TB_T_Notification SET IsRead = TRUE WHERE NotificationID = ?",
+      [id]
+    );
+    res.json({ message: "Notification marked as read" });
+  } catch (error) {
+    console.error("Error updating notification:", error);
+    res.status(500).json({ message: "Error updating notification" });
+  }
+});
+
+// Mark ALL notifications as read for a user
+app.put("/api/notifications/user/:empId/read-all", verifyToken, async (req, res) => {
+  const { empId } = req.params;
+   // Security check
+  if (req.user.id != empId && req.user.role !== "Admin") {
+      return res.status(403).json({ message: "Access denied" });
+  }
+
+  try {
+      await db.execute(
+          "UPDATE TB_T_Notification SET IsRead = TRUE WHERE EMPID = ?",
+          [empId]
+      );
+      res.json({ message: "All notifications marked as read" });
+  } catch (error) {
+      console.error("Error marking all read:", error);
+      res.status(500).json({ message: "Error updating notifications" });
+  }
+});
+
+// Delete ALL notifications for a user
+app.delete("/api/notifications/user/:empId", verifyToken, async (req, res) => {
+  const { empId } = req.params;
+   // Security check
+  if (req.user.id != empId && req.user.role !== "Admin") {
+      return res.status(403).json({ message: "Access denied" });
+  }
+
+  try {
+      await db.execute(
+          "DELETE FROM TB_T_Notification WHERE EMPID = ?",
+          [empId]
+      );
+      res.json({ message: "All notifications deleted" });
+  } catch (error) {
+      console.error("Error deleting all notifications:", error);
+      res.status(500).json({ message: "Error deleting notifications" });
+  }
+});
+
 // Global Error Handler (Catch-all for unhandled errors)
 app.use((err, req, res, next) => {
   console.error("Unhandled Error:", err.stack);
@@ -2656,6 +2841,115 @@ app.use((err, req, res, next) => {
   });
 });
 
+// --- Scheduled Notification Jobs ---
+
+// Job 1: Low Stock Alert (runs every 1 hour)
+const checkLowStock = async () => {
+  try {
+    const threshold = 5;
+    const [lowStockItems] = await db.execute(`
+      SELECT DeviceName, Quantity
+      FROM TB_T_Device
+      WHERE Quantity < ? AND Quantity > 0
+      ORDER BY Quantity ASC
+    `, [threshold]);
+
+    if (lowStockItems.length > 0) {
+      const adminIds = await getAllAdminIds();
+      
+      for (const item of lowStockItems) {
+        for (const adminId of adminIds) {
+          // Prevent duplicate notifications within 24 hours
+          const [existing] = await db.execute(
+            `SELECT NotificationID FROM TB_T_Notification 
+             WHERE EMPID = ? AND Title LIKE '⚠️ สินค้าใกล้หมด%' 
+             AND Message LIKE ? 
+             AND CreatedAt > DATE_SUB(NOW(), INTERVAL 24 HOUR)`,
+            [adminId, `%${item.DeviceName}%`]
+          );
+
+          if (existing.length === 0) {
+            await createNotification(
+              adminId,
+              "⚠️ สินค้าใกล้หมด (Low Stock Alert)",
+              `${item.DeviceName} (รหัส: ${item.DeviceCode || 'N/A'}) เหลือเพียง ${item.Quantity} ชิ้นในคลัง (ต่ำกว่าเป้าหมาย 5 ชิ้น)`,
+              "Warning",
+              "/products"
+            );
+          }
+        }
+      }
+      console.log(`[LOW STOCK ALERT] Sent notifications for ${lowStockItems.length} items`);
+    }
+  } catch (error) {
+    console.error("Error checking low stock:", error);
+  }
+};
+
+// Job 2: Upcoming Return Deadline Alert (runs twice daily)
+const checkUpcomingDeadlines = async () => {
+  try {
+    const [upcomingReturns] = await db.execute(`
+      SELECT b.BorrowID, b.EMPID, b.ReturnDate, e.fname, e.lname
+      FROM TB_T_Borrow b
+      JOIN TB_T_Employee e ON b.EMPID = e.EMPID
+      WHERE b.Status = 'Approved'
+      AND b.ReturnDate BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 24 HOUR)
+    `);
+
+    for (const borrow of upcomingReturns) {
+      // Prevent duplicate notifications within 24 hours
+      const [existing] = await db.execute(
+        `SELECT NotificationID FROM TB_T_Notification 
+         WHERE EMPID = ? AND Title = 'ใกล้ถึงกำหนดคืนอุปกรณ์' 
+         AND Message LIKE ? 
+         AND CreatedAt > DATE_SUB(NOW(), INTERVAL 24 HOUR)`,
+        [borrow.EMPID, `%#${borrow.BorrowID})%`]
+      );
+
+      if (existing.length === 0) {
+        await createNotification(
+          borrow.EMPID,
+          "ใกล้ถึงกำหนดคืนอุปกรณ์",
+          `กรุณาคืนอุปกรณ์ภายในวันพรุ่งนี้ (รายการ #${borrow.BorrowID})`,
+          "Warning",
+          "/history"
+        );
+      }
+    }
+
+    if (upcomingReturns.length > 0) {
+      console.log(`[DEADLINE ALERT] Sent ${upcomingReturns.length} deadline reminders`);
+    }
+  } catch (error) {
+    console.error("Error checking upcoming deadlines:", error);
+  }
+};
+
+// Schedule low stock check every hour
+setInterval(checkLowStock, 60 * 60 * 1000); // 1 hour
+console.log("Scheduled: Low stock check (every 1 hour)");
+
+// Schedule deadline check twice daily (9 AM and 5 PM)
+const scheduleDeadlineCheck = () => {
+  const now = new Date();
+  const hour = now.getHours();
+  
+  // Run at 9 AM and 5 PM
+  if (hour === 9 || hour === 17) {
+    checkUpcomingDeadlines();
+  }
+};
+
+// Check every hour and run if it's 9 AM or 5 PM
+setInterval(scheduleDeadlineCheck, 60 * 60 * 1000); // Check every hour
+console.log("Scheduled: Deadline check (twice daily at 9 AM and 5 PM)");
+
+// Run initial checks on startup
+checkLowStock();
+scheduleDeadlineCheck();
+
+// --- Start Server ---
 const server = app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });

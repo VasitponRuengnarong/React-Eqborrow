@@ -52,27 +52,6 @@ CREATE TABLE IF NOT EXISTS TB_M_StatusDevice (
     StatusNameDV VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS TB_M_Duestatus (
-    Due_statusID INT AUTO_INCREMENT PRIMARY KEY,
-    Due_statusName VARCHAR(255) NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS TB_M_StatusBorrowTrans (
-    BorrowTransStatusID INT AUTO_INCREMENT PRIMARY KEY,
-    StatusNameTrans VARCHAR(255) NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS TB_M_Product (
-    ProductID INT AUTO_INCREMENT PRIMARY KEY,
-    ProductName VARCHAR(255) NOT NULL,
-    ProductCode VARCHAR(100),
-    Price DECIMAL(10, 2),
-    Quantity INT,
-    Description TEXT,
-    Image LONGTEXT,
-    CreatedDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 -- 2. Transaction Tables
 CREATE TABLE IF NOT EXISTS TB_T_Employee (
     EMPID INT AUTO_INCREMENT PRIMARY KEY,
@@ -112,7 +91,6 @@ CREATE TABLE IF NOT EXISTS TB_T_Device (
     ModifyBy VARCHAR(255),
     TypeID INT,
     sticker LONGTEXT,
-    BorrowTransStatusID INT,
     Brand VARCHAR(100),
     DeviceType VARCHAR(100),
     Price DECIMAL(10, 2),
@@ -122,40 +100,7 @@ CREATE TABLE IF NOT EXISTS TB_T_Device (
     FOREIGN KEY (BrandID) REFERENCES TB_M_Brand (BrandID),
     FOREIGN KEY (ModelID) REFERENCES TB_M_Model (ModelID),
     FOREIGN KEY (DVStatusID) REFERENCES TB_M_StatusDevice (DVStatusID),
-    FOREIGN KEY (TypeID) REFERENCES TB_M_Type (TypeID),
-    FOREIGN KEY (BorrowTransStatusID) REFERENCES TB_M_StatusBorrowTrans (BorrowTransStatusID)
-);
-
-CREATE TABLE IF NOT EXISTS TB_T_BorrowTrans (
-    TSTID INT AUTO_INCREMENT PRIMARY KEY,
-    transaction_num VARCHAR(255),
-    transactiondate DATETIME DEFAULT CURRENT_TIMESTAMP,
-    DVID INT,
-    EMPID INT,
-    borrowdate DATETIME,
-    duedate DATETIME,
-    returndate DATETIME,
-    purpose TEXT,
-    location VARCHAR(255),
-    BorrowTransStatusID INT,
-    notes_emp TEXT,
-    notes_admin TEXT,
-    ModifyDate DATETIME ON UPDATE CURRENT_TIMESTAMP,
-    ModifyBy VARCHAR(255),
-    Due_statusID INT,
-    InstitutionID INT,
-    DepartmentID INT,
-    StatusNameTrans VARCHAR(255),
-    CategoryID INT,
-    TypeID INT,
-    ModelID INT,
-    BrandID INT,
-    EMP_NUM VARCHAR(50),
-    phone VARCHAR(50),
-    FOREIGN KEY (DVID) REFERENCES TB_T_Device (DVID),
-    FOREIGN KEY (EMPID) REFERENCES TB_T_Employee (EMPID),
-    FOREIGN KEY (BorrowTransStatusID) REFERENCES TB_M_StatusBorrowTrans (BorrowTransStatusID),
-    FOREIGN KEY (Due_statusID) REFERENCES TB_M_Duestatus (Due_statusID)
+    FOREIGN KEY (TypeID) REFERENCES TB_M_Type (TypeID)
 );
 
 CREATE TABLE IF NOT EXISTS TB_T_Borrow (
@@ -212,3 +157,21 @@ VALUES ('พนักงานประจำ'),
     ('ลูกจ้างชั่วคราว'),
     ('ทดลองงาน'),
     ('ลาออก');
+
+-- 4. Notification Table
+CREATE TABLE IF NOT EXISTS TB_T_Notification (
+    NotificationID INT AUTO_INCREMENT PRIMARY KEY,
+    EMPID INT NOT NULL,
+    Title VARCHAR(255) NOT NULL,
+    Message TEXT NOT NULL,
+    Type ENUM(
+        'Success',
+        'Warning',
+        'Info',
+        'Error'
+    ) DEFAULT 'Info',
+    ActionUrl VARCHAR(255),
+    IsRead BOOLEAN DEFAULT FALSE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (EMPID) REFERENCES TB_T_Employee (EMPID) ON DELETE CASCADE
+);

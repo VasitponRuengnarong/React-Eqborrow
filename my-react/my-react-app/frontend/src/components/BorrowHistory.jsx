@@ -13,19 +13,31 @@ import {
 } from "lucide-react";
 import "./BorrowHistory.css";
 
-const BorrowHistory = () => {
+const History = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [filterStatus, setFilterStatus] = useState("All");
 
-  // Pagination Logic
+  // Filter Logic
+  const filteredHistory = history.filter((item) => {
+    if (filterStatus === "All") return true;
+    return item.Status === filterStatus;
+  });
+
+  // Pagination Logic (Updated to use filteredHistory)
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = history.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(history.length / itemsPerPage);
+  const currentItems = filteredHistory.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredHistory.length / itemsPerPage);
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStatus]);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -90,13 +102,42 @@ const BorrowHistory = () => {
         <p>ตรวจสอบสถานะและประวัติการทำรายการย้อนหลัง</p>
       </div>
 
+      {/* Filter Controls */}
+      <div className="history-filters" style={{ marginBottom: '20px', display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+        {['All', 'Pending', 'Approved', 'Returned', 'Rejected', 'Cancelled'].map(status => (
+          <button
+            key={status}
+            onClick={() => setFilterStatus(status)}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '20px',
+              border: '1px solid ' + (filterStatus === status ? '#FF6B00' : '#e2e8f0'),
+              background: filterStatus === status ? '#fff7ed' : 'white',
+              color: filterStatus === status ? '#FF6B00' : '#64748b',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              fontWeight: filterStatus === status ? '600' : '400',
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {status === 'All' ? 'ทั้งหมด' :
+             status === 'Pending' ? 'รออนุมัติ' :
+             status === 'Approved' ? 'อนุมัติแล้ว' :
+             status === 'Returned' ? 'คืนแล้ว' :
+             status === 'Rejected' ? 'ปฏิเสธ' :
+             status === 'Cancelled' ? 'ยกเลิก' : status}
+          </button>
+        ))}
+      </div>
+
       <div className="history-content">
         {loading ? (
           <div className="loading-state">กำลังโหลดข้อมูล...</div>
-        ) : history.length === 0 ? (
+        ) : filteredHistory.length === 0 ? (
           <div className="empty-state">
             <Package size={48} color="#9ca3af" />
-            <p>ยังไม่มีประวัติการยืมอุปกรณ์</p>
+            <p>{history.length === 0 ? "ยังไม่มีประวัติการยืมอุปกรณ์" : "ไม่พบรายการในสถานะนี้"}</p>
           </div>
         ) : (
           <div className="history-list">
@@ -154,7 +195,7 @@ const BorrowHistory = () => {
             ))}
             
             {/* Pagination Controls */}
-            {history.length > itemsPerPage && (
+            {filteredHistory.length > itemsPerPage && (
               <div className="pagination-container">
                 <div className="pagination-info">
                   หน้า <strong>{currentPage}</strong> จาก{" "}
@@ -183,4 +224,4 @@ const BorrowHistory = () => {
   );
 };
 
-export default BorrowHistory;
+export default History;

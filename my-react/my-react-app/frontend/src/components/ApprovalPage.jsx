@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import { apiFetch } from "./api";
 import Swal from "sweetalert2";
 import ImageDisplay from "./ImageDisplay"; // Import ImageDisplay
@@ -18,9 +19,10 @@ import {
 import "./ApprovalPage.css"; // สร้างไฟล์ CSS ใหม่สำหรับหน้านี้
 
 const ApprovalPage = () => {
+  const location = useLocation();
   const [borrows, setBorrows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("Pending"); // 'Pending', 'Approved'
+  const [filter, setFilter] = useState(location.state?.filter || "Pending"); // 'Pending', 'Approved', 'PendingReturn'
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -200,7 +202,11 @@ const ApprovalPage = () => {
       <div className="card-header">
         <div className="user-info">
           <div className="avatar">
-            <User size={20} />
+            {borrow.requesterImage ? (
+              <img src={borrow.requesterImage} alt="requester" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+            ) : (
+              <User size={20} />
+            )}
           </div>
           <div>
             <p className="user-name">
@@ -252,15 +258,16 @@ const ApprovalPage = () => {
             </button>
           </>
         )}
-        {borrow.Status === "Approved" && (
+        {(borrow.Status === "Approved" || borrow.Status === "PendingReturn") && (
           <button
             className="btn-return"
+            style={borrow.Status === "PendingReturn" ? { backgroundColor: "#ff8000", color: "white" } : {}}
             onClick={() => {
               setBorrowToReturn(borrow);
               setIsReturnModalOpen(true);
             }}
           >
-            <ArchiveRestore size={16} /> ยืนยันการคืน
+            <ArchiveRestore size={16} /> {borrow.Status === "PendingReturn" ? "ยืนยันรับคืนอุปกรณ์" : "คืนอุปกรณ์ (Manual)"}
           </button>
         )}
       </div>
@@ -277,17 +284,23 @@ const ApprovalPage = () => {
 
       <div className="approval-controls">
         <div className="tabs-container">
-          <button /* Add transition for background-color, color, box-shadow */
+          <button
             className={`tab-btn ${filter === "Pending" ? "active" : ""}`}
             onClick={() => setFilter("Pending")}
           >
-            รออนุมัติ
+            รออนุมัติยืม
           </button>
           <button
-            className={`tab-btn ${filter === "Approved" ? "active" : ""}`} /* Add transition for background-color, color, box-shadow */
+            className={`tab-btn ${filter === "Approved" ? "active" : ""}`}
             onClick={() => setFilter("Approved")}
           >
-            รอการคืน
+            รายการที่ถูกยืม
+          </button>
+          <button
+            className={`tab-btn ${filter === "PendingReturn" ? "active" : ""}`}
+            onClick={() => setFilter("PendingReturn")}
+          >
+            รออนุมัติคืน
           </button>
         </div>
         <div className="search-input-wrapper">

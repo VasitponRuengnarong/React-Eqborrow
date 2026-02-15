@@ -64,7 +64,7 @@ const MemberManagement = () => {
           institutionId: user.InstitutionID,
           DepartmentName: user.DepartmentName,
           InstitutionName: user.InstitutionName,
-          profileImage: null, // API currently doesn't return image in list
+          profileImage: user.image,
         }));
         setMembers(mappedMembers);
       } else {

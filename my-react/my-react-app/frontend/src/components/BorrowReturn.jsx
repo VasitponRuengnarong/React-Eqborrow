@@ -69,9 +69,9 @@ const BorrowReturn = () => {
       const response = await apiFetch(`/api/borrows/user/${user.id}`);
       if (response.ok) {
         const data = await response.json();
-        // Filter only Approved items that can be returned
-        const approved = data.filter((item) => item.Status === "Approved");
-        setActiveBorrows(approved);
+        // Filter only Approved or PendingReturn items
+        const active = data.filter((item) => item.Status === "Approved" || item.Status === "PendingReturn");
+        setActiveBorrows(active);
       }
     } catch (error) {
       console.error("Error fetching active borrows:", error);
@@ -227,11 +227,11 @@ const BorrowReturn = () => {
     try {
       const response = await apiFetch(`/api/borrows/${borrowId}/status`, {
         method: "PUT",
-        body: JSON.stringify({ status: "Returned" }),
+        body: JSON.stringify({ status: "PendingReturn" }),
       });
 
       if (response.ok) {
-        Swal.fire("สำเร็จ", "บันทึกการคืนอุปกรณ์เรียบร้อยแล้ว", "success");
+        Swal.fire("สำเร็จ", "ส่งคำขอคืนอุปกรณ์เรียบร้อยแล้ว รอการตรวจสอบจากเจ้าหน้าที่", "success");
         fetchActiveBorrows(); // Refresh list
       } else {
         const data = await response.json();
@@ -245,66 +245,7 @@ const BorrowReturn = () => {
 
   return (
     <div className="borrow-return-container">
-      <style>{`
-        .modern-select-wrapper {
-          position: relative;
-          flex: 2;
-          min-width: 250px;
-        }
-        .modern-input-group {
-          position: relative;
-          display: flex;
-          align-items: center;
-          width: 100%;
-        }
-        .modern-input {
-          width: 100%;
-          padding: 10px 12px 10px 40px;
-          border: 1px solid var(--border-color); /* Add transition for border-color */
-          border-radius: 8px;
-          font-size: 0.95rem;
-          transition: all 0.2s;
-          background: var(--input-bg); /* Add transition for background-color */
-          color: var(--text-primary); /* Add transition for color */
-        }
-        .modern-input:focus {
-          border-color: #ff8000;
-          box-shadow: 0 0 0 3px rgba(255, 128, 0, 0.1);
-          outline: none;
-        }
-        .input-icon {
-          position: absolute;
-          left: 12px;
-          color: var(--text-secondary); /* Add transition for color */
-          pointer-events: none;
-        }
-        .suggestions-list {
-          position: absolute;
-          top: 100%;
-          left: 0;
-          right: 0;
-          background: var(--bg-card); /* Add transition for background-color */
-          border: 1px solid var(--border-color); /* Add transition for border-color */
-          border-radius: 8px;
-          margin-top: 4px;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-          z-index: 50;
-          max-height: 250px;
-          overflow-y: auto;
-          list-style: none;
-          padding: 0;
-        }
-        .suggestion-item {
-          padding: 10px 16px;
-          cursor: pointer;
-          border-bottom: 1px solid var(--border-color); /* Add transition for border-color */
-          transition: background 0.1s;
-        }
-        .suggestion-item:last-child { border-bottom: none; }
-        .suggestion-item:hover { background: var(--hover-bg); color: #ff8000; } /* Add transition for background-color, color */
-        .suggestion-name { font-weight: 500; font-size: 0.9rem; color: var(--text-primary); } /* Add transition for color */
-        .suggestion-code { font-size: 0.8rem; color: var(--text-secondary); } /* Add transition for color */
-      `}</style>
+
       <div className="page-header">
         <h2>ระบบยืม-คืนอุปกรณ์</h2>
         <p>จัดการคำขอยืมและแจ้งคืนอุปกรณ์</p>
@@ -527,6 +468,7 @@ const BorrowReturn = () => {
                       <th>กำหนดคืน</th>
                       <th>วัตถุประสงค์</th>
                       <th>รายการอุปกรณ์</th>
+                      <th>จัดการ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -558,6 +500,18 @@ const BorrowReturn = () => {
                               </li>
                             ))}
                           </ul>
+                        </td>
+                        <td>
+                          {borrow.Status === "PendingReturn" ? (
+                            <span className="status-badge-pending">รอการตรวจสอบ</span>
+                          ) : (
+                            <button 
+                              className="return-btn-action"
+                              onClick={() => handleReturn(borrow.BorrowID)}
+                            >
+                              คืนอุปกรณ์
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}

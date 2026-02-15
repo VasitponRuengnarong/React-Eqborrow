@@ -9,7 +9,7 @@ const COLORS = {
     "ส่งซ่อม": '#f97316', // In Repair - Orange
     "ชำรุด": '#ef4444',   // Broken - Red
     "สูญหาย": '#64748b',
-   
+    
 };
 
 const StatusChartCard = ({ products }) => {

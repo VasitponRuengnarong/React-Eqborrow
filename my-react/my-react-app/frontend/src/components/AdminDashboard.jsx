@@ -235,120 +235,150 @@ const AdminDashboard = () => {
         <CategoryChartCard products={filteredProducts} />
       </div>
 
-      {/* Operations Section */}
-      <div className="section-title">
-        <span>Recent Operations</span>
-      </div>
 
       <div className="operations-grid">
-        {/* Recent Activity Table */}
-        <div className="chart-card recent-activity" style={{ height: '100%' }}>
+        {/* Recent Activity List */}
+        <div className="chart-card recent-activity-premium">
           <div className="chart-header">
             <Activity size={20} />
             <h2>Recent Activity</h2>
           </div>
-          <div
-            className="table-container"
-            style={{ boxShadow: "none", padding: 0 }}
-          >
-            <table style={{ minWidth: "100%" }}>
-              <thead>
-                <tr>
-                  <th>User Name</th>
-                  <th>Equipment</th>
-                  <th>Date</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentActivityItems.length > 0 ? (
-                  currentActivityItems.map((item) => (
-                    <tr key={item.BorrowID}>
-                      <td>
-                        {item.fname} {item.lname}
-                      </td>
-                      <td>{item.EquipmentName}</td>
-                      <td>
+          <div className="activity-list-premium">
+            {currentActivityItems.length > 0 ? (
+              currentActivityItems.map((item) => (
+                <div key={item.BorrowID} className="activity-item-premium">
+                  <div className="activity-user-info">
+                    <div className="user-avatar-placeholder" style={{ overflow: 'hidden' }}>
+                      {item.requesterImage ? (
+                        <img src={item.requesterImage} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        item.fname ? item.fname.charAt(0).toUpperCase() : 'U'
+                      )}
+                    </div>
+                    <div className="user-details">
+                      <span className="user-name">{item.fname} {item.lname}</span>
+                      <span className="activity-date">
                         {new Date(item.CreatedDate).toLocaleDateString("th-TH")}
-                      </td>
-                      <td>
-                        <span
-                          className={`status-dot ${
-                            item.Status === "Approved"
-                              ? "active"
-                              : item.Status === "Pending"
-                                ? "borrowed"
-                                : item.Status === "Returned"
-                                  ? "available"
-                                  : "inactive"
-                          }`}
-                        >
-                          {item.Status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4" className="no-data">
-                      No recent activity
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="activity-content-info">
+                    <span className="equipment-name">{item.EquipmentName}</span>
+                    <span
+                      className={`status-chip ${
+                        item.Status === "Approved"
+                          ? "approved"
+                          : item.Status === "Pending"
+                            ? "pending"
+                            : item.Status === "Returned"
+                              ? "returned"
+                              : "rejected"
+                      }`}
+                    >
+                      {item.Status}
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="no-activity">
+                <Activity size={40} strokeWidth={1} />
+                <p>No recent activity found</p>
+              </div>
+            )}
           </div>
+          
           {/* Pagination Controls */}
           {stats.recentActivity.length > itemsPerPage && (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', padding: '15px 0', borderTop: '1px solid #eee' }}>
+            <div className="pagination-compact">
               <button 
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                style={{ padding: '5px 10px', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', border: '1px solid #ddd', borderRadius: '4px', background: '#fff' }}
+                className="paging-btn"
               >
-                &lt; Previous
+                Previous
               </button>
-              <span style={{ fontSize: '14px', color: '#666' }}>Page {currentPage} of {totalPages}</span>
+              <span className="page-info">
+                Page {currentPage} of {totalPages}
+              </span>
               <button 
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                style={{ padding: '5px 10px', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', border: '1px solid #ddd', borderRadius: '4px', background: '#fff' }}
+                className="paging-btn"
               >
-                Next &gt;
+                Next
               </button>
             </div>
           )}
         </div>
 
         {/* Low Stock Alerts */}
-        <div className={`chart-card alert-card-container ${lowStockItems.length === 0 ? 'healthy' : ''}`} style={{ height: 'fit-content' }}>
-              <div className="chart-header">
+        <div className={`chart-card alert-card-premium ${lowStockItems.length === 0 ? 'healthy' : 'warning-stock'}`} style={{ height: 'fit-content' }}>
+          <div className="chart-header">
             <AlertTriangle size={20} color={lowStockItems.length > 0 ? "#dc2626" : "#4caf50"} />
             <h2 style={{ color: lowStockItems.length > 0 ? "#dc2626" : "#4caf50" }}>
               {lowStockItems.length > 0 ? "Low Stock Alerts" : "System Status"}
             </h2>
-              </div>
+          </div>
+          
           {lowStockItems.length > 0 ? (
-              <div className="alert-list">
-                {lowStockItems.slice(0, 5).map((item, idx) => (
-                  <div key={idx} className="alert-item">
-                    <span className="alert-name">{item.DeviceName}</span>
-                    <span className="alert-count">
-                      เหลือ {item.AvailableCount}
-                    </span>
+            <div className="alert-list-premium">
+              {lowStockItems.slice(0, 5).map((item, idx) => (
+                <div key={idx} className="alert-item-premium">
+                  <div className="alert-item-left">
+                    <div className="alert-image-wrapper">
+                      {item.image ? (
+                        <img src={item.image} alt={item.DeviceName} />
+                      ) : (
+                        <div className="alert-placeholder">N/A</div>
+                      )}
+                    </div>
+                    <div className="alert-details">
+                      <span className="alert-name">{item.DeviceName}</span>
+                      <span className="alert-code">#{item.DeviceCode || 'NO-CODE'}</span>
+                    </div>
                   </div>
-                ))}
-                {lowStockItems.length > 5 && (
-                  <div className="alert-more">
-                    +{lowStockItems.length - 5} more items
+                  
+                  <div className="alert-item-right">
+                    <div className="stock-progress-container">
+                      <div className="stock-info">
+                        <span className={`stock-level ${item.AvailableCount <= 1 ? 'critical' : ''}`}>
+                          {item.AvailableCount} ชิ้นเหลืออยู่
+                        </span>
+                        <span className="stock-threshold">เป้าหมาย: 5</span>
+                      </div>
+                      <div className="progress-bar-bg">
+                        <div 
+                          className={`progress-bar-fill ${item.AvailableCount <= 1 ? 'critical' : 'warning'}`}
+                          style={{ width: `${Math.min((item.AvailableCount / 5) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <button 
+                      className="manage-stock-btn"
+                      onClick={() => navigate("/products")}
+                    >
+                      Manage
+                    </button>
                   </div>
-                )}
-              </div>
+                </div>
+              ))}
+              {lowStockItems.length > 5 && (
+                <div className="alert-more-premium" onClick={() => navigate("/products")}>
+                  See all {lowStockItems.length} items with low stock
+                </div>
+              )}
+            </div>
           ) : (
-            <div style={{ padding: '20px', textAlign: 'center', color: '#4caf50', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <CheckSquare size={40} style={{ marginBottom: '10px', opacity: 0.8 }} />
-              <p style={{ margin: 0, fontSize: '14px' }}>All systems operational</p>
-              <p style={{ margin: '5px 0 0 0', fontSize: '12px', opacity: 0.7 }}>Stock levels are healthy</p>
+            <div className="system-healthy-container">
+              <div className="healthy-icon-wrapper">
+                <CheckSquare size={48} />
+              </div>
+              <div className="healthy-text">
+                <h3>All Systems Operational</h3>
+                <p>Stock levels are currently healthy across all items.</p>
+              </div>
             </div>
           )}
         </div>
